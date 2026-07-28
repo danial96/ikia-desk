@@ -14,12 +14,6 @@ $csrf    = csrf_token();
 @endphp
 
 <style>
-@keyframes panelSlideIn  { from{transform:translateX(-60px);opacity:0} to{transform:translateX(0);opacity:1} }
-@keyframes panelSlideOut { from{transform:translateX(0);opacity:1} to{transform:translateX(-80px);opacity:0} }
-@keyframes iePop         { from{transform:scale(.9);opacity:0} to{transform:scale(1);opacity:1} }
-@keyframes editSlideUp   { from{transform:translateY(24px);opacity:0} to{transform:translateY(0);opacity:1} }
-.task-panel         { animation:panelSlideIn .32s cubic-bezier(.22,1,.36,1); }
-.task-panel.closing { animation:panelSlideOut .22s cubic-bezier(.4,0,1,1) forwards; }
 
 .tp-lscroll::-webkit-scrollbar { width:4px; }
 .tp-lscroll::-webkit-scrollbar-thumb { background:#cbd5e1;border-radius:4px; }
@@ -40,7 +34,7 @@ $csrf    = csrf_token();
 .ie-display:hover { background:#f0f9ff;border-color:#bae6fd; }
 .ie-display:hover .ie-pen { opacity:1; }
 .ie-pen     { opacity:0;font-size:9px;color:#94a3b8;margin-left:auto;transition:opacity .15s; }
-.ie-picker  { position:absolute;top:calc(100% + 3px);left:-7px;z-index:300;background:#fff;border:1.5px solid #e2e8f0;border-radius:10px;box-shadow:0 8px 28px rgba(0,0,0,.14);min-width:210px;max-width:270px;animation:iePop .17s cubic-bezier(.22,1,.36,1);overflow:hidden; }
+.ie-picker  { position:absolute;top:calc(100% + 3px);left:-7px;z-index:300;background:#fff;border:1.5px solid #e2e8f0;border-radius:10px;box-shadow:0 8px 28px rgba(0,0,0,.14);min-width:210px;max-width:270px;overflow:hidden; }
 .ie-search  { width:100%;padding:8px 12px;border:none;border-bottom:1px solid #f1f5f9;font-size:12.5px;outline:none;background:#f8fafc;box-sizing:border-box; }
 .ie-opts    { max-height:190px;overflow-y:auto; }
 .ie-opt     { display:flex;align-items:center;gap:8px;padding:7px 12px;cursor:pointer;font-size:12.5px;color:#374151;transition:background .1s; }
@@ -497,7 +491,7 @@ $csrf    = csrf_token();
 <div id="editTaskModal" onclick="if(event.target===this)closeEditModal()"
      style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.35);backdrop-filter:blur(4px);align-items:center;justify-content:center;padding:20px;">
     <div onclick="event.stopPropagation()"
-         style="background:#fff;border:1.5px solid #e2e8f0;border-radius:18px;width:100%;max-width:500px;padding:28px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.15);animation:editSlideUp .28s cubic-bezier(.22,1,.36,1);">
+         style="background:#fff;border:1.5px solid #e2e8f0;border-radius:18px;width:100%;max-width:500px;padding:28px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.15);">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
             <h2 style="font-size:15px;font-weight:700;color:#0f172a;margin:0;">Edit Task</h2>
             <button onclick="closeEditModal()" style="background:#f1f5f9;border:none;border-radius:8px;color:#64748b;cursor:pointer;width:30px;height:30px;display:flex;align-items:center;justify-content:center;">

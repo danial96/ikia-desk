@@ -149,7 +149,7 @@
         {{-- Loading skeleton --}}
         <div id="b24-loading" style="padding:14px 20px;display:flex;flex-direction:column;gap:10px;">
             @for($i=0;$i<4;$i++)
-            <div style="display:flex;align-items:center;gap:12px;animation:b24pulse 1.4s ease-in-out infinite;animation-delay:{{ $i*0.15 }}s;">
+            <div style="display:flex;align-items:center;gap:12px;opacity:.6;">
                 <div style="width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.1);flex-shrink:0;"></div>
                 <div style="flex:1;height:13px;border-radius:6px;background:rgba(255,255,255,.07);"></div>
                 <div style="width:60px;height:13px;border-radius:6px;background:rgba(255,255,255,.05);"></div>
@@ -171,9 +171,7 @@
 </div>
 
 <style>
-@keyframes b24pulse { 0%,100%{opacity:.6} 50%{opacity:1} }
-@keyframes b24fadeIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
-.b24-row { display:flex;align-items:center;gap:12px;padding:12px 20px;border-bottom:1px solid rgba(255,255,255,.04);text-decoration:none;transition:background .15s;animation:b24fadeIn .25s ease both; }
+.b24-row { display:flex;align-items:center;gap:12px;padding:12px 20px;border-bottom:1px solid rgba(255,255,255,.04);text-decoration:none; }
 .b24-row:hover { background:rgba(255,255,255,.05); }
 .b24-row:last-child { border-bottom:none; }
 </style>

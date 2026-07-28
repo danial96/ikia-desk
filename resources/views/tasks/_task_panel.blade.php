@@ -5,14 +5,9 @@
 --}}
 
 <style>
-@keyframes tpSlideUp   { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
-@keyframes tpSlideIn   { from{opacity:0;transform:translateX(40px)} to{opacity:1;transform:translateX(0)} }
-@keyframes tpPulse     { 0%,100%{opacity:.35} 50%{opacity:.65} }
-#tp-overlay { transition:opacity .25s ease; }
-#tp-panel   { transition:transform .28s cubic-bezier(.4,0,.2,1), opacity .25s ease; }
-#tp-panel.tp-entering { animation:tpSlideIn .28s cubic-bezier(.4,0,.2,1) both; }
-.tp-msg-bubble { animation:tpSlideUp .16s ease; }
-.tp-skel { animation:tpPulse 1.4s ease-in-out infinite; background:rgba(0,0,0,.07); border-radius:6px; }
+#tp-overlay { transition:opacity .15s ease; }
+#tp-panel   { transition:opacity .15s ease; }
+.tp-skel { background:rgba(0,0,0,.07); border-radius:6px; }
 .tp-pill {
     display:inline-flex;align-items:center;gap:5px;padding:5px 14px;border-radius:20px;
     font-size:11.5px;font-weight:600;cursor:pointer;border:1.5px solid transparent;
