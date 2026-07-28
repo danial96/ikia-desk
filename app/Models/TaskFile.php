@@ -1,0 +1,24 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+
+class TaskFile extends Model
+{
+    protected $fillable = [
+        'task_id', 'uploaded_by', 'bitrix_file_id',
+        'name', 'size', 'mime_type', 'disk_path', 'bitrix_download_url',
+    ];
+
+    public function task()     { return $this->belongsTo(Task::class); }
+    public function uploader() { return $this->belongsTo(User::class, 'uploaded_by'); }
+
+    public function getDownloadUrlAttribute(): string
+    {
+        if ($this->disk_path) {
+            return asset('uploads/' . basename($this->disk_path));
+        }
+        return $this->bitrix_download_url ?? '#';
+    }
+}
