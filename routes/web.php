@@ -136,7 +136,7 @@ Route::middleware('auth')->group(function () {
         $request->validate(['file' => 'required|file|max:20480']);
         $file     = $request->file('file');
         $origName = $file->getClientOriginalName();
-        $mime     = $file->getMimeType() ?? '';
+        $mime     = $file->getClientMimeType() ?? '';
         $ext      = strtolower($file->getClientOriginalExtension());
         $fileSize = $file->getSize() ?: 0;
         $filename = 'up_' . uniqid() . '.' . $ext;
@@ -255,7 +255,7 @@ Route::middleware('auth')->group(function () {
             $request->validate(['file' => 'required|file|max:51200']);
             $file     = $request->file('file');
             $origName = $file->getClientOriginalName();
-            $mime     = $file->getMimeType() ?? '';
+            $mime     = $file->getClientMimeType() ?? '';
             $ext      = strtolower($file->getClientOriginalExtension()) ?: 'bin';
             $filename = 'up_' . uniqid() . '.' . $ext;
 
@@ -280,47 +280,46 @@ Route::middleware('auth')->group(function () {
     // ── Chat Panel API ──
     Route::get('/api/chat/convs', function () {
         $user = auth()->user();
-        // Touch last_seen_at on every poll
         $user->forceFill(['last_seen_at' => now()])->save();
 
         $convs = $user->conversations()->with(['lastMessage.user','members'])->get()
             ->filter(fn($c) => $c->lastMessage !== null)
             ->sortByDesc(fn($c) => $c->lastMessage->created_at)->values();
 
-        // Build unread counts in one query per conv (fast enough for small lists)
         $memberRows = \App\Models\ConversationMember::where('user_id', $user->id)->get()->keyBy('conversation_id');
+
+        // Single query for ALL unread counts — replaces N per-conv count queries
+        $unreadCounts = \Illuminate\Support\Facades\DB::table('messages')
+            ->join('conversation_members', function ($j) use ($user) {
+                $j->on('messages.conversation_id', '=', 'conversation_members.conversation_id')
+                  ->where('conversation_members.user_id', '=', $user->id);
+            })
+            ->where('messages.user_id', '!=', $user->id)
+            ->whereNull('messages.deleted_at')
+            ->whereRaw('messages.created_at > COALESCE(conversation_members.last_read_at, "2000-01-01")')
+            ->groupBy('messages.conversation_id')
+            ->selectRaw('messages.conversation_id, COUNT(*) as cnt')
+            ->pluck('cnt', 'messages.conversation_id');
 
         $general = \App\Models\Conversation::where('type','general')->with(['lastMessage.user','members'])->first();
         $list = [];
         if ($general) {
-            $lm      = $general->lastMessage;
-            $memRow  = $memberRows->get($general->id);
-            $unread  = $memRow
-                ? $general->messages()->where('user_id','!=',$user->id)
-                    ->where('created_at','>',$memRow->last_read_at ?? '2000-01-01')
-                    ->whereNull('deleted_at')->count()
-                : 0;
+            $lm     = $general->lastMessage;
             $list[] = ['id'=>$general->id,'type'=>'general','name'=>'General Chat','avatar'=>null,'members'=>0,
-                'unread'  => $unread,
+                'unread'  => $unreadCounts->get($general->id, 0),
                 'online'  => false,
                 'lastMsg' => $lm ? ['text'=>$lm->content,'byMe'=>$lm->user_id===$user->id,'senderName'=>$lm->user?->name,'time'=>$lm->created_at->format('H:i')] : null];
         }
         foreach ($convs as $c) {
             if ($c->type==='general') continue;
-            $other   = $c->type==='direct' ? $c->members->where('id','!=',$user->id)->first() : null;
-            $lm      = $c->lastMessage;
-            $memRow  = $memberRows->get($c->id);
-            $unread  = $memRow
-                ? $c->messages()->where('user_id','!=',$user->id)
-                    ->where('created_at','>',$memRow->last_read_at ?? '2000-01-01')
-                    ->whereNull('deleted_at')->count()
-                : 0;
+            $other  = $c->type==='direct' ? $c->members->where('id','!=',$user->id)->first() : null;
+            $lm     = $c->lastMessage;
             $online = $other && $other->last_seen_at && $other->last_seen_at->diffInMinutes(now()) < 5;
             $list[] = ['id'=>$c->id,'type'=>$c->type,
                 'name'    => $c->type==='direct' ? ($other?->name??'Unknown') : ($c->name??'Group'),
                 'avatar'  => $c->type==='direct' ? ($other?->avatar_url??null) : null,
                 'members' => $c->members->count(),
-                'unread'  => $unread,
+                'unread'  => $unreadCounts->get($c->id, 0),
                 'online'  => $online,
                 'lastMsg' => $lm ? ['text'=>$lm->content,'byMe'=>$lm->user_id===$user->id,'senderName'=>$lm->user?->name,'time'=>$lm->created_at->format('H:i')] : null,
             ];
