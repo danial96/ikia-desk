@@ -251,19 +251,30 @@ Route::middleware('auth')->group(function () {
 
     // ── File Upload API ──
     Route::post('/api/upload', function (\Illuminate\Http\Request $request) {
-        $request->validate(['file' => 'required|file|max:20480']);
-        $file     = $request->file('file');
-        $origName = $file->getClientOriginalName();
-        $mime     = $file->getMimeType() ?? '';
-        $ext      = strtolower($file->getClientOriginalExtension());
-        $filename = 'up_' . uniqid() . '.' . $ext;
-        $file->move(public_path('uploads'), $filename);
-        return response()->json([
-            'url'  => asset('uploads/' . $filename),
-            'name' => $origName,
-            'mime' => $mime,
-            'ext'  => $ext,
-        ]);
+        try {
+            $request->validate(['file' => 'required|file|max:51200']);
+            $file     = $request->file('file');
+            $origName = $file->getClientOriginalName();
+            $mime     = $file->getMimeType() ?? '';
+            $ext      = strtolower($file->getClientOriginalExtension()) ?: 'bin';
+            $filename = 'up_' . uniqid() . '.' . $ext;
+
+            $uploadPath = public_path('uploads');
+            if (!is_dir($uploadPath)) {
+                mkdir($uploadPath, 0777, true);
+            }
+
+            $file->move($uploadPath, $filename);
+
+            return response()->json([
+                'url'  => asset('uploads/' . $filename),
+                'name' => $origName,
+                'mime' => $mime,
+                'ext'  => $ext,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage(), 'path' => public_path('uploads')], 500);
+        }
     });
 
     // ── Chat Panel API ──
