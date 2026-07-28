@@ -1367,7 +1367,7 @@ window.uploadAndInsert = async function(textareaId, fileInputId, previewId) {
         const fd = new FormData();
         fd.append('file', file);
         fd.append('_token', CSRF);
-        const r = await fetch(API_BASE + '/api/upload', { method: 'POST', body: fd });
+        const r = await fetch(API_BASE + '/api/upload', { method: 'POST', body: fd, headers: { 'Accept': 'application/json' } });
         const d = await r.json();
         if (d.url) {
             const imgExts = ['jpg','jpeg','png','gif','webp','bmp','svg'];
@@ -1428,7 +1428,7 @@ window.uploadFileDirect = async function(file, textareaId, previewId) {
         const fd = new FormData();
         fd.append('file', file);
         fd.append('_token', CSRF);
-        const r = await fetch(API_BASE + '/api/upload', { method: 'POST', body: fd });
+        const r = await fetch(API_BASE + '/api/upload', { method: 'POST', body: fd, headers: { 'Accept': 'application/json' } });
         const d = await r.json();
         if (d.url) {
             const imgExts = ['jpg','jpeg','png','gif','webp','bmp','svg'];
@@ -1701,7 +1701,7 @@ window.vnSend = function(panel) {
             const fd = new FormData();
             fd.append('file', blob, 'voice_' + Date.now() + '.' + ext);
             fd.append('_token', CSRF);
-            const r = await fetch(API_BASE + '/api/upload', { method: 'POST', body: fd });
+            const r = await fetch(API_BASE + '/api/upload', { method: 'POST', body: fd, headers: { 'Accept': 'application/json' } });
             const d = await r.json();
             if (!d.url) throw new Error('No URL');
             const tag = `[voice dur="${dur}"]${d.url}[/voice]`;
