@@ -88,6 +88,70 @@
         @keyframes float1 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(30px,-40px) scale(1.06)} }
         @keyframes float2 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(-35px,30px) scale(1.08)} }
         @keyframes float3 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(20px,35px) scale(0.96)} }
+        @keyframes ikiaFadeUp   { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+        @keyframes ikiaFadeIn   { from{opacity:0} to{opacity:1} }
+        @keyframes ikiaSlideIn  { from{opacity:0;transform:translateX(-12px)} to{opacity:1;transform:translateX(0)} }
+        @keyframes ikirPulseRing{ 0%{box-shadow:0 0 0 0 rgba(0,212,232,.45)} 70%{box-shadow:0 0 0 8px rgba(0,212,232,0)} 100%{box-shadow:0 0 0 0 rgba(0,212,232,0)} }
+        @keyframes shimmer      { 0%{background-position:-400px 0} 100%{background-position:400px 0} }
+        @keyframes vnPulse      { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(.8)} }
+
+        /* ── Global smooth interactions ── */
+        *, *::before, *::after { box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+
+        /* Page fade-in on load */
+        #app-shell { animation: ikiaFadeIn .35s ease both; }
+
+        /* GPU layer for backdrop-filter elements */
+        #sidebar, #topbar { transform: translateZ(0); will-change: transform; }
+
+        /* Card hover lift */
+        .ikia-card-hover {
+            transition: transform .22s cubic-bezier(.34,1.56,.64,1), box-shadow .22s ease !important;
+        }
+        .ikia-card-hover:hover {
+            transform: translateY(-3px) !important;
+            box-shadow: 0 8px 28px rgba(0,0,0,.28) !important;
+        }
+
+        /* Button active press */
+        .ikia-btn { transition: opacity .18s, box-shadow .18s, transform .12s !important; }
+        .ikia-btn:active { transform: scale(.96) !important; }
+
+        /* Nav link smooth */
+        .nav-link { transition: background .18s cubic-bezier(.4,0,.2,1), color .18s, padding-left .18s !important; }
+        .nav-link:hover { padding-left: 22px !important; }
+
+        /* Smooth avatar ring pulse on online */
+        .avatar-online { animation: ikirPulseRing 2.4s cubic-bezier(.455,.03,.515,.955) infinite; }
+
+        /* Content section staggered fade-in */
+        .ikia-fade-1 { animation: ikiaFadeUp .38s .05s ease both; }
+        .ikia-fade-2 { animation: ikiaFadeUp .38s .12s ease both; }
+        .ikia-fade-3 { animation: ikiaFadeUp .38s .19s ease both; }
+        .ikia-fade-4 { animation: ikiaFadeUp .38s .26s ease both; }
+
+        /* Smooth scrollbar */
+        ::-webkit-scrollbar { width:5px; height:5px; }
+        ::-webkit-scrollbar-track { background:transparent; }
+        ::-webkit-scrollbar-thumb { background:rgba(255,255,255,.15); border-radius:99px; }
+        ::-webkit-scrollbar-thumb:hover { background:rgba(255,255,255,.28); }
+
+        /* Ripple button */
+        .ikia-btn { position:relative; overflow:hidden; }
+        .ikia-btn .ripple {
+            position:absolute; border-radius:50%; transform:scale(0);
+            background:rgba(255,255,255,.3); animation:rippleAnim .5s linear;
+            pointer-events:none;
+        }
+        @keyframes rippleAnim { to { transform:scale(4); opacity:0; } }
+
+        /* Smooth focus ring */
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            box-shadow: 0 0 0 2.5px rgba(0,212,232,.4);
+            transition: box-shadow .18s;
+        }
 
         /* ─── Layout skeleton ─── */
         #app-shell {
@@ -484,7 +548,7 @@
         @endif
 
         {{-- Page content --}}
-        <main style="padding:20px;flex:1;">
+        <main style="padding:20px;flex:1;animation:ikiaFadeUp .32s ease both;">
             @yield('content')
         </main>
     </div>
@@ -1730,6 +1794,31 @@ document.addEventListener('DOMContentLoaded', function() {
     if (localStorage.getItem('nt_open') === '1') {
         setTimeout(() => openTaskModal(), 150);
     }
+
+    // ── Ripple effect on all .ikia-btn buttons ──
+    document.addEventListener('click', function(e) {
+        const btn = e.target.closest('.ikia-btn');
+        if (!btn) return;
+        const r = document.createElement('span');
+        r.className = 'ripple';
+        const rect = btn.getBoundingClientRect();
+        const size = Math.max(rect.width, rect.height);
+        r.style.cssText = `width:${size}px;height:${size}px;left:${e.clientX-rect.left-size/2}px;top:${e.clientY-rect.top-size/2}px;`;
+        btn.appendChild(r);
+        setTimeout(() => r.remove(), 520);
+    });
+
+    // ── Staggered fade-in for page cards ──
+    document.querySelectorAll('.stat-card, .ikia-card').forEach((el, i) => {
+        el.style.animation = `ikiaFadeUp .35s ${i * 0.06}s ease both`;
+    });
+
+    // ── Smooth hover on right-panel avatars ──
+    document.querySelectorAll('#right-panel .user-avatar-wrap').forEach(el => {
+        el.style.transition = 'transform .18s cubic-bezier(.34,1.56,.64,1)';
+        el.addEventListener('mouseenter', () => el.style.transform = 'scale(1.12)');
+        el.addEventListener('mouseleave', () => el.style.transform = 'scale(1)');
+    });
 });
 document.addEventListener('keydown', function(e){ if(e.key==='Escape') { closeTaskModal(); notifClose(); } });
 

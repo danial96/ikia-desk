@@ -5,9 +5,12 @@
 --}}
 
 <style>
-@keyframes tpSlideUp { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
-@keyframes tpPulse   { 0%,100%{opacity:.35} 50%{opacity:.65} }
-#tp-overlay { transition:opacity .22s ease; }
+@keyframes tpSlideUp   { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+@keyframes tpSlideIn   { from{opacity:0;transform:translateX(40px)} to{opacity:1;transform:translateX(0)} }
+@keyframes tpPulse     { 0%,100%{opacity:.35} 50%{opacity:.65} }
+#tp-overlay { transition:opacity .25s ease; }
+#tp-panel   { transition:transform .28s cubic-bezier(.4,0,.2,1), opacity .25s ease; }
+#tp-panel.tp-entering { animation:tpSlideIn .28s cubic-bezier(.4,0,.2,1) both; }
 .tp-msg-bubble { animation:tpSlideUp .16s ease; }
 .tp-skel { animation:tpPulse 1.4s ease-in-out infinite; background:rgba(0,0,0,.07); border-radius:6px; }
 .tp-pill {
@@ -449,6 +452,9 @@ window.tpOpen = function(type, id) {
     _currentTaskId=id; _currentTaskType=type;
     const ov=$('tp-overlay');
     ov.style.display='flex'; void ov.offsetWidth; ov.style.opacity='1';
+    const panel=$('tp-panel');
+    panel.classList.add('tp-entering');
+    setTimeout(()=>panel.classList.remove('tp-entering'),300);
     document.body.style.overflow='hidden';
     tpSkeleton();
     const sp=new URLSearchParams(location.search);
