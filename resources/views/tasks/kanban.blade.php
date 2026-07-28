@@ -2,6 +2,13 @@
 @section('title', 'Kanban Board')
 @section('page-title', 'Tasks')
 
+@push('styles')
+<style>
+.kb-card { transition: transform .13s ease; cursor: pointer; }
+.kb-card:hover { transform: translateY(-2px); }
+</style>
+@endpush
+
 @section('content')
 <div id="nt-tasks-content" style="min-width:0;">
 
@@ -70,7 +77,7 @@
 
                 @forelse($tasks as $task)
                 <div id="kb-task-{{ $task->id }}" data-task-id="{{ $task->id }}" onclick="tpOpen('local', {{ $task->id }})"
-                   style="background:#fff;border-radius:10px;padding:12px;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.12);">
+                   class="kb-card" style="background:#fff;border-radius:10px;padding:12px;box-shadow:0 1px 4px rgba(0,0,0,.12);">
 
                     {{-- Title --}}
                     <p style="font-size:12.5px;font-weight:600;color:#1a1a2e;margin:0 0 7px;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">{{ $task->title }}</p>
@@ -385,7 +392,7 @@
         const avatar = t.responsible && t.responsible.icon
             ? `<img src="${t.responsible.icon}" style="width:24px;height:24px;border-radius:50%;border:2px solid #e2e8f0;object-fit:cover;" title="${resp}" alt="">`
             : `<div style="width:24px;height:24px;border-radius:50%;background:#6366f1;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;">${resp.charAt(0)}</div>`;
-        return `<div style="display:block;background:#fff;border-radius:10px;padding:12px;box-shadow:0 1px 4px rgba(0,0,0,.12);border-left:3px solid #00D4E8;cursor:pointer;"
+        return `<div class="kb-card" style="display:block;background:#fff;border-radius:10px;padding:12px;box-shadow:0 1px 4px rgba(0,0,0,.12);border-left:3px solid #00D4E8;"
             onclick="tpOpen('b24', ${t.id})"
             <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:6px;margin-bottom:6px;">
                 <p style="font-size:12.5px;font-weight:600;color:#1a1a2e;margin:0;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${t.title}</p>

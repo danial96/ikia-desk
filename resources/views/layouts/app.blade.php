@@ -62,23 +62,47 @@
                 radial-gradient(ellipse 30% 50% at 5%  80%,  rgba(0,220,200,.30)   0%, transparent 55%);
         }
 
-        @keyframes spin { to { transform: rotate(360deg); } }
-        @keyframes shimmer { 0%{background-position:-400px 0} 100%{background-position:400px 0} }
+        /* ── Performant keyframes (transform+opacity only = GPU compositor) ── */
+        @keyframes spin       { to { transform: rotate(360deg); } }
+        @keyframes shimmer    { 0%{background-position:-400px 0} 100%{background-position:400px 0} }
+        @keyframes ikFadeIn   { from{opacity:0} to{opacity:1} }
+        @keyframes ikSlideUp  { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+        @keyframes ikSlideIn  { from{opacity:0;transform:translateX(18px)} to{opacity:1;transform:translateX(0)} }
 
-        /* ── Global smooth interactions ── */
+        /* ── Global interactions ── */
         *, *::before, *::after { box-sizing: border-box; }
         html { scroll-behavior: smooth; }
 
-        /* Nav link hover */
-        .nav-link:hover { background: rgba(255,255,255,.08) !important; }
+        /* Page load — single one-time fade (cheap) */
+        #app-shell { animation: ikFadeIn .22s ease both; }
+
+        /* Nav links */
+        .nav-link { transition: background .13s ease, color .13s ease !important; }
+        .nav-link:hover { background: rgba(255,255,255,.10) !important; }
+        .nav-link.active { background: rgba(0,212,232,.15) !important; }
+
+        /* Card hover — transform only (GPU, no repaint) */
+        .ikia-card-hover { transition: transform .14s ease !important; }
+        .ikia-card-hover:hover { transform: translateY(-2px) !important; }
+
+        /* Button */
+        .ikia-btn { position:relative; overflow:hidden; transition: opacity .12s ease !important; }
+        .ikia-btn:hover { opacity: .88 !important; }
+
+        /* Staggered section fade-in (one-time) */
+        .ikia-fade-1 { animation: ikSlideUp .24s .04s ease both; }
+        .ikia-fade-2 { animation: ikSlideUp .24s .09s ease both; }
+        .ikia-fade-3 { animation: ikSlideUp .24s .14s ease both; }
+        .ikia-fade-4 { animation: ikSlideUp .24s .19s ease both; }
+
+        /* Online indicator — static ring, no animation */
+        .avatar-online { outline: 2px solid #00D4E8; outline-offset: 1px; }
 
         /* Smooth scrollbar */
         ::-webkit-scrollbar { width:5px; height:5px; }
         ::-webkit-scrollbar-track { background:transparent; }
         ::-webkit-scrollbar-thumb { background:rgba(255,255,255,.15); border-radius:99px; }
         ::-webkit-scrollbar-thumb:hover { background:rgba(255,255,255,.28); }
-
-        .ikia-btn { position:relative; overflow:hidden; }
 
         /* Smooth focus ring */
         input:focus, textarea:focus, select:focus {
@@ -323,6 +347,7 @@
             padding: 20px;
         }
     </style>
+    @stack('styles')
 </head>
 <body x-data="appShell()" x-init="init()">
 
@@ -633,7 +658,7 @@
                     <i class="fas fa-trash" style="font-size:13px;"></i>
                 </button>
                 <div style="flex:1;display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:9px 14px;">
-                    <div style="width:8px;height:8px;border-radius:50%;background:#ef4444;flex-shrink:0;"></div>
+                    <div style="width:8px;height:8px;border-radius:50%;background:#ef4444;animation:vnDot 1.2s ease-in-out infinite;flex-shrink:0;"></div>
                     <span style="color:rgba(255,255,255,.55);font-size:12px;">Recording</span>
                     <span id="chat-vn-timer" style="color:#fff;font-weight:700;font-size:13px;min-width:30px;margin-left:auto;">0:00</span>
                 </div>
@@ -691,8 +716,10 @@
 </div>
 
 <style>
+@keyframes chatSlideIn { from{opacity:0;transform:translateX(20px)} to{opacity:1;transform:translateX(0)} }
+@keyframes vnDot       { 0%,100%{opacity:1} 50%{opacity:.35} }
 #chat-panel { display:none; }
-#chat-panel.chat-open { display:flex !important; }
+#chat-panel.chat-open { display:flex !important; animation: chatSlideIn .2s ease both; }
 #chat-new-direct-modal.chat-open { display:flex !important; }
 #chat-new-group-modal.chat-open  { display:flex !important; }
 

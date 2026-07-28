@@ -171,7 +171,8 @@
 </div>
 
 <style>
-.b24-row { display:flex;align-items:center;gap:12px;padding:12px 20px;border-bottom:1px solid rgba(255,255,255,.04);text-decoration:none; }
+@keyframes b24In { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+.b24-row { display:flex;align-items:center;gap:12px;padding:12px 20px;border-bottom:1px solid rgba(255,255,255,.04);text-decoration:none;animation:b24In .2s ease both;transition:background .12s; }
 .b24-row:hover { background:rgba(255,255,255,.05); }
 .b24-row:last-child { border-bottom:none; }
 </style>

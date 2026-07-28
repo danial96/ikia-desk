@@ -5,8 +5,9 @@
 @endphp
 
 <style>
-#nt-overlay { transition:opacity .15s ease; }
-#nt-panel   { }
+@keyframes ntSlideUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+#nt-overlay { transition: opacity .18s ease; }
+#nt-panel   { animation: ntSlideUp .22s cubic-bezier(.22,1,.36,1) both; }
 .nt-sec  { padding:16px 0;border-bottom:1px solid #f1f3f5; }
 .nt-lbl  { display:flex;align-items:center;gap:7px;margin-bottom:10px; }
 .nt-lbl i    { font-size:10px;color:#9ca3af; }
