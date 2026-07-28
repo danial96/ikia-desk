@@ -136,7 +136,7 @@ Route::middleware('auth')->group(function () {
         $request->validate(['file' => 'required|file|max:20480']);
         $file     = $request->file('file');
         $origName = $file->getClientOriginalName();
-        $mime     = $file->getClientMimeType() ?? '';
+        $mime     = $file->getMimeType() ?? '';
         $ext      = strtolower($file->getClientOriginalExtension());
         $fileSize = $file->getSize() ?: 0;
         $filename = 'up_' . uniqid() . '.' . $ext;
@@ -255,7 +255,7 @@ Route::middleware('auth')->group(function () {
             $request->validate(['file' => 'required|file|max:51200']);
             $file     = $request->file('file');
             $origName = $file->getClientOriginalName();
-            $mime     = $file->getClientMimeType() ?? '';
+            $mime     = $file->getMimeType() ?? '';
             $ext      = strtolower($file->getClientOriginalExtension()) ?: 'bin';
             $filename = 'up_' . uniqid() . '.' . $ext;
 
@@ -628,22 +628,4 @@ Route::middleware('auth')->group(function () {
             'chat'  => $chat,
         ]);
     })->name('api.bitrix.task');
-
-    // ── Temporary: server-side artisan optimize (superadmin only, remove after use) ──
-    Route::get('/admin/optimize-server', function () {
-        if (!auth()->user()->isSuperAdmin()) abort(403);
-        $output = [];
-        $commands = [
-            'config:cache'  => 'php artisan config:cache',
-            'route:cache'   => 'php artisan route:cache',
-            'view:cache'    => 'php artisan view:cache',
-            'event:cache'   => 'php artisan event:cache',
-            'optimize'      => 'php artisan optimize',
-        ];
-        foreach ($commands as $label => $cmd) {
-            $out = shell_exec($cmd . ' 2>&1');
-            $output[$label] = trim($out ?? 'no output');
-        }
-        return response()->json(['ok' => true, 'results' => $output]);
-    });
 });

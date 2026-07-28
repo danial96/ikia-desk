@@ -62,47 +62,89 @@
                 radial-gradient(ellipse 30% 50% at 5%  80%,  rgba(0,220,200,.30)   0%, transparent 55%);
         }
 
-        /* ── Performant keyframes (transform+opacity only = GPU compositor) ── */
-        @keyframes spin       { to { transform: rotate(360deg); } }
-        @keyframes shimmer    { 0%{background-position:-400px 0} 100%{background-position:400px 0} }
-        @keyframes ikFadeIn   { from{opacity:0} to{opacity:1} }
-        @keyframes ikSlideUp  { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
-        @keyframes ikSlideIn  { from{opacity:0;transform:translateX(18px)} to{opacity:1;transform:translateX(0)} }
+        /* Animated floating accent */
+        .bg-orb3 {
+            position: absolute;
+            top: 15%;
+            left: 30%;
+            width: 500px;
+            height: 300px;
+            background: radial-gradient(ellipse, rgba(0,180,255,.22) 0%, transparent 65%);
+            border-radius: 50%;
+            animation: float3 18s ease-in-out infinite;
+        }
+        .bg-orb4 {
+            position: absolute;
+            bottom: 5%;
+            right: 20%;
+            width: 400px;
+            height: 250px;
+            background: radial-gradient(ellipse, rgba(160,0,255,.18) 0%, transparent 65%);
+            border-radius: 50%;
+            animation: float1 22s ease-in-out infinite reverse;
+        }
 
-        /* ── Global interactions ── */
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes float1 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(30px,-40px) scale(1.06)} }
+        @keyframes float2 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(-35px,30px) scale(1.08)} }
+        @keyframes float3 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(20px,35px) scale(0.96)} }
+        @keyframes ikiaFadeUp   { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+        @keyframes ikiaFadeIn   { from{opacity:0} to{opacity:1} }
+        @keyframes ikiaSlideIn  { from{opacity:0;transform:translateX(-12px)} to{opacity:1;transform:translateX(0)} }
+        @keyframes ikirPulseRing{ 0%{box-shadow:0 0 0 0 rgba(0,212,232,.45)} 70%{box-shadow:0 0 0 8px rgba(0,212,232,0)} 100%{box-shadow:0 0 0 0 rgba(0,212,232,0)} }
+        @keyframes shimmer      { 0%{background-position:-400px 0} 100%{background-position:400px 0} }
+        @keyframes vnPulse      { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(.8)} }
+
+        /* ── Global smooth interactions ── */
         *, *::before, *::after { box-sizing: border-box; }
         html { scroll-behavior: smooth; }
 
-        /* Page load — single one-time fade (cheap) */
-        #app-shell { animation: ikFadeIn .22s ease both; }
+        /* Page fade-in on load */
+        #app-shell { animation: ikiaFadeIn .35s ease both; }
 
-        /* Nav links */
-        .nav-link { transition: background .13s ease, color .13s ease !important; }
-        .nav-link:hover { background: rgba(255,255,255,.10) !important; }
-        .nav-link.active { background: rgba(0,212,232,.15) !important; }
+        /* GPU layer for backdrop-filter elements */
+        #sidebar, #topbar { transform: translateZ(0); will-change: transform; }
 
-        /* Card hover — transform only (GPU, no repaint) */
-        .ikia-card-hover { transition: transform .14s ease !important; }
-        .ikia-card-hover:hover { transform: translateY(-2px) !important; }
+        /* Card hover lift */
+        .ikia-card-hover {
+            transition: transform .22s cubic-bezier(.34,1.56,.64,1), box-shadow .22s ease !important;
+        }
+        .ikia-card-hover:hover {
+            transform: translateY(-3px) !important;
+            box-shadow: 0 8px 28px rgba(0,0,0,.28) !important;
+        }
 
-        /* Button */
-        .ikia-btn { position:relative; overflow:hidden; transition: opacity .12s ease !important; }
-        .ikia-btn:hover { opacity: .88 !important; }
+        /* Button active press */
+        .ikia-btn { transition: opacity .18s, box-shadow .18s, transform .12s !important; }
+        .ikia-btn:active { transform: scale(.96) !important; }
 
-        /* Staggered section fade-in (one-time) */
-        .ikia-fade-1 { animation: ikSlideUp .24s .04s ease both; }
-        .ikia-fade-2 { animation: ikSlideUp .24s .09s ease both; }
-        .ikia-fade-3 { animation: ikSlideUp .24s .14s ease both; }
-        .ikia-fade-4 { animation: ikSlideUp .24s .19s ease both; }
+        /* Nav link smooth */
+        .nav-link { transition: background .18s cubic-bezier(.4,0,.2,1), color .18s, padding-left .18s !important; }
+        .nav-link:hover { padding-left: 22px !important; }
 
-        /* Online indicator — static ring, no animation */
-        .avatar-online { outline: 2px solid #00D4E8; outline-offset: 1px; }
+        /* Smooth avatar ring pulse on online */
+        .avatar-online { animation: ikirPulseRing 2.4s cubic-bezier(.455,.03,.515,.955) infinite; }
+
+        /* Content section staggered fade-in */
+        .ikia-fade-1 { animation: ikiaFadeUp .38s .05s ease both; }
+        .ikia-fade-2 { animation: ikiaFadeUp .38s .12s ease both; }
+        .ikia-fade-3 { animation: ikiaFadeUp .38s .19s ease both; }
+        .ikia-fade-4 { animation: ikiaFadeUp .38s .26s ease both; }
 
         /* Smooth scrollbar */
         ::-webkit-scrollbar { width:5px; height:5px; }
         ::-webkit-scrollbar-track { background:transparent; }
         ::-webkit-scrollbar-thumb { background:rgba(255,255,255,.15); border-radius:99px; }
         ::-webkit-scrollbar-thumb:hover { background:rgba(255,255,255,.28); }
+
+        /* Ripple button */
+        .ikia-btn { position:relative; overflow:hidden; }
+        .ikia-btn .ripple {
+            position:absolute; border-radius:50%; transform:scale(0);
+            background:rgba(255,255,255,.3); animation:rippleAnim .5s linear;
+            pointer-events:none;
+        }
+        @keyframes rippleAnim { to { transform:scale(4); opacity:0; } }
 
         /* Smooth focus ring */
         input:focus, textarea:focus, select:focus {
@@ -127,7 +169,9 @@
             top: 0; left: 0; bottom: 0;
             display: flex;
             flex-direction: column;
-            background: rgba(8, 12, 58, 0.93);
+            background: rgba(10, 15, 60, 0.10);
+            backdrop-filter: blur(28px) saturate(1.8) brightness(0.95);
+            -webkit-backdrop-filter: blur(28px) saturate(1.8) brightness(0.95);
             border-right: 1px solid rgba(255,255,255,0.10);
             transition: transform .28s cubic-bezier(.4,0,.2,1);
             z-index: 50;
@@ -242,7 +286,9 @@
             gap: 10px;
             padding: 0 16px;
             height: 50px;
-            background: rgba(8, 12, 58, 0.90);
+            background: rgba(10, 15, 60, 0.12);
+            backdrop-filter: blur(28px) saturate(1.8) brightness(0.95);
+            -webkit-backdrop-filter: blur(28px) saturate(1.8) brightness(0.95);
             border-bottom: 1px solid rgba(255,255,255,0.10);
             flex-shrink: 0;
         }
@@ -326,7 +372,9 @@
             overflow: hidden;
             display: none;
             flex-direction: column;
+            animation: notifSlide .18s ease;
         }
+        @keyframes notifSlide { from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:translateY(0); } }
         #notif-list { overflow-y: auto; flex: 1; }
         #notif-list::-webkit-scrollbar { width: 3px; }
         #notif-list::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 4px; }
@@ -347,13 +395,14 @@
             padding: 20px;
         }
     </style>
-    @stack('styles')
 </head>
 <body x-data="appShell()" x-init="init()">
 
 {{-- Background --}}
 <div id="bg-canvas">
     <div class="bg-base"></div>
+    <div class="bg-orb3"></div>
+    <div class="bg-orb4"></div>
 </div>
 
 <div id="app-shell">
@@ -553,7 +602,7 @@
     <i class="fas fa-times" style="font-size:14px;"></i>
 </button>
 
-<div id="chat-panel" style="display:none;position:fixed;top:0;right:52px;bottom:0;width:calc(90% - 52px);z-index:250;display:none;flex-direction:row;box-shadow:-8px 0 40px rgba(0,0,0,.45);">
+<div id="chat-panel" style="display:none;position:fixed;top:0;right:52px;bottom:0;width:calc(90% - 52px);z-index:250;display:none;flex-direction:row;box-shadow:-8px 0 40px rgba(0,0,0,.45);animation:chatSlideIn .25s cubic-bezier(.22,1,.36,1);">
 
     {{-- LEFT: Conversation list --}}
     <div id="chat-left" style="width:280px;flex-shrink:0;display:flex;flex-direction:column;background:rgba(10,15,60,.92);backdrop-filter:blur(28px);border-right:1px solid rgba(255,255,255,.1);">
@@ -658,7 +707,7 @@
                     <i class="fas fa-trash" style="font-size:13px;"></i>
                 </button>
                 <div style="flex:1;display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:9px 14px;">
-                    <div style="width:8px;height:8px;border-radius:50%;background:#ef4444;animation:vnDot 1.2s ease-in-out infinite;flex-shrink:0;"></div>
+                    <div style="width:8px;height:8px;border-radius:50%;background:#ef4444;animation:vnPulse 1.2s ease-in-out infinite;flex-shrink:0;"></div>
                     <span style="color:rgba(255,255,255,.55);font-size:12px;">Recording</span>
                     <span id="chat-vn-timer" style="color:#fff;font-weight:700;font-size:13px;min-width:30px;margin-left:auto;">0:00</span>
                 </div>
@@ -716,18 +765,18 @@
 </div>
 
 <style>
-@keyframes chatSlideIn { from{opacity:0;transform:translateX(20px)} to{opacity:1;transform:translateX(0)} }
-@keyframes vnDot       { 0%,100%{opacity:1} 50%{opacity:.35} }
 #chat-panel { display:none; }
-#chat-panel.chat-open { display:flex !important; animation: chatSlideIn .2s ease both; }
+#chat-panel.chat-open { display:flex !important; }
 #chat-new-direct-modal.chat-open { display:flex !important; }
 #chat-new-group-modal.chat-open  { display:flex !important; }
-
+@keyframes chatSlideIn { from{transform:translateX(100%);opacity:0} to{transform:translateX(0);opacity:1} }
+@keyframes vnPulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(.7)} }
 .chat-conv-item { display:flex;align-items:center;gap:10px;padding:10px 12px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.04);transition:background .12s; }
 .chat-conv-item:hover { background:rgba(255,255,255,.07); }
 .chat-conv-item.active { background:rgba(0,212,232,.12);border-left:2px solid #00D4E8; }
 .chat-conv-unread { background:rgba(37,211,102,.07);border-left:2px solid #25D366 !important; }
 .chat-conv-unread:hover { background:rgba(37,211,102,.12) !important; }
+@keyframes chatFlash { 0%{background:rgba(37,211,102,.3)} 100%{background:rgba(37,211,102,.07)} }
 #chat-conv-list::-webkit-scrollbar { width:3px; }
 #chat-conv-list::-webkit-scrollbar-thumb { background:rgba(255,255,255,.1);border-radius:3px; }
 #chat-msg-area::-webkit-scrollbar { width:3px; }
@@ -771,6 +820,7 @@ window.chatOpen = function() {
     const btn     = document.getElementById('chat-close-btn');
     const overlay = document.getElementById('chat-overlay');
     p.classList.add('chat-open');
+    p.style.animation = 'chatSlideIn .25s cubic-bezier(.22,1,.36,1)';
     // Backdrop fade-in
     if (overlay) { overlay.style.display = 'block'; void overlay.offsetWidth; overlay.style.opacity = '1'; }
     // Position close button just outside the left edge of the chat panel
@@ -807,7 +857,7 @@ async function chatLoadConvs() {
         _allConvs.forEach(c => {
             if (c.id !== _activeConvId && (c.unread || 0) > (prevUnread[c.id] || 0)) {
                 const row = document.querySelector(`.chat-conv-item[data-id="${c.id}"]`);
-                if (row) { row.classList.add('chat-conv-unread'); }
+                if (row) { row.style.animation='none'; void row.offsetWidth; row.style.animation='chatFlash .6s ease-out forwards'; }
             }
         });
     } catch(e) {
@@ -1458,6 +1508,9 @@ window.clearAttachments = function(textareaId, previewId) {
             style="position:absolute;top:18px;right:22px;background:rgba(255,255,255,.12);border:none;color:#fff;width:38px;height:38px;border-radius:50%;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(8px);z-index:3;"
             title="Close"><i class="fas fa-times"></i></button>
 </div>
+<style>
+@keyframes lbFade { from{opacity:0} to{opacity:1} }
+</style>
 <script>
 const _igReg = {};
 let _igSeq = 0, _igCurKey = null, _igCurIdx = 0;
@@ -1742,6 +1795,23 @@ document.addEventListener('DOMContentLoaded', function() {
         setTimeout(() => openTaskModal(), 150);
     }
 
+    // ── Ripple effect on all .ikia-btn buttons ──
+    document.addEventListener('click', function(e) {
+        const btn = e.target.closest('.ikia-btn');
+        if (!btn) return;
+        const r = document.createElement('span');
+        r.className = 'ripple';
+        const rect = btn.getBoundingClientRect();
+        const size = Math.max(rect.width, rect.height);
+        r.style.cssText = `width:${size}px;height:${size}px;left:${e.clientX-rect.left-size/2}px;top:${e.clientY-rect.top-size/2}px;`;
+        btn.appendChild(r);
+        setTimeout(() => r.remove(), 520);
+    });
+
+    // ── Staggered fade-in for page cards ──
+    document.querySelectorAll('.stat-card, .ikia-card').forEach((el, i) => {
+        el.style.animation = `ikiaFadeUp .35s ${i * 0.06}s ease both`;
+    });
 
     // ── Smooth hover on right-panel avatars ──
     document.querySelectorAll('#right-panel .user-avatar-wrap').forEach(el => {

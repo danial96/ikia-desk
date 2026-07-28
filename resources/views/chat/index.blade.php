@@ -224,6 +224,8 @@ document.addEventListener('DOMContentLoaded', function() {
 .cp-conv-item.active { background:rgba(0,212,232,.1);border-left:3px solid #00D4E8;padding-left:13px; }
 .cp-conv-item.unread { background:rgba(0,212,232,.06);border-left:3px solid #25D366;padding-left:13px; }
 .cp-conv-item.unread:hover { background:rgba(0,212,232,.11); }
+@keyframes cp-flash { 0%{background:rgba(37,211,102,.22)} 100%{background:rgba(0,212,232,.06)} }
+.cp-conv-item.flash { animation:cp-flash .6s ease-out forwards; }
 #cp-conv-ctx { position:fixed;z-index:500;background:#1a2535;border:1px solid rgba(255,255,255,.1);border-radius:9px;padding:4px 0;min-width:150px;box-shadow:0 8px 28px rgba(0,0,0,.55);display:none; }
 .cp-cctx-item { display:flex;align-items:center;gap:9px;padding:9px 16px;color:rgba(255,255,255,.8);font-size:13px;cursor:pointer;transition:background .1s; }
 .cp-cctx-item:hover { background:rgba(255,255,255,.07); }
@@ -238,7 +240,8 @@ document.addEventListener('DOMContentLoaded', function() {
 .cp-ctx-item i { width:15px;text-align:center;font-size:12px;opacity:.65; }
 .cp-ctx-del { color:#f87171; }
 .cp-ctx-del:hover { background:rgba(239,68,68,.12) !important; }
-#cp-ctx-menu { }
+#cp-ctx-menu { animation:ctxFade .1s ease; }
+@keyframes ctxFade { from{opacity:0;transform:scale(.95)} to{opacity:1;transform:scale(1)} }
 </style>
 
 {{-- Edit bar shown above input when editing --}}
