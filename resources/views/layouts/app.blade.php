@@ -72,6 +72,8 @@
             background: radial-gradient(ellipse, rgba(0,180,255,.22) 0%, transparent 65%);
             border-radius: 50%;
             animation: float3 18s ease-in-out infinite;
+            will-change: transform;
+            contain: layout style;
         }
         .bg-orb4 {
             position: absolute;
@@ -82,6 +84,8 @@
             background: radial-gradient(ellipse, rgba(160,0,255,.18) 0%, transparent 65%);
             border-radius: 50%;
             animation: float1 22s ease-in-out infinite reverse;
+            will-change: transform;
+            contain: layout style;
         }
 
         @keyframes spin { to { transform: rotate(360deg); } }
@@ -91,7 +95,7 @@
         @keyframes ikiaFadeUp   { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
         @keyframes ikiaFadeIn   { from{opacity:0} to{opacity:1} }
         @keyframes ikiaSlideIn  { from{opacity:0;transform:translateX(-12px)} to{opacity:1;transform:translateX(0)} }
-        @keyframes ikirPulseRing{ 0%{box-shadow:0 0 0 0 rgba(0,212,232,.45)} 70%{box-shadow:0 0 0 8px rgba(0,212,232,0)} 100%{box-shadow:0 0 0 0 rgba(0,212,232,0)} }
+        @keyframes ikirPulseRing{ 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(1.18);opacity:.5} }
         @keyframes shimmer      { 0%{background-position:-400px 0} 100%{background-position:400px 0} }
         @keyframes vnPulse      { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(.8)} }
 
@@ -102,8 +106,8 @@
         /* Page fade-in on load */
         #app-shell { animation: ikiaFadeIn .35s ease both; }
 
-        /* GPU layer for backdrop-filter elements */
-        #sidebar, #topbar { transform: translateZ(0); will-change: transform; }
+        /* Sidebar slide-in GPU hint */
+        #sidebar { transform: translateZ(0); }
 
         /* Card hover lift */
         .ikia-card-hover {
@@ -169,9 +173,7 @@
             top: 0; left: 0; bottom: 0;
             display: flex;
             flex-direction: column;
-            background: rgba(10, 15, 60, 0.10);
-            backdrop-filter: blur(28px) saturate(1.8) brightness(0.95);
-            -webkit-backdrop-filter: blur(28px) saturate(1.8) brightness(0.95);
+            background: rgba(8, 12, 58, 0.93);
             border-right: 1px solid rgba(255,255,255,0.10);
             transition: transform .28s cubic-bezier(.4,0,.2,1);
             z-index: 50;
@@ -286,9 +288,7 @@
             gap: 10px;
             padding: 0 16px;
             height: 50px;
-            background: rgba(10, 15, 60, 0.12);
-            backdrop-filter: blur(28px) saturate(1.8) brightness(0.95);
-            -webkit-backdrop-filter: blur(28px) saturate(1.8) brightness(0.95);
+            background: rgba(8, 12, 58, 0.90);
             border-bottom: 1px solid rgba(255,255,255,0.10);
             flex-shrink: 0;
         }

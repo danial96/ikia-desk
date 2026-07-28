@@ -136,7 +136,7 @@ Route::middleware('auth')->group(function () {
         $request->validate(['file' => 'required|file|max:20480']);
         $file     = $request->file('file');
         $origName = $file->getClientOriginalName();
-        $mime     = $file->getMimeType() ?? '';
+        $mime     = $file->getClientMimeType() ?? '';
         $ext      = strtolower($file->getClientOriginalExtension());
         $fileSize = $file->getSize() ?: 0;
         $filename = 'up_' . uniqid() . '.' . $ext;
@@ -255,7 +255,7 @@ Route::middleware('auth')->group(function () {
             $request->validate(['file' => 'required|file|max:51200']);
             $file     = $request->file('file');
             $origName = $file->getClientOriginalName();
-            $mime     = $file->getMimeType() ?? '';
+            $mime     = $file->getClientMimeType() ?? '';
             $ext      = strtolower($file->getClientOriginalExtension()) ?: 'bin';
             $filename = 'up_' . uniqid() . '.' . $ext;
 
