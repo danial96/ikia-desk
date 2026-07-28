@@ -8,6 +8,7 @@ use App\Models\Task;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 
 class TaskController extends Controller
 {
@@ -323,81 +324,90 @@ class TaskController extends Controller
     {
         session(['task_view' => 'kanban']);
 
-        $user  = Auth::user();
-        $today = now()->startOfDay();
-        $todayEnd       = now()->endOfDay();
-        $weekEnd        = now()->endOfWeek();
-        $nextWeekEnd    = now()->addWeek()->endOfWeek();
+        $user = Auth::user();
 
-        $query = Task::with(['project', 'assignee', 'creator']);
-        if (!$user->isSuperAdmin()) {
-            $query->where(function ($q) use ($user) {
-                $q->where('created_by', $user->id)
-                  ->orWhere('assigned_to', $user->id)
-                  ->orWhereHas('members', fn($m) => $m->where('user_id', $user->id));
-            });
-        }
+        $cacheKey = 'kanban_' . $user->id . '_' . md5(json_encode($request->only(
+            ['project_id', 'search', 'priority', 'assignee_id', 'status']
+        )));
 
-        if ($request->project_id) {
-            $query->where('project_id', $request->project_id);
-        }
-        if ($request->filled('search')) {
-            $query->where('title', 'like', '%' . $request->search . '%');
-        }
-        if ($request->filled('priority')) {
-            $query->where('priority', $request->priority);
-        }
-        if ($request->filled('assignee_id')) {
-            $query->where('assigned_to', $request->assignee_id);
-        }
+        [$columns, $completedTotal] = Cache::remember($cacheKey, 30, function () use ($request, $user) {
+            $today       = now()->startOfDay();
+            $todayEnd    = now()->endOfDay();
+            $weekEnd     = now()->endOfWeek();
+            $nextWeekEnd = now()->addWeek()->endOfWeek();
 
-        // Status filter: if a specific status is chosen, just run one query
-        if ($request->status) {
-            $all = $query->where('status', $request->status)->latest()->limit(500)->get();
-            $completedTotal = $request->status === 'completed'
-                ? $all->count()
-                : $query->where('status', 'completed')->count();
-        } else {
-            // Active tasks (non-completed)
-            $activeQuery = clone $query;
-            $activeQuery->where('status', '!=', 'completed');
-            $all = $activeQuery->latest()->limit(500)->get();
+            $query = Task::with(['project', 'assignee', 'creator']);
 
-            // Completed tasks — separate query, latest 50 only
-            $completedQuery = clone $query;
-            $completedQuery->where('status', 'completed');
-            $completedTotal = $completedQuery->count();
-            $completedTasks = $completedQuery->latest()->limit(50)->get();
-            $all = $all->merge($completedTasks);
-        }
-
-        $columns = [
-            'overdue'          => collect(),
-            'due_today'        => collect(),
-            'due_this_week'    => collect(),
-            'due_next_week'    => collect(),
-            'no_deadline'      => collect(),
-            'due_over_two_weeks' => collect(),
-            'completed'        => collect(),
-        ];
-
-        foreach ($all as $task) {
-            if ($task->status === 'completed') {
-                $columns['completed']->push($task);
-            } elseif (is_null($task->deadline)) {
-                $columns['no_deadline']->push($task);
-            } elseif ($task->deadline->lt($today)) {
-                $columns['overdue']->push($task);
-            } elseif ($task->deadline->lte($todayEnd)) {
-                $columns['due_today']->push($task);
-            } elseif ($task->deadline->lte($weekEnd)) {
-                $columns['due_this_week']->push($task);
-            } elseif ($task->deadline->lte($nextWeekEnd)) {
-                $columns['due_next_week']->push($task);
-            } else {
-                $columns['due_over_two_weeks']->push($task);
+            if (!$user->isSuperAdmin()) {
+                $query->where(function ($q) use ($user) {
+                    $q->where('created_by', $user->id)
+                      ->orWhere('assigned_to', $user->id)
+                      ->orWhereExists(function ($sub) use ($user) {
+                          $sub->from('task_members')
+                              ->whereColumn('task_members.task_id', 'tasks.id')
+                              ->where('task_members.user_id', $user->id);
+                      });
+                });
             }
-        }
+
+            if ($request->project_id) {
+                $query->where('project_id', $request->project_id);
+            }
+            if ($request->filled('search')) {
+                $query->where('title', 'like', '%' . $request->search . '%');
+            }
+            if ($request->filled('priority')) {
+                $query->where('priority', $request->priority);
+            }
+            if ($request->filled('assignee_id')) {
+                $query->where('assigned_to', $request->assignee_id);
+            }
+
+            if ($request->status) {
+                $all = $query->where('status', $request->status)->latest()->limit(200)->get();
+                $completedTotal = $request->status === 'completed'
+                    ? $all->count()
+                    : (clone $query)->where('status', 'completed')->count();
+            } else {
+                $activeQuery = clone $query;
+                $all = $activeQuery->where('status', '!=', 'completed')->latest()->limit(200)->get();
+
+                $completedQuery = clone $query;
+                $completedQuery->where('status', 'completed');
+                $completedTotal = $completedQuery->count();
+                $all = $all->merge($completedQuery->latest()->limit(50)->get());
+            }
+
+            $columns = [
+                'overdue'            => collect(),
+                'due_today'          => collect(),
+                'due_this_week'      => collect(),
+                'due_next_week'      => collect(),
+                'no_deadline'        => collect(),
+                'due_over_two_weeks' => collect(),
+                'completed'          => collect(),
+            ];
+
+            foreach ($all as $task) {
+                if ($task->status === 'completed') {
+                    $columns['completed']->push($task);
+                } elseif (is_null($task->deadline)) {
+                    $columns['no_deadline']->push($task);
+                } elseif ($task->deadline->lt($today)) {
+                    $columns['overdue']->push($task);
+                } elseif ($task->deadline->lte($todayEnd)) {
+                    $columns['due_today']->push($task);
+                } elseif ($task->deadline->lte($weekEnd)) {
+                    $columns['due_this_week']->push($task);
+                } elseif ($task->deadline->lte($nextWeekEnd)) {
+                    $columns['due_next_week']->push($task);
+                } else {
+                    $columns['due_over_two_weeks']->push($task);
+                }
+            }
+
+            return [$columns, $completedTotal];
+        });
 
         $projects  = Project::orderBy('name')->get();
         $employees = User::where('is_active', true)->get();
