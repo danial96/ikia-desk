@@ -20,9 +20,9 @@ jobs:
             cd /home/digitalservicesc/public_html/Ikiatech
             git fetch origin main
             git reset --hard origin/main
-            /usr/local/bin/php artisan migrate --force
-            /usr/local/bin/php artisan config:cache
-            /usr/local/bin/php artisan route:cache
-            /usr/local/bin/php artisan view:cache
-            /usr/local/bin/php artisan cache:clear
+            /opt/cpanel/ea-php82/root/usr/bin/php artisan migrate --force
+            /opt/cpanel/ea-php82/root/usr/bin/php artisan config:cache
+            /opt/cpanel/ea-php82/root/usr/bin/php artisan route:cache
+            /opt/cpanel/ea-php82/root/usr/bin/php artisan view:cache
+            /opt/cpanel/ea-php82/root/usr/bin/php artisan cache:clear
             echo "Deploy complete"
