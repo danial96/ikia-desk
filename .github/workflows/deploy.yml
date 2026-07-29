@@ -15,16 +15,24 @@ jobs:
           username: ${{ secrets.SSH_USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: 22
+          debug: true
           script: |
-            export GIT_DIR=/home/digitalservicesc/public_html/Ikiatech/.git
-            export GIT_WORK_TREE=/home/digitalservicesc/public_html/Ikiatech
+            echo "=== Step 1: safe.directory ==="
             git config --global --add safe.directory /home/digitalservicesc/public_html/Ikiatech
+            echo "=== Step 2: cd ==="
             cd /home/digitalservicesc/public_html/Ikiatech
+            echo "=== Step 3: git fetch ==="
             git fetch origin main
+            echo "=== Step 4: git reset ==="
             git reset --hard origin/main
+            echo "=== Step 5: migrate ==="
             /usr/local/bin/php artisan migrate --force
+            echo "=== Step 6: config cache ==="
             /usr/local/bin/php artisan config:cache
+            echo "=== Step 7: route cache ==="
             /usr/local/bin/php artisan route:cache
+            echo "=== Step 8: view cache ==="
             /usr/local/bin/php artisan view:cache
+            echo "=== Step 9: cache clear ==="
             /usr/local/bin/php artisan cache:clear
-            echo "Deploy complete"
+            echo "=== Deploy complete ==="
