@@ -514,6 +514,7 @@
             </button>
 
             <span class="page-title">@yield('page-title', 'Dashboard')</span>
+            <span style="color:rgba(255,255,255,.6);font-size:13px;">Hello World</span>
 
             <div style="flex:1;"></div>
 
