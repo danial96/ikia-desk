@@ -531,7 +531,13 @@ function kbRenderCol(tasks, key, completedTotal) {
 }
 
 // ── AJAX fetch ────────────────────────────────────────────────────────────────
+let _kbAbortCtrl = null;
+
 function kbAjaxFilter() {
+    // Cancel any in-flight request so stale responses never overwrite fresh ones
+    if (_kbAbortCtrl) _kbAbortCtrl.abort();
+    _kbAbortCtrl = new AbortController();
+
     const params = new URLSearchParams();
     document.querySelectorAll('#tsf-chips input[type="hidden"]').forEach(inp => { if (inp.value) params.set(inp.name, inp.value); });
     const sv = (document.getElementById('tsf-input') || {}).value;
@@ -539,7 +545,8 @@ function kbAjaxFilter() {
 
     document.querySelectorAll('[id^="kb-col-"]').forEach(c => { c.style.opacity = '0.35'; c.style.transition = 'opacity 0.15s'; });
 
-    fetch('{{ route("tasks.kanban") }}?' + params.toString(), {
+    fetch('{{ route("tasks.kanban") }}?' + params.toString() + '&_t=' + Date.now(), {
+        signal:  _kbAbortCtrl.signal,
         headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
     })
     .then(r => r.json())
@@ -556,7 +563,10 @@ function kbAjaxFilter() {
         });
         kbDragInit(); // re-init after column refresh
     })
-    .catch(() => { document.querySelectorAll('[id^="kb-col-"]').forEach(c => { c.style.opacity = '1'; }); });
+    .catch(err => {
+        if (err.name === 'AbortError') return; // previous request cancelled — ignore
+        document.querySelectorAll('[id^="kb-col-"]').forEach(c => { c.style.opacity = '1'; });
+    });
 }
 
 // ── Drag & Drop (SortableJS) ─────────────────────────────────────────────────
