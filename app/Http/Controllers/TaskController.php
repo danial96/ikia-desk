@@ -411,6 +411,25 @@ class TaskController extends Controller
 
         $projects  = Cache::remember('all_projects_list', 120, fn() => Project::orderBy('name')->get(['id', 'name']));
         $employees = Cache::remember('active_employees_list', 120, fn() => User::where('is_active', true)->get(['id', 'name', 'avatar']));
+
+        if ($request->ajax()) {
+            $colHtml    = [];
+            $colCounts  = [];
+            foreach ($columns as $key => $colTasks) {
+                $colHtml[$key]   = view('tasks._kanban_col_body', [
+                    'tasks'          => $colTasks,
+                    'colKey'         => $key,
+                    'completedTotal' => $completedTotal,
+                ])->render();
+                $colCounts[$key] = $colTasks->count();
+            }
+            return response()->json([
+                'columns'        => $colHtml,
+                'counts'         => $colCounts,
+                'completedTotal' => $completedTotal,
+            ]);
+        }
+
         return view('tasks.kanban', compact('columns', 'projects', 'employees', 'completedTotal'));
     }
 }
