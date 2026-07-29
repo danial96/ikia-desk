@@ -501,6 +501,14 @@ document.addEventListener('keydown',e=>{
 });
 $('tp-overlay').addEventListener('click',function(e){ if(e.target===this) tpClose(); });
 
+// Move overlay to body so it's not constrained by parent stacking context
+document.addEventListener('DOMContentLoaded', function() {
+    const ov = document.getElementById('tp-overlay');
+    if (ov && ov.parentElement !== document.body) {
+        document.body.appendChild(ov);
+    }
+});
+
 (function(){
     const sp=new URLSearchParams(location.search);
     const taskId=sp.get('task');
