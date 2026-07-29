@@ -16,6 +16,8 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: 22
           debug: true
+          script_stop: false
+          request_pty: true
           script: |
             echo "=== Step 1: safe.directory ==="
             git config --global --add safe.directory /home/digitalservicesc/public_html/Ikiatech
