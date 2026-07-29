@@ -38,6 +38,7 @@ Route::middleware('auth')->group(function () {
     Route::resource('tasks', TaskController::class)->except(['create', 'edit']);
 
     // Task inline AJAX updates
+    Route::patch('/tasks/{task}/move', [TaskController::class, 'move'])->name('tasks.move');
     Route::patch('/tasks/{task}/field', [TaskController::class, 'updateField'])->name('tasks.field');
     Route::post('/tasks/{task}/participants/toggle', [TaskController::class, 'toggleParticipant'])->name('tasks.participants.toggle');
     Route::post('/tasks/{task}/observers/toggle', [TaskController::class, 'toggleObserver'])->name('tasks.observers.toggle');

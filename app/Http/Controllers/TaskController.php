@@ -320,6 +320,33 @@ class TaskController extends Controller
         return response()->json(['success' => true, 'action' => $action]);
     }
 
+    public function move(Request $request, Task $task)
+    {
+        $user = Auth::user();
+        if (!$user->isAdmin() && !$task->isMember($user)) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+        }
+
+        $updates = [];
+
+        if ($request->has('status')) {
+            $updates['status'] = $request->status;
+        }
+
+        if ($request->has('deadline')) {
+            $updates['deadline'] = $request->deadline; // null clears it
+        }
+
+        if ($updates) {
+            $task->update($updates);
+            if (isset($updates['status'])) {
+                $task->logActivity($user, 'status_changed');
+            }
+        }
+
+        return response()->json(['success' => true]);
+    }
+
     public function kanban(Request $request)
     {
         session(['task_view' => 'kanban']);

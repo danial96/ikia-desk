@@ -57,7 +57,7 @@
     </div>
 </div>
 @empty
-<div style="padding:20px 0;text-align:center;">
+<div class="kb-empty-msg" style="padding:20px 0;text-align:center;">
     <span style="font-size:11.5px;color:rgba(255,255,255,.2);">No tasks</span>
 </div>
 @endforelse

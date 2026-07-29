@@ -3,6 +3,7 @@
 @section('page-title', 'Tasks')
 
 @section('content')
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.3/Sortable.min.js"></script>
 <div id="nt-tasks-content" style="min-width:0;">
 
     @include('tasks._filter_bar', [
@@ -50,7 +51,14 @@
         </button>
 
     <div id="kb-scroll" style="display:flex;gap:12px;overflow-x:auto;padding:0 8px 8px;align-items:flex-start;scrollbar-width:none;" onscroll="kbUpdateArrows()">
-        <style>#kb-scroll::-webkit-scrollbar{display:none}</style>
+        <style>
+        #kb-scroll::-webkit-scrollbar{display:none}
+        .kb-drag-ghost { opacity:.4; background:#e0f7ff !important; border:2px dashed #00D4E8 !important; border-radius:10px; }
+        .kb-drag-chosen { box-shadow:0 8px 24px rgba(0,212,232,.35) !important; transform:rotate(1.5deg) scale(1.02) !important; }
+        .kb-drag-active { opacity:.85; cursor:grabbing !important; }
+        [data-task-id] { cursor:grab; }
+        [data-task-id]:active { cursor:grabbing; }
+        </style>
         @foreach($colConfig as $key => $col)
         @php $tasks = $columns[$key] ?? collect(); @endphp
         <div style="flex-shrink:0;width:260px;display:flex;flex-direction:column;">
@@ -515,7 +523,7 @@ function kbRenderCard(t) {
 
 function kbRenderCol(tasks, key, completedTotal) {
     if (!tasks || tasks.length === 0)
-        return '<div style="padding:20px 0;text-align:center;"><span style="font-size:11.5px;color:rgba(255,255,255,.2);">No tasks</span></div>';
+        return '<div class="kb-empty-msg" style="padding:20px 0;text-align:center;"><span style="font-size:11.5px;color:rgba(255,255,255,.2);">No tasks</span></div>';
     let html = tasks.map(t => kbRenderCard(t)).join('');
     if (key === 'completed' && completedTotal > 50)
         html += `<div style="padding:10px 6px 4px;text-align:center;"><span style="font-size:10.5px;color:rgba(255,255,255,.3);">Showing latest 50 of ${Number(completedTotal).toLocaleString()}</span></div>`;
@@ -546,8 +554,105 @@ function kbAjaxFilter() {
             }
             if (countEl) countEl.textContent = key === 'completed' ? (data.completedTotal ?? 0) : (data.columns[key]?.length ?? 0);
         });
+        kbDragInit(); // re-init after column refresh
     })
     .catch(() => { document.querySelectorAll('[id^="kb-col-"]').forEach(c => { c.style.opacity = '1'; }); });
 }
+
+// ── Drag & Drop (SortableJS) ─────────────────────────────────────────────────
+const _kbSortables = {};
+const _kbCsrf = document.querySelector('meta[name="csrf-token"]')?.content;
+
+function kbDragInit() {
+    const colKeys = ['overdue','due_today','due_this_week','due_next_week','no_deadline','due_over_two_weeks','completed'];
+    colKeys.forEach(key => {
+        const el = document.getElementById('kb-col-' + key);
+        if (!el) return;
+        if (_kbSortables[key]) { _kbSortables[key].destroy(); }
+
+        _kbSortables[key] = new Sortable(el, {
+            group:        'kanban',
+            animation:    180,
+            ghostClass:   'kb-drag-ghost',
+            chosenClass:  'kb-drag-chosen',
+            dragClass:    'kb-drag-active',
+            filter:       '.kb-empty-msg',
+            forceFallback: false,
+
+            onMove: function (evt) {
+                // Prevent dropping INTO overdue
+                const toKey = evt.to.id.replace('kb-col-', '');
+                return toKey !== 'overdue';
+            },
+
+            onEnd: function (evt) {
+                const taskId  = evt.item.dataset.taskId;
+                const fromKey = evt.from.id.replace('kb-col-', '');
+                const toKey   = evt.to.id.replace('kb-col-', '');
+                if (fromKey === toKey) return;
+
+                // Build payload
+                const payload = {};
+                const dl = kbColDeadline(toKey);
+                if (toKey === 'completed') {
+                    payload.status = 'completed';
+                } else {
+                    if (fromKey === 'completed') payload.status = 'in_progress';
+                    if (dl !== undefined) payload.deadline = dl;
+                }
+
+                // Optimistic UI: handle empty-state placeholders
+                evt.to.querySelectorAll('.kb-empty-msg').forEach(e => e.remove());
+                const remaining = evt.from.querySelectorAll('[data-task-id]');
+                if (remaining.length === 0) {
+                    evt.from.innerHTML = '<div class="kb-empty-msg" style="padding:20px 0;text-align:center;"><span style="font-size:11.5px;color:rgba(255,255,255,.2);">No tasks</span></div>';
+                }
+                kbSyncColCounts();
+
+                // Server update
+                fetch('{{ route("tasks.move", ":id") }}'.replace(':id', taskId), {
+                    method:  'PATCH',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': _kbCsrf, 'Accept': 'application/json' },
+                    body:    JSON.stringify(payload),
+                })
+                .then(r => r.json())
+                .then(data => {
+                    if (!data.success) kbAjaxFilter(); // revert via full refresh
+                })
+                .catch(() => kbAjaxFilter());
+            },
+        });
+    });
+}
+
+function kbColDeadline(col) {
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const fmt   = d => d.toISOString().split('T')[0];
+    const add   = n => { const d = new Date(today); d.setDate(today.getDate() + n); return fmt(d); };
+    const dow   = today.getDay(); // 0=Sun … 6=Sat
+    const toFri = dow <= 5 ? (5 - dow) || 7 : 6; // days until this/next Friday
+    return {
+        due_today:          fmt(today),
+        due_this_week:      add(toFri),
+        due_next_week:      add(toFri + 7),
+        no_deadline:        null,
+        due_over_two_weeks: add(21),
+        completed:          undefined, // don't touch deadline
+    }[col];
+}
+
+function kbSyncColCounts() {
+    ['overdue','due_today','due_this_week','due_next_week','no_deadline','due_over_two_weeks','completed'].forEach(key => {
+        const col     = document.getElementById('kb-col-' + key);
+        const countEl = document.getElementById('kb-count-' + key);
+        if (col && countEl) countEl.textContent = col.querySelectorAll('[data-task-id]').length;
+    });
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+    // Wait a tick so AJAX default filter doesn't race with init
+    setTimeout(kbDragInit, 600);
+});
+
 </script>
 @endsection
