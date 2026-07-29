@@ -16,11 +16,11 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: 22
           script: |
-            cd /home/digitalservicesc/public_html/ikia-git
+            cd /home/digitalservicesc/public_html/Ikiatech
             git pull origin main
             /usr/local/bin/php artisan migrate --force
             /usr/local/bin/php artisan config:cache
             /usr/local/bin/php artisan route:cache
             /usr/local/bin/php artisan view:cache
             /usr/local/bin/php artisan cache:clear
-            echo "✅ Deploy complete"
+            echo "Deploy complete"

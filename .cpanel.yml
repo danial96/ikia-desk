@@ -1,7 +1,7 @@
 ---
 deployment:
   tasks:
-    - export DEPLOYPATH=/home/digitalservicesc/public_html/ikia-git/
+    - export DEPLOYPATH=/home/digitalservicesc/public_html/Ikiatech/
     - /usr/local/bin/php $DEPLOYPATH/artisan migrate --force
     - /usr/local/bin/php $DEPLOYPATH/artisan config:cache
     - /usr/local/bin/php $DEPLOYPATH/artisan route:cache
