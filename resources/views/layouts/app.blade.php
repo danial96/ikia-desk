@@ -514,7 +514,6 @@
             </button>
 
             <span class="page-title">@yield('page-title', 'Dashboard')</span>
-            {{-- auto-deploy test --}}
 
             <div style="flex:1;"></div>
 

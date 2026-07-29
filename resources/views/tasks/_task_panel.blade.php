@@ -49,7 +49,7 @@
 
 {{-- Full-screen overlay --}}
 <div id="tp-overlay"
-     style="display:none;opacity:0;position:fixed;inset:0;z-index:3000;background:rgba(15,23,42,.55);backdrop-filter:blur(4px);overflow:hidden;margin-right:50px;">
+     style="display:none;opacity:0;position:fixed;inset:0;z-index:3000;background:rgba(15,23,42,.55);backdrop-filter:blur(4px);overflow:hidden;">
 
     {{-- Close button — floats in the left gap (outside panel) --}}
     <button onclick="tpClose()"
@@ -60,7 +60,7 @@
 
     {{-- Two-column panel — starts 56px from top --}}
     <div id="tp-panel"
-         style="position:absolute;top:56px;left:90px;right:0;bottom:0;display:flex;background:#fff;border-radius:16px 0 0 0;overflow:hidden;box-shadow:0 -4px 40px rgba(0,0,0,.15);">
+         style="position:absolute;top:56px;left:0;right:0;bottom:0;display:flex;background:#fff;border-radius:0;overflow:hidden;box-shadow:0 -4px 40px rgba(0,0,0,.15);">
 
         {{-- ===== LEFT COLUMN ===== --}}
         <div id="tp-left"
