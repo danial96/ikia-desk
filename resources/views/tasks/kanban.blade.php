@@ -425,25 +425,22 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 
 <script>
-// ── Kanban AJAX filter ───────────────────────────────────────────────────────
+// ── Kanban AJAX filter (client-side rendering) ───────────────────────────────
 (function () {
     let _kbInitializing = false;
 
-    // Override tsfToggleFilter → auto-AJAX on every filter click
     const _origToggle = window.tsfToggleFilter;
     window.tsfToggleFilter = function (field, value, label) {
         _origToggle(field, value, label);
         if (!_kbInitializing) kbAjaxFilter();
     };
 
-    // Override tsfRemoveChip → auto-AJAX when chip × is clicked
     window.tsfRemoveChip = function (el, field) {
         el.closest('.tsf-chip').remove();
         tsfClearField(field);
         kbAjaxFilter();
     };
 
-    // Override tsfClearAll → AJAX instead of page reload
     window.tsfClearAll = function () {
         ['status', 'priority', 'project_id', 'assignee_id'].forEach(f => tsfClearField(f));
         document.querySelectorAll('.tsf-chip').forEach(c => c.remove());
@@ -454,7 +451,6 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     document.addEventListener('DOMContentLoaded', function () {
-        // Intercept form submit (Enter key in search)
         const form = document.getElementById('task-search-form');
         if (form) {
             form.addEventListener('submit', function (e) {
@@ -464,7 +460,6 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
-        // Override Search button inside filter panel
         const panel = document.getElementById('tsf-panel');
         if (panel) {
             panel.querySelectorAll('button').forEach(btn => {
@@ -477,7 +472,6 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
-        // Default: set "In Progress" on fresh page load (no URL filters)
         @if(!request()->hasAny(['status', 'priority', 'project_id', 'assignee_id', 'search']))
         _kbInitializing = true;
         tsfToggleFilter('status', 'in_progress', 'In Progress');
@@ -487,45 +481,73 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 })();
 
-function kbAjaxFilter() {
-    // Collect params from chips' hidden inputs + search text
-    const params = new URLSearchParams();
-    document.querySelectorAll('#tsf-chips input[type="hidden"]').forEach(inp => {
-        if (inp.value) params.set(inp.name, inp.value);
-    });
-    const searchVal = (document.getElementById('tsf-input') || {}).value;
-    if (searchVal && searchVal.trim()) params.set('search', searchVal.trim());
+// ── Client-side card renderer ─────────────────────────────────────────────────
+function kbH(s) {
+    return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
 
-    // Dim columns while loading
-    document.querySelectorAll('[id^="kb-col-"]').forEach(c => {
-        c.style.opacity = '0.35';
-        c.style.transition = 'opacity 0.18s';
-    });
+function kbRenderCard(t) {
+    const pc = { low:['#e2e8f0','#475569'], medium:['#dbeafe','#1d4ed8'], high:['#ffedd5','#c2410c'], urgent:['#fee2e2','#b91c1c'] }[t.priority] || ['#e2e8f0','#475569'];
+    const sc = { new:['#f1f5f9','#334155','#cbd5e1'], in_progress:['#dbeafe','#1d4ed8','#bfdbfe'], paused:['#fef3c7','#b45309','#fde68a'], completed:['#dcfce7','#166534','#bbf7d0'] }[t.status] || ['#f1f5f9','#334155','#cbd5e1'];
+    const statusLabel = (t.status||'').replace('_',' ').replace(/\b\w/g, c => c.toUpperCase());
+
+    let thumb = '';
+    if (t.desc) { const m = t.desc.match(/\[img\]([^\[\]\s]+)\[\/img\]/i); if (m) thumb = `<div style="margin:-4px -12px 8px;overflow:hidden;"><img src="${kbH(m[1])}" loading="lazy" style="width:100%;height:200px;object-fit:contain;display:block;border-radius:6px 6px 0 0;"></div>`; }
+
+    const proj  = t.project  ? `<p style="font-size:10.5px;color:#64748b;margin:0 0 7px;display:flex;align-items:center;gap:4px;"><i class="fas fa-folder" style="font-size:9px;color:#94a3b8;"></i>${kbH(t.project)}</p>` : '';
+    const dl    = t.deadline ? `<span style="font-size:10.5px;color:${t.dl_past?'#ef4444':'#94a3b8'};display:flex;align-items:center;gap:3px;"><i class="fas fa-calendar-alt" style="font-size:9px;"></i>${kbH(t.deadline)}</span>` : `<span style="font-size:10.5px;color:#cbd5e1;">—</span>`;
+    const asgn  = t.assignee ? `<div style="display:flex;align-items:center;gap:5px;"><span style="font-size:10px;color:#64748b;">${kbH(t.assignee.name.split(' ')[0])}</span><img src="${kbH(t.assignee.avatar)}" style="width:22px;height:22px;border-radius:50%;border:2px solid #e2e8f0;object-fit:cover;" title="${kbH(t.assignee.name)}" alt=""></div>` : '';
+
+    return `<div id="kb-task-${t.id}" data-task-id="${t.id}" onclick="tpOpen('local',${t.id})"
+        style="background:#fff;border-radius:10px;padding:12px;cursor:pointer;transition:box-shadow .15s,transform .15s;box-shadow:0 1px 4px rgba(0,0,0,.12);"
+        onmouseover="this.style.boxShadow='0 4px 16px rgba(0,0,0,.18)';this.style.transform='translateY(-1px)'"
+        onmouseout="this.style.boxShadow='0 1px 4px rgba(0,0,0,.12)';this.style.transform=''">
+        <p style="font-size:12.5px;font-weight:600;color:#1a1a2e;margin:0 0 7px;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${kbH(t.title)}</p>
+        ${thumb}
+        <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-bottom:8px;">
+            <span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:5px;text-transform:uppercase;background:${pc[0]};color:${pc[1]};">${kbH((t.priority||'').toUpperCase())}</span>
+            <span style="font-size:10px;font-weight:600;padding:2px 8px;border-radius:5px;background:${sc[0]};color:${sc[1]};border:1px solid ${sc[2]};">${kbH(statusLabel)}</span>
+        </div>
+        ${proj}
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:4px;">${dl}${asgn}</div>
+    </div>`;
+}
+
+function kbRenderCol(tasks, key, completedTotal) {
+    if (!tasks || tasks.length === 0)
+        return '<div style="padding:20px 0;text-align:center;"><span style="font-size:11.5px;color:rgba(255,255,255,.2);">No tasks</span></div>';
+    let html = tasks.map(t => kbRenderCard(t)).join('');
+    if (key === 'completed' && completedTotal > 50)
+        html += `<div style="padding:10px 6px 4px;text-align:center;"><span style="font-size:10.5px;color:rgba(255,255,255,.3);">Showing latest 50 of ${Number(completedTotal).toLocaleString()}</span></div>`;
+    return html;
+}
+
+// ── AJAX fetch ────────────────────────────────────────────────────────────────
+function kbAjaxFilter() {
+    const params = new URLSearchParams();
+    document.querySelectorAll('#tsf-chips input[type="hidden"]').forEach(inp => { if (inp.value) params.set(inp.name, inp.value); });
+    const sv = (document.getElementById('tsf-input') || {}).value;
+    if (sv && sv.trim()) params.set('search', sv.trim());
+
+    document.querySelectorAll('[id^="kb-col-"]').forEach(c => { c.style.opacity = '0.35'; c.style.transition = 'opacity 0.15s'; });
 
     fetch('{{ route("tasks.kanban") }}?' + params.toString(), {
         headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
     })
     .then(r => r.json())
     .then(data => {
-        const colKeys = ['overdue', 'due_today', 'due_this_week', 'due_next_week', 'no_deadline', 'due_over_two_weeks', 'completed'];
-        colKeys.forEach(key => {
+        ['overdue','due_today','due_this_week','due_next_week','no_deadline','due_over_two_weeks','completed'].forEach(key => {
             const col     = document.getElementById('kb-col-' + key);
             const countEl = document.getElementById('kb-count-' + key);
             if (col) {
-                col.innerHTML   = data.columns[key] || '';
-                col.style.opacity    = '1';
-                col.style.transition = 'opacity 0.25s';
+                col.innerHTML = kbRenderCol(data.columns[key], key, data.completedTotal);
+                col.style.opacity = '1';
+                col.style.transition = 'opacity 0.22s';
             }
-            if (countEl) {
-                countEl.textContent = key === 'completed'
-                    ? (data.completedTotal ?? 0)
-                    : (data.counts[key] ?? 0);
-            }
+            if (countEl) countEl.textContent = key === 'completed' ? (data.completedTotal ?? 0) : (data.columns[key]?.length ?? 0);
         });
     })
-    .catch(() => {
-        document.querySelectorAll('[id^="kb-col-"]').forEach(c => { c.style.opacity = '1'; });
-    });
+    .catch(() => { document.querySelectorAll('[id^="kb-col-"]').forEach(c => { c.style.opacity = '1'; }); });
 }
 </script>
 @endsection

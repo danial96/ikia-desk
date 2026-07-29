@@ -413,21 +413,21 @@ class TaskController extends Controller
         $employees = Cache::remember('active_employees_list', 120, fn() => User::where('is_active', true)->get(['id', 'name', 'avatar']));
 
         if ($request->ajax()) {
-            $colHtml    = [];
-            $colCounts  = [];
+            $result = [];
             foreach ($columns as $key => $colTasks) {
-                $colHtml[$key]   = view('tasks._kanban_col_body', [
-                    'tasks'          => $colTasks,
-                    'colKey'         => $key,
-                    'completedTotal' => $completedTotal,
-                ])->render();
-                $colCounts[$key] = $colTasks->count();
+                $result[$key] = $colTasks->map(fn($t) => [
+                    'id'       => $t->id,
+                    'title'    => $t->title,
+                    'desc'     => $t->description,
+                    'priority' => $t->priority,
+                    'status'   => $t->status,
+                    'deadline' => $t->deadline ? $t->deadline->format('M d, Y') : null,
+                    'dl_past'  => $t->deadline && $t->deadline->isPast() && $t->status !== 'completed',
+                    'project'  => $t->project  ? $t->project->name  : null,
+                    'assignee' => $t->assignee ? ['name' => $t->assignee->name, 'avatar' => $t->assignee->avatar_url] : null,
+                ])->values();
             }
-            return response()->json([
-                'columns'        => $colHtml,
-                'counts'         => $colCounts,
-                'completedTotal' => $completedTotal,
-            ]);
+            return response()->json(['columns' => $result, 'completedTotal' => $completedTotal]);
         }
 
         return view('tasks.kanban', compact('columns', 'projects', 'employees', 'completedTotal'));
