@@ -53,14 +53,14 @@
 
     {{-- Close button — floats in the left gap (outside panel) --}}
     <button onclick="tpClose()"
-            style="position:absolute;left:24px;top:70px;width:42px;height:42px;border-radius:50%;background:#0ea5e9;border:none;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(14,165,233,.4);transition:background .15s;z-index:10;"
+            style="position:absolute;left:8px;top:8px;width:42px;height:42px;border-radius:50%;background:#0ea5e9;border:none;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(14,165,233,.4);transition:background .15s;z-index:10;"
             onmouseover="this.style.background='#0284c7'" onmouseout="this.style.background='#0ea5e9'">
         <i class="fas fa-times" style="font-size:14px;"></i>
     </button>
 
-    {{-- Two-column panel — starts 56px from top --}}
+    {{-- Two-column panel --}}
     <div id="tp-panel"
-         style="position:absolute;top:56px;left:0;right:0;bottom:0;display:flex;background:#fff;border-radius:0;overflow:hidden;box-shadow:0 -4px 40px rgba(0,0,0,.15);">
+         style="position:absolute;top:58px;left:58px;right:0;bottom:0;display:flex;background:#fff;border-radius:12px 0 0 0;overflow:hidden;box-shadow:0 -4px 40px rgba(0,0,0,.15);">
 
         {{-- ===== LEFT COLUMN ===== --}}
         <div id="tp-left"
