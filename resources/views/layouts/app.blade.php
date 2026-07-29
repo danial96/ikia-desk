@@ -530,9 +530,11 @@
 
             <div style="width:1px;height:20px;background:rgba(255,255,255,.1);"></div>
 
-            <img src="{{ auth()->user()->avatar_url }}"
-                 style="width:30px;height:30px;border-radius:50%;object-fit:cover;border:2px solid rgba(0,212,232,.4);" alt="">
-            <span style="color:rgba(255,255,255,.7);font-size:13px;font-weight:500;">{{ explode(' ', auth()->user()->name)[0] }}</span>
+            <a href="{{ route('profile.show') }}" style="display:flex;align-items:center;gap:8px;text-decoration:none;padding:4px 8px;border-radius:8px;transition:background .2s;" onmouseover="this.style.background='rgba(255,255,255,.08)'" onmouseout="this.style.background='transparent'">
+                <img src="{{ auth()->user()->avatar_url }}"
+                     style="width:30px;height:30px;border-radius:50%;object-fit:cover;border:2px solid rgba(0,212,232,.4);" alt="">
+                <span style="color:rgba(255,255,255,.7);font-size:13px;font-weight:500;">{{ explode(' ', auth()->user()->name)[0] }}</span>
+            </a>
         </div>
 
         {{-- Flash messages --}}
