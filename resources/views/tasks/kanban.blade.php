@@ -561,7 +561,7 @@ function kbAjaxFilter() {
 
 // ── Drag & Drop (SortableJS) ─────────────────────────────────────────────────
 const _kbSortables = {};
-const _kbCsrf = document.querySelector('meta[name="csrf-token"]')?.content;
+const _kbCsrf = '{{ csrf_token() }}';
 
 function kbDragInit() {
     const colKeys = ['overdue','due_today','due_this_week','due_next_week','no_deadline','due_over_two_weeks','completed'];
@@ -616,8 +616,15 @@ function kbDragInit() {
                     headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': _kbCsrf, 'Accept': 'application/json' },
                     body:    JSON.stringify(payload),
                 })
-                .then(() => kbAjaxFilter())   // always refresh: correct deadline text + column placement
-                .catch(() => kbAjaxFilter()); // on network error also refresh (reverts card)
+                .then(r => r.json())
+                .then(data => {
+                    if (!data.success) console.warn('[kb-move] server error', data);
+                    kbAjaxFilter(); // cache is busted by move(), so this fetches fresh data
+                })
+                .catch(err => {
+                    console.error('[kb-move] fetch failed', err);
+                    kbAjaxFilter();
+                });
             },
         });
     });

@@ -322,15 +322,21 @@ class TaskController extends Controller
 
     public function move(Request $request, Task $task)
     {
-        $all = $request->all(); // works for JSON + form-data
+        $all     = $request->all();
+        $updates = ['updated_at' => now()];
 
-        $updates = [];
-        if (array_key_exists('status', $all))   $updates['status']   = $all['status'];
-        if (array_key_exists('deadline', $all)) $updates['deadline'] = $all['deadline'];
-
-        if ($updates) {
-            $task->update($updates);
+        if (array_key_exists('status', $all) && $all['status']) {
+            $updates['status'] = $all['status'];
         }
+        if (array_key_exists('deadline', $all)) {
+            $updates['deadline'] = $all['deadline'] ?: null;
+        }
+
+        // Direct DB update — bypass model events that might interfere
+        \DB::table('tasks')->where('id', $task->id)->update($updates);
+
+        // Bust the kanban cache for this user so next AJAX fetch gets fresh data
+        Cache::increment('kb_v_' . Auth::id());
 
         return response()->json(['success' => true]);
     }
@@ -341,7 +347,8 @@ class TaskController extends Controller
 
         $user = Auth::user();
 
-        $cacheKey = 'kanban_' . $user->id . '_' . md5(json_encode($request->only(
+        $kbVersion = Cache::get('kb_v_' . $user->id, 0);
+        $cacheKey  = 'kanban_' . $user->id . '_' . $kbVersion . '_' . md5(json_encode($request->only(
             ['project_id', 'search', 'priority', 'assignee_id', 'status']
         )));
 
