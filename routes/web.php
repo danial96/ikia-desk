@@ -78,10 +78,11 @@ Route::middleware('auth')->group(function () {
 
         $user = auth()->user();
         if (!$user->isSuperAdmin()) {
-            $ok = $task->created_by === $user->id
-               || $task->assigned_to === $user->id
-               || $task->members()->where('user_id',$user->id)->exists()
-               || $task->observers()->where('user_id',$user->id)->exists();
+            $uid = $user->id;
+            $ok = $task->created_by === $uid
+               || $task->assigned_to === $uid
+               || $task->members->contains('id', $uid)
+               || $task->observers->contains('id', $uid);
             if (!$ok) return response()->json(['error'=>'Forbidden'],403);
         }
 

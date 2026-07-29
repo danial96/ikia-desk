@@ -56,8 +56,8 @@ class TaskController extends Controller
         }
 
         $tasks    = $query->latest()->paginate(20)->withQueryString();
-        $projects = Project::orderBy('name')->get();
-        $employees = User::where('is_active', true)->get();
+        $projects  = Cache::remember('all_projects_list', 120, fn() => Project::orderBy('name')->get(['id', 'name']));
+        $employees = Cache::remember('active_employees_list', 120, fn() => User::where('is_active', true)->get(['id', 'name', 'avatar']));
 
         if ($request->ajax()) {
             $html = $tasks->map(fn($t) => view('tasks._task_row', ['task' => $t])->render())->implode('');
@@ -409,8 +409,8 @@ class TaskController extends Controller
             return [$columns, $completedTotal];
         });
 
-        $projects  = Project::orderBy('name')->get();
-        $employees = User::where('is_active', true)->get();
+        $projects  = Cache::remember('all_projects_list', 120, fn() => Project::orderBy('name')->get(['id', 'name']));
+        $employees = Cache::remember('active_employees_list', 120, fn() => User::where('is_active', true)->get(['id', 'name', 'avatar']));
         return view('tasks.kanban', compact('columns', 'projects', 'employees', 'completedTotal'));
     }
 }
