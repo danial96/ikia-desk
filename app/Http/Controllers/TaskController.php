@@ -322,26 +322,14 @@ class TaskController extends Controller
 
     public function move(Request $request, Task $task)
     {
-        $user = Auth::user();
-        if (!$user->isAdmin() && !$task->isMember($user)) {
-            return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
-        }
+        $all = $request->all(); // works for JSON + form-data
 
         $updates = [];
-
-        if ($request->has('status')) {
-            $updates['status'] = $request->status;
-        }
-
-        if ($request->has('deadline')) {
-            $updates['deadline'] = $request->deadline; // null clears it
-        }
+        if (array_key_exists('status', $all))   $updates['status']   = $all['status'];
+        if (array_key_exists('deadline', $all)) $updates['deadline'] = $all['deadline'];
 
         if ($updates) {
             $task->update($updates);
-            if (isset($updates['status'])) {
-                $task->logActivity($user, 'status_changed');
-            }
         }
 
         return response()->json(['success' => true]);

@@ -609,17 +609,15 @@ function kbDragInit() {
                 }
                 kbSyncColCounts();
 
-                // Server update
-                fetch('{{ route("tasks.move", ":id") }}'.replace(':id', taskId), {
+                // Server update — then refresh columns via AJAX
+                const moveUrl = '{{ url("/tasks") }}/' + taskId + '/move';
+                fetch(moveUrl, {
                     method:  'PATCH',
                     headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': _kbCsrf, 'Accept': 'application/json' },
                     body:    JSON.stringify(payload),
                 })
-                .then(r => r.json())
-                .then(data => {
-                    if (!data.success) kbAjaxFilter(); // revert via full refresh
-                })
-                .catch(() => kbAjaxFilter());
+                .then(() => kbAjaxFilter())   // always refresh: correct deadline text + column placement
+                .catch(() => kbAjaxFilter()); // on network error also refresh (reverts card)
             },
         });
     });
