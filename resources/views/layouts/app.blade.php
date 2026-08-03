@@ -1988,9 +1988,9 @@ async function notifPoll() {
 }
 function notifSchedulePoll() {
     clearTimeout(notifPollTimer);
-    notifPollTimer = setTimeout(async () => {
-        await notifPoll();
-        notifSchedulePoll();
+    notifPollTimer = setTimeout(() => {
+        notifSchedulePoll(); // schedule next immediately (don't wait for response)
+        notifPoll();
     }, document.hidden ? 60000 : 5000);
 }
 document.addEventListener('DOMContentLoaded', () => {
