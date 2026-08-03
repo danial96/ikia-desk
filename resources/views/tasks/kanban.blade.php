@@ -532,11 +532,15 @@ function kbRenderCol(tasks, key, completedTotal) {
 
 // ── AJAX fetch ────────────────────────────────────────────────────────────────
 let _kbAbortCtrl = null;
+let _kbSeq       = 0;   // monotonic counter — only the latest response may update the DOM
 
 function kbAjaxFilter() {
-    // Cancel any in-flight request so stale responses never overwrite fresh ones
+    // Cancel any still-in-flight HTTP request (saves bandwidth)
     if (_kbAbortCtrl) _kbAbortCtrl.abort();
     _kbAbortCtrl = new AbortController();
+
+    // Stamp this request; stale responses arriving late are discarded
+    const mySeq = ++_kbSeq;
 
     const params = new URLSearchParams();
     document.querySelectorAll('#tsf-chips input[type="hidden"]').forEach(inp => { if (inp.value) params.set(inp.name, inp.value); });
@@ -551,6 +555,7 @@ function kbAjaxFilter() {
     })
     .then(r => r.json())
     .then(data => {
+        if (mySeq !== _kbSeq) return; // a newer request already fired — discard this response
         ['overdue','due_today','due_this_week','due_next_week','no_deadline','due_over_two_weeks','completed'].forEach(key => {
             const col     = document.getElementById('kb-col-' + key);
             const countEl = document.getElementById('kb-count-' + key);
@@ -564,7 +569,8 @@ function kbAjaxFilter() {
         kbDragInit(); // re-init after column refresh
     })
     .catch(err => {
-        if (err.name === 'AbortError') return; // previous request cancelled — ignore
+        if (err.name === 'AbortError') return; // request cancelled — ignore
+        if (mySeq !== _kbSeq) return;
         document.querySelectorAll('[id^="kb-col-"]').forEach(c => { c.style.opacity = '1'; });
     });
 }
