@@ -3,12 +3,69 @@ name: Deploy to Production
 on:
   push:
     branches: [main]
+  workflow_dispatch:
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Deploy via SSH
+      - name: Deploy via SSH (attempt 1)
+        id: deploy1
+        continue-on-error: true
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22
+          script: |
+            git config --global --add safe.directory /home/digitalservicesc/public_html/Ikiatech
+            cd /home/digitalservicesc/public_html/Ikiatech
+            git fetch origin main
+            git reset --hard origin/main
+            /opt/cpanel/ea-php82/root/usr/bin/php artisan migrate --force
+            /opt/cpanel/ea-php82/root/usr/bin/php artisan config:cache
+            /opt/cpanel/ea-php82/root/usr/bin/php artisan route:cache
+            /opt/cpanel/ea-php82/root/usr/bin/php artisan view:cache
+            /opt/cpanel/ea-php82/root/usr/bin/php artisan cache:clear
+            echo "Deploy complete"
+
+      - name: Wait before retry (fail2ban cooldown)
+        if: steps.deploy1.outcome == 'failure'
+        run: |
+          echo "Attempt 1 failed — waiting 3 min for fail2ban to unblock..."
+          sleep 180
+
+      - name: Deploy via SSH (attempt 2)
+        id: deploy2
+        if: steps.deploy1.outcome == 'failure'
+        continue-on-error: true
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22
+          script: |
+            git config --global --add safe.directory /home/digitalservicesc/public_html/Ikiatech
+            cd /home/digitalservicesc/public_html/Ikiatech
+            git fetch origin main
+            git reset --hard origin/main
+            /opt/cpanel/ea-php82/root/usr/bin/php artisan migrate --force
+            /opt/cpanel/ea-php82/root/usr/bin/php artisan config:cache
+            /opt/cpanel/ea-php82/root/usr/bin/php artisan route:cache
+            /opt/cpanel/ea-php82/root/usr/bin/php artisan view:cache
+            /opt/cpanel/ea-php82/root/usr/bin/php artisan cache:clear
+            echo "Deploy complete"
+
+      - name: Wait before second retry
+        if: steps.deploy1.outcome == 'failure' && steps.deploy2.outcome == 'failure'
+        run: |
+          echo "Attempt 2 failed — waiting 5 more min..."
+          sleep 300
+
+      - name: Deploy via SSH (attempt 3)
+        if: steps.deploy1.outcome == 'failure' && steps.deploy2.outcome == 'failure'
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SSH_HOST }}
