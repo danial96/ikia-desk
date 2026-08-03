@@ -335,6 +335,24 @@ class TaskController extends Controller
         // Direct DB update — bypass model events that might interfere
         \DB::table('tasks')->where('id', $task->id)->update($updates);
 
+        // Notify assignee about the move
+        $task->refresh();
+        $mover = Auth::user();
+        if ($task->assigned_to) {
+            if (isset($updates['status']) && $updates['status'] === 'completed') {
+                Notification::notify(
+                    [$task->assigned_to], $mover, 'task_status', $task,
+                    $mover->name . ' marked "' . $task->title . '" as completed'
+                );
+            } elseif (isset($updates['deadline'])) {
+                $dlStr = $task->deadline ? $task->deadline->format('M d, Y') : 'no deadline';
+                Notification::notify(
+                    [$task->assigned_to], $mover, 'task_deadline', $task,
+                    $mover->name . ' moved "' . $task->title . '" — new deadline: ' . $dlStr
+                );
+            }
+        }
+
         return response()->json(['success' => true]);
     }
 

@@ -525,7 +525,7 @@
             {{-- Bell notifications --}}
             <button id="notif-btn" onclick="notifToggle()" class="topbar-btn" style="position:relative;" title="Notifications">
                 <i class="fas fa-bell" style="font-size:15px;"></i>
-                <span id="notif-badge" style="display:none;position:absolute;top:3px;right:3px;min-width:16px;height:16px;background:#ef4444;border-radius:8px;font-size:10px;font-weight:700;color:#fff;line-height:16px;text-align:center;padding:0 3px;border:1.5px solid rgba(10,15,60,.5);"></span>
+                <span id="notif-badge" style="display:none;position:absolute;top:3px;right:3px;min-width:16px;height:16px;background:#ef4444;border-radius:8px;font-size:10px;font-weight:700;color:#fff;line-height:16px;text-align:center;padding:0 3px;border:1.5px solid rgba(10,15,60,.5);transition:transform .3s cubic-bezier(.34,1.56,.64,1);"></span>
             </button>
 
             <div style="width:1px;height:20px;background:rgba(255,255,255,.1);"></div>
@@ -1825,8 +1825,9 @@ document.addEventListener('DOMContentLoaded', function() {
 document.addEventListener('keydown', function(e){ if(e.key==='Escape') { closeTaskModal(); notifClose(); } });
 
 // ─── Notification system ───
-let notifIsOpen = false;
+let notifIsOpen    = false;
 let notifPollTimer = null;
+let _notifPrevCount = -1; // -1 = first load, no sound yet
 const CSRF     = document.querySelector('meta[name="csrf-token"]')?.content || '';
 const API_BASE = '{{ url("") }}';
 
@@ -1946,18 +1947,46 @@ function escHtml(s) {
     return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-// Poll every 60s for badge count
+function notifPlaySound() {
+    try {
+        const ctx  = new (window.AudioContext || window.webkitAudioContext)();
+        const osc  = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(880, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(660, ctx.currentTime + 0.15);
+        gain.gain.setValueAtTime(0.25, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.5);
+    } catch(e) {}
+}
+
+// Poll every 30s for badge count
 async function notifPoll() {
     try {
-        const res  = await fetch(API_BASE + '/api/notifications');
-        const data = await res.json();
-        notifUpdateBadge(data.unread_count || 0);
+        const res   = await fetch(API_BASE + '/api/notifications');
+        const data  = await res.json();
+        const count = data.unread_count || 0;
+        // Play sound + animate badge when new notifications arrive
+        if (_notifPrevCount !== -1 && count > _notifPrevCount) {
+            notifPlaySound();
+            const badge = document.getElementById('notif-badge');
+            if (badge) {
+                badge.style.transform = 'scale(1.5)';
+                setTimeout(() => { badge.style.transform = 'scale(1)'; }, 300);
+            }
+        }
+        _notifPrevCount = count;
+        notifUpdateBadge(count);
         if (notifIsOpen) notifRender(data.notifications || []);
     } catch(e) {}
 }
 document.addEventListener('DOMContentLoaded', () => {
     notifPoll();
-    setInterval(notifPoll, 60000);
+    setInterval(notifPoll, 30000);
 });
 
 // Close panel when clicking outside
