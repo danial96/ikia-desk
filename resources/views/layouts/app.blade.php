@@ -1263,6 +1263,8 @@ function chatUpdateBadge(count) {
         } catch(e) {}
     }
     setInterval(pollOnlineStatus, 30000);
+    // Expose for background polling outside this IIFE
+    window.chatPoll = chatPoll;
 })();
 
 // Expose for task panel optimistic comment render
