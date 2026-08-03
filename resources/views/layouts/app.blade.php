@@ -1986,9 +1986,21 @@ async function notifPoll() {
         if (notifIsOpen) notifRender(data.notifications || []);
     } catch(e) {}
 }
+function notifSchedulePoll() {
+    clearTimeout(notifPollTimer);
+    notifPollTimer = setTimeout(async () => {
+        await notifPoll();
+        notifSchedulePoll();
+    }, document.hidden ? 60000 : 5000);
+}
 document.addEventListener('DOMContentLoaded', () => {
     notifPoll();
-    setInterval(notifPoll, 30000);
+    notifSchedulePoll();
+});
+document.addEventListener('visibilitychange', () => {
+    clearTimeout(notifPollTimer);
+    if (!document.hidden) notifPoll(); // immediate poll when tab becomes active
+    notifSchedulePoll();
 });
 
 // Close panel when clicking outside
