@@ -271,6 +271,7 @@ let _cpAllConvs     = [];
 let _cpAllEmps      = [];
 let _cpPollTimer    = null;
 let _cpMsgCount     = 0;
+let _cpLastMsgId    = 0;
 
 function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function linkify(text) {
@@ -550,9 +551,12 @@ async function cpLoad() {
         cpRenderConvs(_cpAllConvs);
         // Flash rows where unread count went up
         _cpAllConvs.forEach(c => {
-            if (c.id !== _cpActiveConvId && (c.unread || 0) > (prevUnread[c.id] || 0)) {
-                const row = document.querySelector(`.cp-conv-item[data-id="${c.id}"]`);
-                if (row) { row.classList.remove('flash'); void row.offsetWidth; row.classList.add('flash'); }
+            if ((c.unread || 0) > (prevUnread[c.id] || 0)) {
+                if (typeof chatPlaySound === 'function') chatPlaySound();
+                if (c.id !== _cpActiveConvId) {
+                    const row = document.querySelector(`.cp-conv-item[data-id="${c.id}"]`);
+                    if (row) { row.classList.remove('flash'); void row.offsetWidth; row.classList.add('flash'); }
+                }
             }
         });
     } catch(e) {
@@ -601,6 +605,7 @@ window.cpFilterConvs = function(q) {
 window.cpSelect = async function(id) {
     _cpActiveConvId = id;
     _cpMsgCount = 0;
+    _cpLastMsgId = 0;
     try { localStorage.setItem('cp_active_conv', id); } catch(e) {}
     cpCancelEdit();
     document.querySelectorAll('.cp-conv-item').forEach(el => el.classList.toggle('active', +el.dataset.id === id));
@@ -616,7 +621,9 @@ window.cpSelect = async function(id) {
         const r = await fetch(API_BASE + '/api/chat/convs/' + id + '/msgs');
         const d = await r.json();
         cpUpdateHeader(d.conv);
-        cpRenderMsgs(d.messages || [], true);
+        const _initMsgs = d.messages || [];
+        cpRenderMsgs(_initMsgs, true);
+        if (_initMsgs.length) _cpLastMsgId = Math.max(..._initMsgs.map(m => m.id));
         cpRenderConvs(_cpAllConvs); // clear unread badge
         const ta = document.getElementById('cp-textarea');
         if (ta) ta.focus();
@@ -842,10 +849,36 @@ window.cpCreateGroup = async function() {
 /* ── Polling ── */
 function cpPoll() {
     cpLoad();
-    if (_cpActiveConvId) {
-        fetch(API_BASE + '/api/chat/convs/' + _cpActiveConvId + '/msgs')
-            .then(r=>r.json()).then(d=>cpRenderMsgs(d.messages||[], false)).catch(()=>{});
-    }
+    if (!_cpActiveConvId) return;
+    const url = API_BASE + '/api/chat/convs/' + _cpActiveConvId + '/msgs'
+              + (_cpLastMsgId ? '?after=' + _cpLastMsgId : '');
+    fetch(url).then(r=>r.json()).then(d => {
+        const msgs = d.messages || [];
+        if (!msgs.length) return;
+        if (_cpLastMsgId === 0) {
+            cpRenderMsgs(msgs, false);
+        } else {
+            if (msgs.some(m => !m.isMine) && typeof chatPlaySound === 'function') chatPlaySound();
+            cpAppendMsgs(msgs);
+        }
+        _cpLastMsgId = Math.max(...msgs.map(m => m.id));
+    }).catch(()=>{});
+}
+function cpAppendMsgs(msgs) {
+    const el    = document.getElementById('cp-msg-area');
+    const inner = document.getElementById('cp-msg-inner');
+    if (!inner) { cpRenderMsgs(msgs, true); return; }
+    const wasNearBottom = (el.scrollHeight - el.scrollTop) < (el.clientHeight + 140);
+    msgs.forEach(m => {
+        inner.insertAdjacentHTML('beforeend', bubble({
+            isMine: m.isMine, name: m.author.name, avatar: m.author.avatar,
+            text: m.text || '', time: m.time, showName: !m.isMine,
+            msgId: m.id, editedAt: m.editedAt, createdTs: m.createdTs,
+            isDeleted: Array.isArray(m.deletedFor) && m.deletedFor.includes(ME_ID),
+        }));
+    });
+    _cpMsgCount += msgs.length;
+    if (wasNearBottom) el.scrollTop = el.scrollHeight + 9999;
 }
 
 /* ── Init ── */
