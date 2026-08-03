@@ -329,18 +329,41 @@ Route::middleware('auth')->group(function () {
         return response()->json(['convs'=>$list]);
     });
 
-    Route::get('/api/chat/convs/{id}/msgs', function ($id) {
-        $user = auth()->user();
-        $conv = \App\Models\Conversation::with('members')->findOrFail($id);
+    Route::get('/api/chat/convs/{id}/msgs', function ($id, \Illuminate\Http\Request $request) {
+        $user   = auth()->user();
+        $conv   = \App\Models\Conversation::with('members')->findOrFail($id);
         if ($conv->type !== 'general' && !$conv->members->contains('id', $user->id))
             return response()->json(['error'=>'Forbidden'],403);
 
+        $afterId = (int)($request->query('after', 0));
+        $msgFmt  = fn($m) => [
+            'id'        => $m->id,
+            'text'      => $m->content,
+            'isMine'    => $m->user_id===$user->id,
+            'time'      => $m->created_at->format('H:i'),
+            'date'      => $m->created_at->format('Y-m-d'),
+            'createdTs' => $m->created_at->timestamp,
+            'editedAt'  => $m->edited_at?->format('H:i'),
+            'deletedFor'=> $m->deleted_for ?? [],
+            'author'    => ['id'=>$m->user_id,'name'=>$m->user?->name??'','avatar'=>$m->user?->avatar_url??''],
+        ];
+
+        if ($afterId > 0) {
+            // Incremental poll — only new messages after given ID
+            $msgs = $conv->messages()->with('user')->where('id','>',$afterId)->orderBy('id')->limit(50)->get();
+            if ($msgs->isNotEmpty()) {
+                \App\Models\ConversationMember::where('conversation_id',$conv->id)->where('user_id',$user->id)
+                    ->update(['last_read_at'=>now()]);
+            }
+            return response()->json(['messages' => $msgs->map($msgFmt)->values()]);
+        }
+
+        // Full load
         \App\Models\ConversationMember::where('conversation_id',$conv->id)->where('user_id',$user->id)
             ->update(['last_read_at'=>now()]);
-
         $msgs  = $conv->messages()->with('user')->latest()->limit(100)->get()
                      ->sortBy(fn($m) => $m->created_at->timestamp)->values();
-        $other = $conv->type==='direct' ? $conv->members->where('id','!=',$user->id)->first() : null;
+        $other  = $conv->type==='direct' ? $conv->members->where('id','!=',$user->id)->first() : null;
         $online = $other && $other->last_seen_at && $other->last_seen_at->diffInMinutes(now()) < 5;
 
         return response()->json([
@@ -350,17 +373,7 @@ Route::middleware('auth')->group(function () {
                 'members' => $conv->members->count(),
                 'online'  => $online,
                 'last_seen' => $other?->last_seen_at?->diffForHumans()],
-            'messages' => $msgs->map(fn($m)=>[
-                'id'        => $m->id,
-                'text'      => $m->content,
-                'isMine'    => $m->user_id===$user->id,
-                'time'      => $m->created_at->format('H:i'),
-                'date'      => $m->created_at->format('Y-m-d'),
-                'createdTs' => $m->created_at->timestamp,
-                'editedAt'  => $m->edited_at?->format('H:i'),
-                'deletedFor'=> $m->deleted_for ?? [],
-                'author'    => ['id'=>$m->user_id,'name'=>$m->user?->name??'','avatar'=>$m->user?->avatar_url??''],
-            ]),
+            'messages' => $msgs->map($msgFmt),
         ]);
     });
 

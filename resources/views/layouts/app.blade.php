@@ -518,8 +518,9 @@
             <div style="flex:1;"></div>
 
             {{-- Quick actions --}}
-            <button onclick="chatToggle()" class="topbar-btn" id="chat-topbar-btn" title="Messenger">
+            <button onclick="chatToggle()" class="topbar-btn" id="chat-topbar-btn" title="Messenger" style="position:relative;">
                 <i class="fas fa-comment-dots" style="font-size:16px;"></i>
+                <span id="chat-unread-badge" style="display:none;position:absolute;top:-5px;right:-5px;min-width:16px;height:16px;background:#ef4444;color:#fff;border-radius:8px;font-size:9px;font-weight:700;align-items:center;justify-content:center;padding:0 3px;border:2px solid var(--topbar-bg,#1a1a2e);line-height:1;"></span>
             </button>
 
             {{-- Bell notifications --}}
@@ -795,6 +796,7 @@ let _activeConvId = null;
 let _allConvs  = [];
 let _allEmps   = [];
 let _pollTimer = null;
+let _lastMsgId = 0;
 const ME_ID = {{ auth()->id() }};
 
 /* ── Open / Close ── */
@@ -832,7 +834,7 @@ window.chatOpen = function() {
         btn.style.display = 'flex';
     }
     chatLoadConvs();
-    _pollTimer = setInterval(chatPoll, 8000);
+    _pollTimer = setInterval(chatPoll, 5000);
 };
 
 window.chatClose = function() {
@@ -855,11 +857,16 @@ async function chatLoadConvs() {
         const d = await r.json();
         const prevUnread = Object.fromEntries(_allConvs.map(c => [c.id, c.unread || 0]));
         _allConvs = d.convs || [];
-        chatRenderConvs(_allConvs);
+        const totalUnread = _allConvs.reduce((s,c) => s+(c.unread||0), 0);
+        chatUpdateBadge(totalUnread);
+        if (_chatOpen) chatRenderConvs(_allConvs);
         _allConvs.forEach(c => {
-            if (c.id !== _activeConvId && (c.unread || 0) > (prevUnread[c.id] || 0)) {
-                const row = document.querySelector(`.chat-conv-item[data-id="${c.id}"]`);
-                if (row) { row.style.animation='none'; void row.offsetWidth; row.style.animation='chatFlash .6s ease-out forwards'; }
+            if ((c.unread || 0) > (prevUnread[c.id] || 0)) {
+                chatPlaySound();
+                if (_chatOpen) {
+                    const row = document.querySelector(`.chat-conv-item[data-id="${c.id}"]`);
+                    if (row) { row.style.animation='none'; void row.offsetWidth; row.style.animation='chatFlash .6s ease-out forwards'; }
+                }
             }
         });
     } catch(e) {
@@ -931,6 +938,7 @@ window.chatFilterConvs = function(q) {
 /* ── Select conversation ── */
 window.chatSelectConv = async function(id) {
     _activeConvId = id;
+    _lastMsgId = 0;
     // Mark active in list
     document.querySelectorAll('.chat-conv-item').forEach(el => {
         const match = +el.dataset.id === id;
@@ -951,8 +959,9 @@ window.chatSelectConv = async function(id) {
         // Update header
         const conv = d.conv;
         chatUpdateHeader(conv);
-        // Render messages
-        chatRenderMsgs(d.messages || []);
+        const msgs = d.messages || [];
+        chatRenderMsgs(msgs);
+        if (msgs.length) _lastMsgId = Math.max(...msgs.map(m => m.id));
     } catch(e) {
         msgArea.innerHTML = '<div style="padding:20px;text-align:center;color:rgba(255,82,82,.7);font-size:12px;">Failed to load messages</div>';
     }
@@ -1196,15 +1205,44 @@ window.chatCreateGroup = async function() {
 
 /* ── Polling ── */
 async function chatPoll() {
-    if (!_chatOpen) return;
-    if (_activeConvId) {
-        try {
-            const r = await fetch(API_BASE + '/api/chat/convs/' + _activeConvId + '/msgs');
-            const d = await r.json();
-            chatRenderMsgs(d.messages || []);
-        } catch(e) {}
-    }
+    // Always update conversation list + unread counts (even when panel closed)
     chatLoadConvs();
+    // Message polling only when panel is open with an active conversation
+    if (!_chatOpen || !_activeConvId) return;
+    try {
+        const url = API_BASE + '/api/chat/convs/' + _activeConvId + '/msgs'
+                  + (_lastMsgId ? '?after=' + _lastMsgId : '');
+        const r = await fetch(url);
+        const d = await r.json();
+        const msgs = d.messages || [];
+        if (!msgs.length) return;
+        if (_lastMsgId === 0) {
+            chatRenderMsgs(msgs);
+        } else {
+            const fromOthers = msgs.filter(m => !m.isMine);
+            if (fromOthers.length) chatPlaySound();
+            chatAppendMsgs(msgs);
+        }
+        _lastMsgId = Math.max(...msgs.map(m => m.id));
+    } catch(e) {}
+}
+function chatAppendMsgs(msgs) {
+    const el = document.getElementById('chat-msg-area');
+    const inner = el.querySelector('[style*="margin-top:auto"]');
+    if (!inner) { chatRenderMsgs(msgs); return; }
+    msgs.forEach(m => {
+        inner.insertAdjacentHTML('beforeend', chatBubble({
+            isMine: m.isMine, name: m.author.name, avatar: m.author.avatar,
+            text: m.text, time: m.time, showName: !m.isMine,
+        }));
+    });
+    el.scrollTop = el.scrollHeight + 9999;
+}
+function chatUpdateBadge(count) {
+    const b = document.getElementById('chat-unread-badge');
+    if (!b) return;
+    if (count > 0) { b.textContent = count > 99 ? '99+' : count; b.style.display = 'flex'; }
+    else b.style.display = 'none';
 }
 
 /* ── Right-panel online status polling ── */
@@ -1949,18 +1987,32 @@ function escHtml(s) {
 
 function notifPlaySound() {
     try {
-        const ctx  = new (window.AudioContext || window.webkitAudioContext)();
-        const osc  = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(880, ctx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(660, ctx.currentTime + 0.15);
-        gain.gain.setValueAtTime(0.25, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
-        osc.start(ctx.currentTime);
-        osc.stop(ctx.currentTime + 0.5);
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const t = ctx.currentTime;
+        [[659,0,0.2],[784,0.13,0.18],[1047,0.26,0.16]].forEach(([freq,delay,vol]) => {
+            const osc = ctx.createOscillator(), gain = ctx.createGain();
+            osc.connect(gain); gain.connect(ctx.destination);
+            osc.type = 'sine'; osc.frequency.value = freq;
+            gain.gain.setValueAtTime(0, t+delay);
+            gain.gain.linearRampToValueAtTime(vol, t+delay+0.012);
+            gain.gain.exponentialRampToValueAtTime(0.001, t+delay+0.55);
+            osc.start(t+delay); osc.stop(t+delay+0.6);
+        });
+    } catch(e) {}
+}
+function chatPlaySound() {
+    try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const t = ctx.currentTime;
+        [[440,0,0.15],[587,0.12,0.12]].forEach(([freq,delay,vol]) => {
+            const osc = ctx.createOscillator(), gain = ctx.createGain();
+            osc.connect(gain); gain.connect(ctx.destination);
+            osc.type = 'sine'; osc.frequency.value = freq;
+            gain.gain.setValueAtTime(0, t+delay);
+            gain.gain.linearRampToValueAtTime(vol, t+delay+0.01);
+            gain.gain.exponentialRampToValueAtTime(0.001, t+delay+0.5);
+            osc.start(t+delay); osc.stop(t+delay+0.55);
+        });
     } catch(e) {}
 }
 
@@ -1996,6 +2048,8 @@ function notifSchedulePoll() {
 document.addEventListener('DOMContentLoaded', () => {
     notifPoll();
     notifSchedulePoll();
+    // Background chat poll — runs even when chat panel is closed
+    setInterval(chatPoll, 10000);
 });
 document.addEventListener('visibilitychange', () => {
     clearTimeout(notifPollTimer);
