@@ -1978,6 +1978,8 @@ async function notifPoll() {
                 badge.style.transform = 'scale(1.5)';
                 setTimeout(() => { badge.style.transform = 'scale(1)'; }, 300);
             }
+            // Refresh kanban cards so new unseen badges appear without page reload
+            if (typeof kbAjaxFilter === 'function') setTimeout(kbAjaxFilter, 500);
         }
         _notifPrevCount = count;
         notifUpdateBadge(count);

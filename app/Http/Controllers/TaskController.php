@@ -420,12 +420,12 @@ class TaskController extends Controller
                 $all = $all->merge((clone $baseQuery)->where('status', 'completed')->latest()->limit(50)->get());
             }
 
-            // Always include completed tasks with unseen notifications so they can't be missed
+            // Always include tasks with unseen notifications regardless of status/filter
             if (!empty($unseenTaskIds)) {
                 $alreadyLoaded = $all->pluck('id')->flip()->toArray();
                 $missing = array_diff($unseenTaskIds, array_keys($alreadyLoaded));
                 if (!empty($missing)) {
-                    $extra = (clone $baseQuery)->where('status', 'completed')->whereIn('id', $missing)->get();
+                    $extra = (clone $baseQuery)->whereIn('id', $missing)->get();
                     $all   = $all->merge($extra);
                 }
             }
