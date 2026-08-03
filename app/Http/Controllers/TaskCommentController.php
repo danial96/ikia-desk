@@ -30,7 +30,12 @@ class TaskCommentController extends Controller
         $task->logActivity(Auth::user(), 'commented', null, null, $content);
 
         $task->load(['members', 'observers']);
-        $recipientIds = $task->members->pluck('id')->merge($task->observers->pluck('id'))->unique()->toArray();
+        $recipientIds = collect()
+            ->push($task->created_by)
+            ->push($task->assigned_to)
+            ->merge($task->members->pluck('id'))
+            ->merge($task->observers->pluck('id'))
+            ->filter()->unique()->values()->toArray();
         Notification::notify($recipientIds, Auth::user(), 'task_comment', $task,
             Auth::user()->name . ' commented on "' . $task->title . '"');
 

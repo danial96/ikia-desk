@@ -247,19 +247,31 @@ class TaskController extends Controller
         }
         $task->logActivity($user, 'updated', $field, $logOld, $logNew);
         $task->load(['assignee', 'project', 'members', 'observers']);
+        $audience = $this->taskInterestedIds($task);
 
-        // Notifications
         if ($field === 'assigned_to' && $value) {
+            // New assignee gets a personal "assigned" message
             Notification::notify(
                 [(int)$value], $user, 'task_assigned', $task,
                 $user->name . ' assigned you to "' . $task->title . '"'
             );
-        }
-        if ($field === 'status') {
-            $allIds = $task->members->pluck('id')->merge($task->observers->pluck('id'))->unique()->toArray();
+            // Everyone else learns about the reassignment
+            $others = array_diff($audience, [(int)$value]);
+            if (!empty($others)) {
+                Notification::notify(
+                    $others, $user, 'task_assigned', $task,
+                    $user->name . ' assigned "' . $task->title . '" to ' . ($task->assignee?->name ?? 'someone')
+                );
+            }
+        } elseif ($field === 'status') {
             Notification::notify(
-                $allIds, $user, 'task_status', $task,
+                $audience, $user, 'task_status', $task,
                 $user->name . ' changed status to "' . $value . '" in "' . $task->title . '"'
+            );
+        } elseif (in_array($field, ['deadline', 'priority'])) {
+            Notification::notify(
+                $audience, $user, 'task_updated', $task,
+                $user->name . ' updated ' . $field . ' of "' . $task->title . '"'
             );
         }
 
@@ -320,6 +332,20 @@ class TaskController extends Controller
         return response()->json(['success' => true, 'action' => $action]);
     }
 
+    private function taskInterestedIds(Task $task): array
+    {
+        $task->loadMissing(['members', 'observers']);
+        return collect()
+            ->push($task->created_by)
+            ->push($task->assigned_to)
+            ->merge($task->members->pluck('id'))
+            ->merge($task->observers->pluck('id'))
+            ->filter()
+            ->unique()
+            ->values()
+            ->toArray();
+    }
+
     public function move(Request $request, Task $task)
     {
         $all     = $request->all();
@@ -335,22 +361,21 @@ class TaskController extends Controller
         // Direct DB update — bypass model events that might interfere
         \DB::table('tasks')->where('id', $task->id)->update($updates);
 
-        // Notify assignee about the move
         $task->refresh();
-        $mover = Auth::user();
-        if ($task->assigned_to) {
-            if (isset($updates['status']) && $updates['status'] === 'completed') {
-                Notification::notify(
-                    [$task->assigned_to], $mover, 'task_status', $task,
-                    $mover->name . ' marked "' . $task->title . '" as completed'
-                );
-            } elseif (isset($updates['deadline'])) {
-                $dlStr = $task->deadline ? $task->deadline->format('M d, Y') : 'no deadline';
-                Notification::notify(
-                    [$task->assigned_to], $mover, 'task_deadline', $task,
-                    $mover->name . ' moved "' . $task->title . '" — new deadline: ' . $dlStr
-                );
-            }
+        $mover    = Auth::user();
+        $audience = $this->taskInterestedIds($task);
+
+        if (isset($updates['status'])) {
+            Notification::notify(
+                $audience, $mover, 'task_status', $task,
+                $mover->name . ' changed "' . $task->title . '" to ' . $updates['status']
+            );
+        } elseif (isset($updates['deadline'])) {
+            $dlStr = $task->deadline ? $task->deadline->format('M d, Y') : 'no deadline';
+            Notification::notify(
+                $audience, $mover, 'task_deadline', $task,
+                $mover->name . ' moved "' . $task->title . '" — new deadline: ' . $dlStr
+            );
         }
 
         return response()->json(['success' => true]);
