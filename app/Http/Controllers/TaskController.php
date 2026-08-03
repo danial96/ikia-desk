@@ -120,12 +120,26 @@ class TaskController extends Controller
 
         $task->logActivity(Auth::user(), 'created');
 
-        // Notify assignee
+        $creator   = Auth::user();
+        $notified  = [];
+
         if ($task->assigned_to) {
-            Notification::notify(
-                [$task->assigned_to], Auth::user(), 'task_assigned', $task,
-                Auth::user()->name . ' assigned you to "' . $task->title . '"'
-            );
+            Notification::notify([$task->assigned_to], $creator, 'task_assigned', $task,
+                $creator->name . ' assigned you to "' . $task->title . '"');
+            $notified[] = $task->assigned_to;
+        }
+
+        // Also notify members/observers added at creation time
+        $task->load(['members', 'observers']);
+        $others = collect()
+            ->merge($task->members->pluck('id'))
+            ->merge($task->observers->pluck('id'))
+            ->filter()->unique()
+            ->diff(array_merge($notified, [$creator->id]))
+            ->values()->toArray();
+        if (!empty($others)) {
+            Notification::notify($others, $creator, 'task_assigned', $task,
+                $creator->name . ' added you to task "' . $task->title . '"');
         }
 
         if ($request->ajax()) {
@@ -153,6 +167,10 @@ class TaskController extends Controller
             $oldStatus = $task->status;
             $task->update(['status' => $request->status]);
             $task->logActivity($user, 'updated', 'status', $oldStatus, $request->status);
+            $task->load(['members', 'observers']);
+            $audience = $this->taskInterestedIds($task);
+            Notification::notify($audience, $user, 'task_status', $task,
+                $user->name . ' changed status to "' . $request->status . '" in "' . $task->title . '"');
             return back()->with('success', 'Task status updated.');
         }
 
@@ -198,6 +216,34 @@ class TaskController extends Controller
                 $new = $new ? (User::find($new)?->name ?? $new) : null;
             }
             $task->logActivity($user, 'updated', $field, $old, $new);
+        }
+
+        // Notify all interested parties about what changed (one notification per save)
+        if (!empty($changes)) {
+            $task->load(['members', 'observers']);
+            $audience = $this->taskInterestedIds($task);
+
+            if (isset($changes['assigned_to'])) {
+                $newId = (int) ($changes['assigned_to']['new'] ?? 0);
+                if ($newId) {
+                    Notification::notify([$newId], $user, 'task_assigned', $task,
+                        $user->name . ' assigned you to "' . $task->title . '"');
+                    $others = array_diff($audience, [$newId]);
+                    if (!empty($others)) {
+                        Notification::notify($others, $user, 'task_assigned', $task,
+                            $user->name . ' assigned "' . $task->title . '" to ' . ($task->assignee?->name ?? 'someone'));
+                    }
+                } else {
+                    Notification::notify($audience, $user, 'task_updated', $task,
+                        $user->name . ' updated "' . $task->title . '"');
+                }
+            } elseif (isset($changes['status'])) {
+                Notification::notify($audience, $user, 'task_status', $task,
+                    $user->name . ' changed status to "' . $changes['status']['new'] . '" in "' . $task->title . '"');
+            } else {
+                Notification::notify($audience, $user, 'task_updated', $task,
+                    $user->name . ' updated "' . $task->title . '"');
+            }
         }
 
         $task->logActivity($user, 'edited_task', null, null, null);

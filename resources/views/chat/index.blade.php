@@ -272,6 +272,7 @@ let _cpAllEmps      = [];
 let _cpPollTimer    = null;
 let _cpMsgCount     = 0;
 let _cpLastMsgId    = 0;
+let _cpLoaded       = false;
 
 function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function linkify(text) {
@@ -546,19 +547,20 @@ async function cpLoad() {
     try {
         const r = await fetch(API_BASE + '/api/chat/convs');
         const d = await r.json();
-        const prevUnread = Object.fromEntries(_cpAllConvs.map(c => [c.id, c.unread || 0]));
+        const prevUnread = _cpLoaded ? Object.fromEntries(_cpAllConvs.map(c => [c.id, c.unread || 0])) : null;
         _cpAllConvs = d.convs || [];
+        _cpLoaded   = true;
         cpRenderConvs(_cpAllConvs);
-        // Flash rows where unread count went up
-        _cpAllConvs.forEach(c => {
-            if ((c.unread || 0) > (prevUnread[c.id] || 0)) {
-                if (typeof chatPlaySound === 'function') chatPlaySound();
-                if (c.id !== _cpActiveConvId) {
+        // Flash + sound for conversations where unread count went up (skip active conv — cpPoll handles its sound)
+        if (prevUnread) {
+            _cpAllConvs.forEach(c => {
+                if ((c.unread || 0) > (prevUnread[c.id] || 0) && c.id !== _cpActiveConvId) {
+                    if (typeof chatPlaySound === 'function') chatPlaySound();
                     const row = document.querySelector(`.cp-conv-item[data-id="${c.id}"]`);
                     if (row) { row.classList.remove('flash'); void row.offsetWidth; row.classList.add('flash'); }
                 }
-            }
-        });
+            });
+        }
     } catch(e) {
         document.getElementById('cp-conv-list').innerHTML = '<div style="padding:30px;text-align:center;color:rgba(255,82,82,.7);font-size:12px;">Failed to load</div>';
     }

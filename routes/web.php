@@ -238,9 +238,14 @@ Route::middleware('auth')->group(function () {
         $comment = $task->comments()->create(['user_id'=>auth()->id(),'content'=>$request->content,'mentions'=>[]]);
         $task->logActivity(auth()->user(),'commented',null,null,$request->content);
 
-        // Notify task members + observers about new comment
+        // Notify creator + assignee + members + observers about new comment
         $task->load(['members','observers']);
-        $recipientIds = $task->members->pluck('id')->merge($task->observers->pluck('id'))->unique()->toArray();
+        $recipientIds = collect()
+            ->push($task->created_by)
+            ->push($task->assigned_to)
+            ->merge($task->members->pluck('id'))
+            ->merge($task->observers->pluck('id'))
+            ->filter()->unique()->values()->toArray();
         \App\Models\Notification::notify($recipientIds, auth()->user(), 'task_comment', $task,
             auth()->user()->name . ' commented on "' . $task->title . '"');
 
