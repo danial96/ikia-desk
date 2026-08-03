@@ -915,7 +915,7 @@ function chatShowMsgPopup(conv) {
     const eName = (conv.name || '').replace(/&/g,'&amp;').replace(/</g,'&lt;');
     const rawText = conv.lastMsg ? conv.lastMsg.text || '' : 'New message';
     const ePreview = previewText(rawText).substring(0, 48).replace(/&/g,'&amp;').replace(/</g,'&lt;');
-    popup.style.cssText = 'position:fixed;bottom:' + (64 + stackCount * 78) + 'px;right:62px;'
+    popup.style.cssText = 'position:fixed;top:' + (58 + stackCount * 78) + 'px;right:62px;'
         + 'background:rgba(8,12,52,.97);backdrop-filter:blur(20px);'
         + 'border:1px solid rgba(0,212,232,.3);border-radius:14px;'
         + 'padding:11px 13px;z-index:9997;width:250px;cursor:pointer;'
