@@ -469,6 +469,23 @@ window.tpOpen = function(type, id) {
             else { tpRenderLocal(data); tpStartChatPoll(id); }
         })
         .catch(()=>{ $('tp-left-body').innerHTML='<p style="color:#ef4444;padding:24px 0;">Could not load task details.</p>'; });
+
+    // Mark this task's notifications as read + remove card badge
+    if (type === 'local') {
+        const wasUnseen = window._kbUnseenIds && window._kbUnseenIds.has(String(id));
+        fetch(`/api/notifications/task/${id}/read`, { method:'POST', headers:{'X-CSRF-TOKEN':TP_CSRF} });
+        if (wasUnseen) {
+            // Remove badge from card immediately (optimistic)
+            const card = document.getElementById('kb-task-' + id);
+            if (card) {
+                card.querySelectorAll('.kb-unseen-dot').forEach(el => el.remove());
+                card.style.borderLeft = '';
+            }
+            // Remove from unseen set then refresh kanban so completed task follows filter again
+            if (window._kbUnseenIds) window._kbUnseenIds.delete(String(id));
+            if (typeof kbAjaxFilter === 'function') setTimeout(kbAjaxFilter, 400);
+        }
+    }
 };
 
 window.tpClose = function(updateUrl=true) {

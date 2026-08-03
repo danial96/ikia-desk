@@ -58,6 +58,10 @@
         .kb-drag-active { opacity:.85; cursor:grabbing !important; }
         [data-task-id] { cursor:grab; }
         [data-task-id]:active { cursor:grabbing; }
+        @keyframes kbPulse {
+            0%,100% { transform:scale(1);   opacity:1; }
+            50%      { transform:scale(1.4); opacity:.7; }
+        }
         </style>
         @foreach($colConfig as $key => $col)
         @php $tasks = $columns[$key] ?? collect(); @endphp
@@ -506,10 +510,16 @@ function kbRenderCard(t) {
     const dl    = t.deadline ? `<span style="font-size:10.5px;color:${t.dl_past?'#ef4444':'#94a3b8'};display:flex;align-items:center;gap:3px;"><i class="fas fa-calendar-alt" style="font-size:9px;"></i>${kbH(t.deadline)}</span>` : `<span style="font-size:10.5px;color:#cbd5e1;">—</span>`;
     const asgn  = t.assignee ? `<div style="display:flex;align-items:center;gap:5px;"><span style="font-size:10px;color:#64748b;">${kbH(t.assignee.name.split(' ')[0])}</span><img src="${kbH(t.assignee.avatar)}" style="width:22px;height:22px;border-radius:50%;border:2px solid #e2e8f0;object-fit:cover;" title="${kbH(t.assignee.name)}" alt=""></div>` : '';
 
+    const hasUnseen = window._kbUnseenIds && window._kbUnseenIds.has(String(t.id));
+    const unseenBadge = hasUnseen
+        ? `<span class="kb-unseen-dot" style="position:absolute;top:-4px;right:-4px;width:12px;height:12px;background:#ef4444;border-radius:50%;border:2px solid #fff;animation:kbPulse 1.8s ease-in-out infinite;"></span>`
+        : '';
+
     return `<div id="kb-task-${t.id}" data-task-id="${t.id}" onclick="tpOpen('local',${t.id})"
-        style="background:#fff;border-radius:10px;padding:12px;cursor:pointer;transition:box-shadow .15s,transform .15s;box-shadow:0 1px 4px rgba(0,0,0,.12);"
+        style="position:relative;background:#fff;border-radius:10px;padding:12px;cursor:pointer;transition:box-shadow .15s,transform .15s;box-shadow:0 1px 4px rgba(0,0,0,.12)${hasUnseen ? ';border-left:3px solid #ef4444' : ''};"
         onmouseover="this.style.boxShadow='0 4px 16px rgba(0,0,0,.18)';this.style.transform='translateY(-1px)'"
         onmouseout="this.style.boxShadow='0 1px 4px rgba(0,0,0,.12)';this.style.transform=''">
+        ${unseenBadge}
         <p style="font-size:12.5px;font-weight:600;color:#1a1a2e;margin:0 0 7px;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${kbH(t.title)}</p>
         ${thumb}
         <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-bottom:8px;">
@@ -556,6 +566,7 @@ function kbAjaxFilter() {
     .then(r => r.json())
     .then(data => {
         if (mySeq !== _kbSeq) return; // a newer request already fired — discard this response
+        window._kbUnseenIds = new Set((data.unseenTaskIds || []).map(String));
         ['overdue','due_today','due_this_week','due_next_week','no_deadline','due_over_two_weeks','completed'].forEach(key => {
             const col     = document.getElementById('kb-col-' + key);
             const countEl = document.getElementById('kb-count-' + key);

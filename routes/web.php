@@ -481,6 +481,14 @@ Route::middleware('auth')->group(function () {
         return response()->json(['ok' => true]);
     })->name('api.notifications.read-all');
 
+    Route::post('/api/notifications/task/{taskId}/read', function ($taskId) {
+        \App\Models\Notification::where('user_id', auth()->id())
+            ->where('task_id', $taskId)
+            ->whereNull('read_at')
+            ->update(['read_at' => now()]);
+        return response()->json(['ok' => true]);
+    })->name('api.notifications.task-read');
+
     // Bitrix24 live tasks proxy
     Route::get('/api/bitrix-tasks', function () {
         $wh = env('BITRIX_WEBHOOK');

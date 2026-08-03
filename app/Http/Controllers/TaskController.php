@@ -362,7 +362,18 @@ class TaskController extends Controller
 
         $user = Auth::user();
 
-        $buildColumns = function () use ($request, $user) {
+        // Task IDs with unseen notifications for this user (AJAX only — not stored in cache)
+        $unseenTaskIds = $request->ajax()
+            ? Notification::where('user_id', $user->id)
+                ->whereNull('read_at')
+                ->whereNotNull('task_id')
+                ->pluck('task_id')
+                ->unique()
+                ->values()
+                ->toArray()
+            : [];
+
+        $buildColumns = function () use ($request, $user, $unseenTaskIds) {
             $today       = now()->startOfDay();
             $todayEnd    = now()->endOfDay();
             $weekEnd     = now()->endOfWeek();
@@ -395,19 +406,28 @@ class TaskController extends Controller
                 $query->where('assigned_to', $request->assignee_id);
             }
 
+            // Capture base query before status filter so clones stay clean
+            $baseQuery = clone $query;
+
             if ($request->status) {
-                $all = $query->where('status', $request->status)->latest()->limit(200)->get();
+                $all = (clone $baseQuery)->where('status', $request->status)->latest()->limit(200)->get();
                 $completedTotal = $request->status === 'completed'
                     ? $all->count()
-                    : (clone $query)->where('status', 'completed')->count();
+                    : (clone $baseQuery)->where('status', 'completed')->count();
             } else {
-                $activeQuery = clone $query;
-                $all = $activeQuery->where('status', '!=', 'completed')->latest()->limit(200)->get();
+                $all = (clone $baseQuery)->where('status', '!=', 'completed')->latest()->limit(200)->get();
+                $completedTotal = (clone $baseQuery)->where('status', 'completed')->count();
+                $all = $all->merge((clone $baseQuery)->where('status', 'completed')->latest()->limit(50)->get());
+            }
 
-                $completedQuery = clone $query;
-                $completedQuery->where('status', 'completed');
-                $completedTotal = $completedQuery->count();
-                $all = $all->merge($completedQuery->latest()->limit(50)->get());
+            // Always include completed tasks with unseen notifications so they can't be missed
+            if (!empty($unseenTaskIds)) {
+                $alreadyLoaded = $all->pluck('id')->flip()->toArray();
+                $missing = array_diff($unseenTaskIds, array_keys($alreadyLoaded));
+                if (!empty($missing)) {
+                    $extra = (clone $baseQuery)->where('status', 'completed')->whereIn('id', $missing)->get();
+                    $all   = $all->merge($extra);
+                }
             }
 
             $columns = [
@@ -469,7 +489,7 @@ class TaskController extends Controller
                     'assignee' => $t->assignee ? ['name' => $t->assignee->name, 'avatar' => $t->assignee->avatar_url] : null,
                 ])->values();
             }
-            return response()->json(['columns' => $result, 'completedTotal' => $completedTotal]);
+            return response()->json(['columns' => $result, 'completedTotal' => $completedTotal, 'unseenTaskIds' => $unseenTaskIds]);
         }
 
         return view('tasks.kanban', compact('columns', 'projects', 'employees', 'completedTotal'));
