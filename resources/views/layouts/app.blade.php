@@ -569,11 +569,15 @@
         {{-- Team members --}}
         @isset($onlineUsers)
         @foreach($onlineUsers as $u)
-        <button type="button" class="user-avatar-btn" title="{{ $u->name }}" data-uid="{{ $u->id }}"
-                onclick="chatOpenDirect({{ $u->id }})">
-            <img src="{{ $u->avatar_url }}" alt="{{ $u->name }}">
-            <div class="online-dot" style="background:{{ $u->is_online ? '#22c55e' : '#6b7280' }};"></div>
-        </button>
+        <div class="user-avatar-wrap" style="position:relative;flex-shrink:0;">
+            <button type="button" class="user-avatar-btn" title="{{ $u->name }}" data-uid="{{ $u->id }}"
+                    onclick="chatOpenDirect({{ $u->id }})">
+                <img src="{{ $u->avatar_url }}" alt="{{ $u->name }}">
+                <div class="online-dot" style="background:{{ $u->is_online ? '#22c55e' : '#6b7280' }};"></div>
+            </button>
+            <span class="user-msg-badge" data-uid="{{ $u->id }}"
+                  style="display:none;position:absolute;top:-4px;right:-4px;min-width:17px;height:17px;background:#ef4444;color:#fff;border-radius:9px;font-size:9px;font-weight:700;align-items:center;justify-content:center;padding:0 3px;z-index:10;line-height:1;pointer-events:none;border:2px solid #0a0f3c;box-sizing:border-box;"></span>
+        </div>
         @endforeach
         @endisset
     </aside>
@@ -773,6 +777,8 @@
 #chat-new-direct-modal.chat-open { display:flex !important; }
 #chat-new-group-modal.chat-open  { display:flex !important; }
 @keyframes chatSlideIn { from{transform:translateX(100%);opacity:0} to{transform:translateX(0);opacity:1} }
+@keyframes chatPopupIn  { from{transform:translateX(24px);opacity:0} to{transform:translateX(0);opacity:1} }
+@keyframes chatPopupOut { from{opacity:1;transform:translateX(0)} to{opacity:0;transform:translateX(24px)} }
 @keyframes vnPulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(.7)} }
 .chat-conv-item { display:flex;align-items:center;gap:10px;padding:10px 12px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.04);transition:background .12s; }
 .chat-conv-item:hover { background:rgba(255,255,255,.07); }
@@ -859,10 +865,12 @@ async function chatLoadConvs() {
         _allConvs = d.convs || [];
         const totalUnread = _allConvs.reduce((s,c) => s+(c.unread||0), 0);
         chatUpdateBadge(totalUnread);
+        chatUpdateUserBadges();
         if (_chatOpen) chatRenderConvs(_allConvs);
         _allConvs.forEach(c => {
             if ((c.unread || 0) > (prevUnread[c.id] || 0)) {
                 chatPlaySound();
+                chatShowMsgPopup(c);
                 if (_chatOpen) {
                     const row = document.querySelector(`.chat-conv-item[data-id="${c.id}"]`);
                     if (row) { row.style.animation='none'; void row.offsetWidth; row.style.animation='chatFlash .6s ease-out forwards'; }
@@ -870,9 +878,95 @@ async function chatLoadConvs() {
             }
         });
     } catch(e) {
-        document.getElementById('chat-conv-list').innerHTML =
+        const el = document.getElementById('chat-conv-list');
+        if (el) el.innerHTML =
             '<div style="padding:20px;text-align:center;color:rgba(255,82,82,.7);font-size:12px;">Failed to load</div>';
     }
+}
+
+/* ── Per-user message badges on right panel ── */
+function chatUpdateUserBadges() {
+    document.querySelectorAll('.user-msg-badge').forEach(b => {
+        b.style.display = 'none';
+        b.textContent = '';
+    });
+    _allConvs.forEach(c => {
+        if (c.type === 'direct' && (c.unread || 0) > 0 && c.other_user_id) {
+            const badge = document.querySelector('.user-msg-badge[data-uid="' + c.other_user_id + '"]');
+            if (badge) {
+                badge.textContent = c.unread > 99 ? '99+' : c.unread;
+                badge.style.display = 'flex';
+            }
+        }
+    });
+}
+
+/* ── Floating popup notification for new messages ── */
+function chatShowMsgPopup(conv) {
+    if (_chatOpen && _activeConvId === conv.id) return; // already viewing this conv
+    const pid = 'cmsgpop-' + conv.id;
+    const old = document.getElementById(pid);
+    if (old) old.remove();
+    const stackCount = document.querySelectorAll('.cmsg-popup').length;
+    const popup = document.createElement('div');
+    popup.id = pid;
+    popup.className = 'cmsg-popup';
+    const initials = (conv.name || '?').split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
+    const eName = (conv.name || '').replace(/&/g,'&amp;').replace(/</g,'&lt;');
+    const rawText = conv.lastMsg ? conv.lastMsg.text || '' : 'New message';
+    const ePreview = previewText(rawText).substring(0, 48).replace(/&/g,'&amp;').replace(/</g,'&lt;');
+    popup.style.cssText = 'position:fixed;bottom:' + (64 + stackCount * 78) + 'px;right:62px;'
+        + 'background:rgba(8,12,52,.97);backdrop-filter:blur(20px);'
+        + 'border:1px solid rgba(0,212,232,.3);border-radius:14px;'
+        + 'padding:11px 13px;z-index:9997;width:250px;cursor:pointer;'
+        + 'box-shadow:0 8px 40px rgba(0,0,0,.65);'
+        + 'animation:chatPopupIn .28s cubic-bezier(.22,1,.36,1) forwards;';
+    popup.innerHTML = '<div style="display:flex;align-items:center;gap:10px;">'
+        + '<div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,rgba(0,212,232,.3),rgba(27,114,232,.3));'
+        +   'flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#00D4E8;">' + initials + '</div>'
+        + '<div style="flex:1;min-width:0;">'
+        +   '<div style="color:#fff;font-size:12.5px;font-weight:600;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + eName + '</div>'
+        +   '<div style="color:rgba(255,255,255,.5);font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + ePreview + '</div>'
+        + '</div>'
+        + '<button class="cmsgpop-x" style="background:none;border:none;color:rgba(255,255,255,.35);cursor:pointer;font-size:18px;padding:0 0 0 6px;line-height:1;flex-shrink:0;">×</button>'
+        + '</div>';
+    popup.querySelector('.cmsgpop-x').addEventListener('click', function(e) {
+        e.stopPropagation();
+        popup.remove();
+    });
+    popup.addEventListener('click', function() {
+        popup.remove();
+        if (conv.type === 'direct' && conv.other_user_id) {
+            chatOpenDirect(conv.other_user_id);
+        } else {
+            if (!_chatOpen) chatOpen();
+        }
+    });
+    document.body.appendChild(popup);
+    setTimeout(function() {
+        if (popup.parentNode) {
+            popup.style.animation = 'chatPopupOut .22s ease-in forwards';
+            setTimeout(() => popup.remove(), 220);
+        }
+    }, 5000);
+}
+
+/* ── Send sound (short soft swoosh) ── */
+function chatSendSound() {
+    try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain); gain.connect(ctx.destination);
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(900, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(600, ctx.currentTime + 0.12);
+        gain.gain.setValueAtTime(0, ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.07, ctx.currentTime + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.18);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.2);
+    } catch(e) {}
 }
 
 function previewText(t) {
@@ -1120,6 +1214,7 @@ window.chatSend = async function() {
     ta.value = '';
     ta.style.height = 'auto';
     if (window.clearAttachments) window.clearAttachments('chat-textarea', 'chat-attach-preview');
+    chatSendSound();
 
     const fullText = text + (attachTags ? (text ? '\n' : '') + attachTags : '');
 

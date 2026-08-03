@@ -750,6 +750,7 @@ window.cpSend = async function() {
     if (!text && !attachTags) return;
     ta.value = ''; ta.style.height = 'auto';
     if (window.clearAttachments) window.clearAttachments('cp-textarea', 'cp-attach-preview');
+    if (typeof chatSendSound === 'function') chatSendSound();
     const fullText = text + (attachTags ? (text ? '\n' : '') + attachTags : '');
     const now = new Date();
     const timeStr = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');

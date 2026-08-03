@@ -323,12 +323,13 @@ Route::middleware('auth')->group(function () {
             $lm     = $c->lastMessage;
             $online = $other && $other->last_seen_at && $other->last_seen_at->diffInMinutes(now()) < 5;
             $list[] = ['id'=>$c->id,'type'=>$c->type,
-                'name'    => $c->type==='direct' ? ($other?->name??'Unknown') : ($c->name??'Group'),
-                'avatar'  => $c->type==='direct' ? ($other?->avatar_url??null) : null,
-                'members' => $c->members->count(),
-                'unread'  => $unreadCounts->get($c->id, 0),
-                'online'  => $online,
-                'lastMsg' => $lm ? ['text'=>$lm->content,'byMe'=>$lm->user_id===$user->id,'senderName'=>$lm->user?->name,'time'=>$lm->created_at->format('H:i')] : null,
+                'name'          => $c->type==='direct' ? ($other?->name??'Unknown') : ($c->name??'Group'),
+                'other_user_id' => $c->type==='direct' ? ($other?->id) : null,
+                'avatar'        => $c->type==='direct' ? ($other?->avatar_url??null) : null,
+                'members'       => $c->members->count(),
+                'unread'        => $unreadCounts->get($c->id, 0),
+                'online'        => $online,
+                'lastMsg'       => $lm ? ['text'=>$lm->content,'byMe'=>$lm->user_id===$user->id,'senderName'=>$lm->user?->name,'time'=>$lm->created_at->format('H:i')] : null,
             ];
         }
         return response()->json(['convs'=>$list]);
