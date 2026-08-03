@@ -335,9 +335,6 @@ class TaskController extends Controller
         // Direct DB update — bypass model events that might interfere
         \DB::table('tasks')->where('id', $task->id)->update($updates);
 
-        // Bust the kanban cache for this user so next AJAX fetch gets fresh data
-        Cache::increment('kb_v_' . Auth::id());
-
         return response()->json(['success' => true]);
     }
 
@@ -347,12 +344,7 @@ class TaskController extends Controller
 
         $user = Auth::user();
 
-        $kbVersion = Cache::get('kb_v_' . $user->id, 0);
-        $cacheKey  = 'kanban_' . $user->id . '_' . $kbVersion . '_' . md5(json_encode($request->only(
-            ['project_id', 'search', 'priority', 'assignee_id', 'status']
-        )));
-
-        [$columns, $completedTotal] = Cache::remember($cacheKey, 30, function () use ($request, $user) {
+        $buildColumns = function () use ($request, $user) {
             $today       = now()->startOfDay();
             $todayEnd    = now()->endOfDay();
             $weekEnd     = now()->endOfWeek();
@@ -429,7 +421,17 @@ class TaskController extends Controller
             }
 
             return [$columns, $completedTotal];
-        });
+        };
+
+        // AJAX filter/drag calls always query fresh — no cache so moves reflect immediately
+        if ($request->ajax()) {
+            [$columns, $completedTotal] = $buildColumns();
+        } else {
+            $cacheKey = 'kanban_' . $user->id . '_' . md5(json_encode($request->only(
+                ['project_id', 'search', 'priority', 'assignee_id', 'status']
+            )));
+            [$columns, $completedTotal] = Cache::remember($cacheKey, 30, $buildColumns);
+        }
 
         $projects  = Cache::remember('all_projects_list', 120, fn() => Project::orderBy('name')->get(['id', 'name']));
         $employees = Cache::remember('active_employees_list', 120, fn() => User::where('is_active', true)->get(['id', 'name', 'avatar']));
