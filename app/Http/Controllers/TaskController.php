@@ -28,6 +28,12 @@ class TaskController extends Controller
 
         $view = 'list';
 
+        // Default to in_progress when visiting with no filters
+        $hasFilters = $request->hasAny(['status', 'search', 'project_id', 'priority', 'assignee_id', 'page']);
+        if (!$hasFilters) {
+            return redirect()->route('tasks.index', ['status' => 'in_progress']);
+        }
+
         $query = Task::with(['project', 'assignee', 'creator']);
         if (!$user->isSuperAdmin()) {
             $query->where(function ($q) use ($user) {

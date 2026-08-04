@@ -29,7 +29,7 @@ class DashboardController extends Controller
             ];
 
             $myTasks = Task::with(['project', 'creator'])
-                ->whereNotIn('status', ['completed'])
+                ->where('status', 'in_progress')
                 ->orderBy('deadline')
                 ->limit(10)
                 ->get();
@@ -61,7 +61,7 @@ class DashboardController extends Controller
 
             $myTasks = Task::with(['project', 'creator'])
                 ->where('assigned_to', $uid)
-                ->whereNotIn('status', ['completed'])
+                ->where('status', 'in_progress')
                 ->orderBy('deadline')
                 ->limit(10)
                 ->get();

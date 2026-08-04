@@ -54,7 +54,7 @@
         {{-- My Tasks --}}
         <div class="glass" style="overflow:hidden;">
             <div style="padding:16px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.07);">
-                <h2 class="txt-main" style="font-size:13.5px;font-weight:600;margin:0;">My Tasks</h2>
+                <h2 class="txt-main" style="font-size:13.5px;font-weight:600;margin:0;">In Progress Tasks</h2>
                 <a href="{{ route('tasks.index') }}"
                    style="font-size:12px;font-weight:500;color:#00D4E8;background:rgba(0,212,232,.1);padding:5px 12px;border-radius:8px;text-decoration:none;">View all</a>
             </div>
