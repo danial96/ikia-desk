@@ -437,6 +437,14 @@ class TaskController extends Controller
     {
         session(['task_view' => 'kanban']);
 
+        // Default to in_progress when visiting with no filters (non-AJAX only)
+        if (!$request->ajax()) {
+            $hasFilters = $request->hasAny(['status', 'search', 'project_id', 'priority', 'assignee_id']);
+            if (!$hasFilters) {
+                return redirect()->route('tasks.kanban', ['status' => 'in_progress']);
+            }
+        }
+
         $user = Auth::user();
 
         // Task IDs with unseen notifications for this user (AJAX only — not stored in cache)
