@@ -107,6 +107,11 @@ class ImportUsers extends BitrixCommand
     private function downloadAvatar(User $user, string $url): void
     {
         try {
+            // Encode spaces and special chars in the path portion only
+            $parsed = parse_url($url);
+            $url = ($parsed['scheme'] ?? 'https') . '://' . ($parsed['host'] ?? '')
+                 . implode('/', array_map('rawurlencode', explode('/', $parsed['path'] ?? '')));
+
             $ch = curl_init($url);
             curl_setopt_array($ch, [
                 CURLOPT_RETURNTRANSFER => true,

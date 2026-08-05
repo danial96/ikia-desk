@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Conversation extends Model
 {
-    protected $fillable = ['type', 'name', 'avatar', 'created_by'];
+    protected $fillable = ['type', 'name', 'avatar', 'created_by', 'bitrix_chat_id'];
 
     public function creator() { return $this->belongsTo(User::class, 'created_by'); }
     public function members() { return $this->belongsToMany(User::class, 'conversation_members')->withPivot('last_read_at'); }
