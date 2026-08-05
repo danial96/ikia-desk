@@ -144,12 +144,13 @@ class ImportTasks extends BitrixCommand
 
     private function mapStatus(string $s): string
     {
+        // Bitrix: 1=New, 2=In Progress, 3=In Progress, 4=Review/Awaiting, 5=Completed, 6=Deferred
         return match($s) {
-            '1','2' => 'new',
-            '3'     => 'in_progress',
+            '1'     => 'new',
+            '2','3' => 'in_progress',
             '4'     => 'review',
             '5'     => 'completed',
-            '6'     => 'new',          // deferred → new
+            '6'     => 'paused',
             default => 'new',
         };
     }
