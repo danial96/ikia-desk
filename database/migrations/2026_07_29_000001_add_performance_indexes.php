@@ -8,31 +8,51 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('tasks', function (Blueprint $table) {
-            $table->index('status');
-            $table->index('deadline');
-            $table->index('deleted_at');
-            $table->index(['assigned_to', 'status']);
-            $table->index(['created_by', 'status']);
-            $table->index(['project_id', 'status']);
-        });
+        try {
+            Schema::table('tasks', function (Blueprint $table) {
+                $table->index('status');
+                $table->index('deadline');
+                $table->index('deleted_at');
+                $table->index(['assigned_to', 'status']);
+                $table->index(['created_by', 'status']);
+                $table->index(['project_id', 'status']);
+            });
+        } catch (\Exception $e) {
+            // indexes already exist
+        }
 
-        Schema::table('messages', function (Blueprint $table) {
-            $table->index(['conversation_id', 'created_at']);
-            $table->index('deleted_at');
-        });
+        try {
+            Schema::table('messages', function (Blueprint $table) {
+                $table->index(['conversation_id', 'created_at']);
+                $table->index('deleted_at');
+            });
+        } catch (\Exception $e) {
+            // indexes already exist
+        }
 
-        Schema::table('task_members', function (Blueprint $table) {
-            $table->index('user_id');
-        });
+        try {
+            Schema::table('task_members', function (Blueprint $table) {
+                $table->index('user_id');
+            });
+        } catch (\Exception $e) {
+            // index already exists
+        }
 
-        Schema::table('task_observers', function (Blueprint $table) {
-            $table->index('user_id');
-        });
+        try {
+            Schema::table('task_observers', function (Blueprint $table) {
+                $table->index('user_id');
+            });
+        } catch (\Exception $e) {
+            // index already exists
+        }
 
-        Schema::table('notifications', function (Blueprint $table) {
-            $table->index(['user_id', 'read_at']);
-        });
+        try {
+            Schema::table('notifications', function (Blueprint $table) {
+                $table->index(['user_id', 'read_at']);
+            });
+        } catch (\Exception $e) {
+            // index already exists
+        }
     }
 
     public function down(): void
