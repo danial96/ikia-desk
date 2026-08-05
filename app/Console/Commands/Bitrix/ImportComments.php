@@ -129,9 +129,9 @@ class ImportComments extends BitrixCommand
     /** Old-style tasks: forum comments via task.commentitem.getlist */
     private function importForumComments(Task $task): int
     {
+        // Note: ORDER parameter is not supported by this API and causes error #8
         $response = $this->bx('task.commentitem.getlist', [
             'TASK_ID' => $task->bitrix_id,
-            'ORDER'   => ['POST_DATE' => 'ASC'],
         ]);
 
         if (!$response) return 0;
