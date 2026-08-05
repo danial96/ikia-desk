@@ -84,31 +84,10 @@ jobs:
             echo "cPanel deploy complete"
 
   # ── Netcup server (desk.ikiatech.com) ─────────────────────────────────────
+  # Vite build is committed to git (public/build/ tracked), so just git pull.
   deploy-netcup:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Build Vite assets
-        run: npm ci && npm run build
-
-      - name: Upload Vite build to server
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.NETCUP_SSH_HOST }}
-          username: ${{ secrets.NETCUP_SSH_USERNAME }}
-          key: ${{ secrets.NETCUP_SSH_PRIVATE_KEY }}
-          port: 22
-          source: "public/build"
-          target: "/desk.ikiatech.com/ikia-desk/public"
-          strip_components: 1
-
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:

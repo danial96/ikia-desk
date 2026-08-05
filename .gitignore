@@ -13,7 +13,7 @@
 /.zed
 /auth.json
 /node_modules
-/public/build
+# /public/build — tracked in git for shared hosting deploy
 /public/hot
 /public/storage
 /storage/*.key
