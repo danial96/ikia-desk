@@ -15,39 +15,57 @@ abstract class BitrixCommand extends Command
     }
 
     /** Call any Bitrix REST method. Returns decoded array or null on failure. */
-    protected function bx(string $method, array $params = []): ?array
+    protected function bx(string $method, array $params = [], int $retries = 3): ?array
     {
         $url = $this->webhook . $method . '.json';
         if ($params) {
             $url .= '?' . $this->buildQuery($params);
         }
 
-        $ch = curl_init($url);
-        curl_setopt_array($ch, [
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_SSL_VERIFYPEER => false,
-            CURLOPT_TIMEOUT        => 30,
-        ]);
-        $raw  = curl_exec($ch);
-        $err  = curl_error($ch);
-        curl_close($ch);
+        for ($attempt = 0; $attempt <= $retries; $attempt++) {
+            // Respect Bitrix rate limit: max 2 req/s
+            usleep(520000);
 
-        if ($err || !$raw) {
-            $this->warn("  cURL error: $err");
-            return null;
+            $ch = curl_init($url);
+            curl_setopt_array($ch, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_SSL_VERIFYPEER => false,
+                CURLOPT_TIMEOUT        => 30,
+            ]);
+            $raw = curl_exec($ch);
+            $err = curl_error($ch);
+            curl_close($ch);
+
+            if ($err || !$raw) {
+                $this->warn("  cURL error: $err");
+                return null;
+            }
+
+            $data = json_decode($raw, true);
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                $this->warn('  JSON decode error');
+                return null;
+            }
+
+            // Retry on rate limit with backoff
+            if (isset($data['error']) && $data['error'] === 'QUERY_LIMIT_EXCEEDED') {
+                if ($attempt < $retries) {
+                    usleep(1500000 * ($attempt + 1)); // 1.5s, 3s, 4.5s
+                    continue;
+                }
+                $this->warn("  Rate limit exceeded after {$retries} retries");
+                return null;
+            }
+
+            if (!empty($data['error'])) {
+                $this->warn("  Bitrix error [{$data['error']}]: " . ($data['error_description'] ?? ''));
+                return null;
+            }
+
+            return $data;
         }
 
-        $data = json_decode($raw, true);
-        if (json_last_error() !== JSON_ERROR_NONE) {
-            $this->warn('  JSON decode error');
-            return null;
-        }
-        if (!empty($data['error'])) {
-            $this->warn("  Bitrix error [{$data['error']}]: " . ($data['error_description'] ?? ''));
-            return null;
-        }
-
-        return $data;
+        return null;
     }
 
     /** Paginate through a list method, collecting all records. */
