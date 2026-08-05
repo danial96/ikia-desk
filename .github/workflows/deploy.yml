@@ -6,7 +6,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  deploy:
+  # ── Old cPanel server (ikiatech.digitalservicescorp.com) ──────────────────
+  deploy-cpanel:
     runs-on: ubuntu-latest
     steps:
       - name: Deploy via SSH (attempt 1)
@@ -28,7 +29,7 @@ jobs:
             /opt/cpanel/ea-php82/root/usr/bin/php artisan route:cache
             /opt/cpanel/ea-php82/root/usr/bin/php artisan view:cache
             /opt/cpanel/ea-php82/root/usr/bin/php artisan cache:clear
-            echo "Deploy complete"
+            echo "cPanel deploy complete"
 
       - name: Wait before retry (fail2ban cooldown)
         if: steps.deploy1.outcome == 'failure'
@@ -56,13 +57,11 @@ jobs:
             /opt/cpanel/ea-php82/root/usr/bin/php artisan route:cache
             /opt/cpanel/ea-php82/root/usr/bin/php artisan view:cache
             /opt/cpanel/ea-php82/root/usr/bin/php artisan cache:clear
-            echo "Deploy complete"
+            echo "cPanel deploy complete"
 
       - name: Wait before second retry
         if: steps.deploy1.outcome == 'failure' && steps.deploy2.outcome == 'failure'
-        run: |
-          echo "Attempt 2 failed — waiting 5 more min..."
-          sleep 300
+        run: sleep 300
 
       - name: Deploy via SSH (attempt 3)
         if: steps.deploy1.outcome == 'failure' && steps.deploy2.outcome == 'failure'
@@ -82,4 +81,45 @@ jobs:
             /opt/cpanel/ea-php82/root/usr/bin/php artisan route:cache
             /opt/cpanel/ea-php82/root/usr/bin/php artisan view:cache
             /opt/cpanel/ea-php82/root/usr/bin/php artisan cache:clear
-            echo "Deploy complete"
+            echo "cPanel deploy complete"
+
+  # ── Netcup server (desk.ikiatech.com) ─────────────────────────────────────
+  deploy-netcup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Build Vite assets
+        run: npm ci && npm run build
+
+      - name: Upload Vite build to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.NETCUP_SSH_HOST }}
+          username: ${{ secrets.NETCUP_SSH_USERNAME }}
+          key: ${{ secrets.NETCUP_SSH_PRIVATE_KEY }}
+          port: 22
+          source: "public/build"
+          target: "/desk.ikiatech.com/ikia-desk/public"
+          strip_components: 1
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.NETCUP_SSH_HOST }}
+          username: ${{ secrets.NETCUP_SSH_USERNAME }}
+          key: ${{ secrets.NETCUP_SSH_PRIVATE_KEY }}
+          port: 22
+          script: |
+            cd /desk.ikiatech.com/ikia-desk
+            git fetch origin main
+            git reset --hard origin/main
+            php artisan migrate --force
+            php artisan cache:clear
+            echo "Netcup deploy complete"
