@@ -8,14 +8,23 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('conversations', function (Blueprint $table) {
-            $table->string('bitrix_chat_id')->nullable()->unique()->after('id');
-        });
+        try {
+            Schema::table('conversations', function (Blueprint $table) {
+                $table->string('bitrix_chat_id')->nullable()->unique()->after('id');
+            });
+        } catch (\Exception $e) { /* column already exists */ }
 
-        Schema::table('messages', function (Blueprint $table) {
-            $table->unsignedBigInteger('bitrix_id')->nullable()->unique()->after('id');
-            $table->timestamp('edited_at')->nullable()->after('attachment');
-        });
+        try {
+            Schema::table('messages', function (Blueprint $table) {
+                $table->unsignedBigInteger('bitrix_id')->nullable()->unique()->after('id');
+            });
+        } catch (\Exception $e) { /* column already exists */ }
+
+        try {
+            Schema::table('messages', function (Blueprint $table) {
+                $table->timestamp('edited_at')->nullable()->after('attachment');
+            });
+        } catch (\Exception $e) { /* column already exists */ }
     }
 
     public function down(): void
