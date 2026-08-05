@@ -47,10 +47,10 @@ abstract class BitrixCommand extends Command
                 return null;
             }
 
-            // Retry on rate limit with backoff
+            // On rate limit, wait 30s for quota recovery before retrying
             if (isset($data['error']) && $data['error'] === 'QUERY_LIMIT_EXCEEDED') {
                 if ($attempt < $retries) {
-                    usleep(1500000 * ($attempt + 1)); // 1.5s, 3s, 4.5s
+                    sleep(30); // 30s per retry — quota refills at 2 req/s
                     continue;
                 }
                 $this->warn("  Rate limit exceeded after {$retries} retries");
