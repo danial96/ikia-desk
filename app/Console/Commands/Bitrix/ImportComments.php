@@ -72,10 +72,13 @@ class ImportComments extends BitrixCommand
 
     private function importTaskComments(Task $task): int
     {
+        // Always fetch forum comments (old system); additionally fetch IM messages if chat exists.
+        // Both may have real content — tasks migrated to IM still retain forum history.
+        $count = $this->importForumComments($task);
         if ($task->chat_id) {
-            return $this->importChatComments($task);
+            $count += $this->importChatComments($task);
         }
-        return $this->importForumComments($task);
+        return $count;
     }
 
     /** New-style tasks: IM chat messages via im.dialog.messages.get */
@@ -104,7 +107,10 @@ class ImportComments extends BitrixCommand
             $date        = $this->parseDateTime($m['date'] ?? null);
             $files       = $m['files'] ?? [];
 
-            if ($isSystem && empty(trim($text))) continue;
+            // Skip empty system messages and migration system notices
+            if ($isSystem && (empty(trim($text)) ||
+                str_contains($text, 'Task chat has been created') ||
+                str_contains($text, 'read the previous comments'))) continue;
 
             $fileIds = $this->importChatFiles($task, $files, $userId);
 
