@@ -84,35 +84,64 @@ class ImportComments extends BitrixCommand
     /** New-style tasks: IM chat messages via im.dialog.messages.get */
     private function importChatComments(Task $task): int
     {
-        $response = $this->bx('im.dialog.messages.get', [
-            'DIALOG_ID' => 'chat' . $task->chat_id,
-            'LIMIT'     => 50,
-        ]);
+        $allMessages = [];
+        $lastId = null;
 
-        if (!$response) return 0;
+        // Paginate: API returns newest-first, 50 per page. Use LAST_ID to walk backwards.
+        do {
+            $params = ['DIALOG_ID' => 'chat' . $task->chat_id, 'LIMIT' => 50];
+            if ($lastId !== null) {
+                $params['LAST_ID'] = $lastId;
+            }
 
-        $messages = $response['result']['messages'] ?? [];
-        if (empty($messages)) return 0;
+            $response = $this->bx('im.dialog.messages.get', $params);
+            if (!$response) break;
 
-        // API returns newest-first; store oldest-first
-        $messages = array_reverse($messages);
+            $messages = $response['result']['messages'] ?? [];
+            if (empty($messages)) break;
+
+            $allMessages = array_merge($allMessages, $messages);
+
+            if (count($messages) < 50) break; // last page
+
+            // Walk further back: use the smallest (oldest) message ID in this batch
+            $lastId = (int)min(array_column($messages, 'id'));
+        } while (true);
+
+        if (empty($allMessages)) return 0;
+
+        // Deduplicate (pagination overlap possible) and sort oldest-first
+        $seen = [];
+        $unique = [];
+        foreach ($allMessages as $m) {
+            if (!isset($seen[$m['id']])) {
+                $seen[$m['id']] = true;
+                $unique[] = $m;
+            }
+        }
+        usort($unique, fn($a, $b) => (int)$a['id'] <=> (int)$b['id']);
 
         $count = 0;
-        foreach ($messages as $m) {
+        foreach ($unique as $m) {
             $bitrixMsgId = (int)$m['id'];
             $authorBxId  = (int)($m['author_id'] ?? 0);
             $isSystem    = $authorBxId === 0;
             $userId      = $isSystem ? null : ($this->userMap[$authorBxId] ?? null);
             $text        = $m['text'] ?? '';
             $date        = $this->parseDateTime($m['date'] ?? null);
-            $files       = $m['files'] ?? [];
+
+            // IM file attachments are Disk file IDs stored in params.FILE_ID (not the files array)
+            $diskFileIds = $m['params']['FILE_ID'] ?? [];
+            if (!is_array($diskFileIds)) {
+                $diskFileIds = $diskFileIds ? [(int)$diskFileIds] : [];
+            }
 
             // Skip empty system messages and migration system notices
             if ($isSystem && (empty(trim($text)) ||
                 str_contains($text, 'Task chat has been created') ||
                 str_contains($text, 'read the previous comments'))) continue;
 
-            $fileIds = $this->importChatFiles($task, $files, $userId);
+            $fileIds = $diskFileIds ? $this->importDiskFileIds($task, $diskFileIds, $userId) : [];
 
             TaskComment::updateOrCreate(
                 ['bitrix_id' => $bitrixMsgId],
@@ -211,34 +240,33 @@ class ImportComments extends BitrixCommand
         return $fileIds;
     }
 
-    /** Handle files array from IM chat messages */
-    private function importChatFiles(Task $task, array $files, ?int $userId): array
+    /** Resolve Bitrix Disk file IDs via disk.file.get and create/reuse task_files records */
+    private function importDiskFileIds(Task $task, array $diskFileIds, ?int $userId): array
     {
         $fileIds = [];
 
-        foreach ($files as $f) {
-            $bitrixFileId = (int)($f['id'] ?? 0);
-            if (!$bitrixFileId) continue;
+        foreach ($diskFileIds as $rawId) {
+            $diskId = (int)$rawId;
+            if (!$diskId) continue;
 
-            $existing = TaskFile::where('bitrix_file_id', $bitrixFileId)->first();
+            $existing = TaskFile::where('bitrix_file_id', $diskId)->first();
             if ($existing) {
                 $fileIds[] = $existing->id;
                 continue;
             }
 
-            $downloadUrl = $f['urlDownload'] ?? $f['url'] ?? '';
-            if ($downloadUrl && !str_starts_with($downloadUrl, 'http')) {
-                $downloadUrl = $this->bitrixDomain . $downloadUrl;
-            }
+            $res = $this->bx('disk.file.get', ['id' => $diskId]);
+            if (!$res || empty($res['result'])) continue;
+
+            $info = $res['result'];
 
             $file = TaskFile::create([
                 'task_id'             => $task->id,
                 'uploaded_by'         => $userId ?? $this->adminId,
-                'bitrix_file_id'      => $bitrixFileId,
-                'name'                => $f['name'] ?? $f['originalName'] ?? 'attachment',
-                'size'                => (int)($f['size'] ?? 0),
-                'mime_type'           => $f['type'] ?? null,
-                'bitrix_download_url' => $downloadUrl ?: null,
+                'bitrix_file_id'      => $diskId,
+                'name'                => $info['NAME'] ?? 'attachment',
+                'size'                => (int)($info['SIZE'] ?? 0),
+                'bitrix_download_url' => $info['DOWNLOAD_URL'] ?? null,
             ]);
 
             $fileIds[] = $file->id;
