@@ -406,8 +406,19 @@ const chatBubble = ({isMine, name, nameColor, text, time, showName=true, isSyste
     const timec= isMine ? '#5a8a6a' : '#94a3b8';
     const tick = isMine ? '<i class="fas fa-check-double" style="font-size:8px;color:#5a8a6a;margin-left:3px;"></i>' : '';
     const nameHtml = (!isMine && showName && name) ? `<div style="color:${nameColor||'#0ea5e9'};font-size:11.5px;font-weight:700;margin-bottom:3px;">${esc(name)}</div>` : '';
-    const fileIcons = {pdf:'fa-file-pdf',doc:'fa-file-word',docx:'fa-file-word',xls:'fa-file-excel',xlsx:'fa-file-excel',ppt:'fa-file-powerpoint',pptx:'fa-file-powerpoint',zip:'fa-file-zipper',rar:'fa-file-zipper',jpg:'fa-file-image',jpeg:'fa-file-image',png:'fa-file-image',gif:'fa-file-image',mp4:'fa-file-video',mov:'fa-file-video',mp3:'fa-file-audio'};
-    const filesHtml = (files||[]).length ? `<div style="display:flex;flex-direction:column;gap:4px;margin-top:6px;">${(files||[]).map(f=>{const ext=(f.name||'').split('.').pop().toLowerCase();const ic=fileIcons[ext]||'fa-file';return`<a href="${f.downloadUrl||'#'}" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:7px;padding:6px 9px;background:rgba(0,0,0,0.06);border-radius:7px;text-decoration:none;"><i class="fas ${ic}" style="color:#0ea5e9;font-size:13px;flex-shrink:0;"></i><span style="color:${tc};font-size:11.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(f.name)}</span><i class="fas fa-download" style="color:#94a3b8;font-size:9px;flex-shrink:0;margin-left:auto;"></i></a>`;}).join('')}</div>` : '';
+    const fileIcons = {pdf:'fa-file-pdf',doc:'fa-file-word',docx:'fa-file-word',xls:'fa-file-excel',xlsx:'fa-file-excel',ppt:'fa-file-powerpoint',pptx:'fa-file-powerpoint',zip:'fa-file-zipper',rar:'fa-file-zipper',mp4:'fa-file-video',mov:'fa-file-video',mp3:'fa-file-audio'};
+    const imgExts = new Set(['jpg','jpeg','png','gif','webp','svg','bmp']);
+    const filesHtml = (files||[]).length ? `<div style="display:flex;flex-direction:column;gap:6px;margin-top:6px;">${(files||[]).map(f=>{
+        const ext=(f.name||'').split('.').pop().toLowerCase();
+        const url=f.downloadUrl||'#';
+        if(imgExts.has(ext)){
+            return`<a href="${url}" target="_blank" rel="noopener" style="display:block;border-radius:10px;overflow:hidden;max-width:260px;line-height:0;">
+                <img src="${url}" alt="${esc(f.name)}" loading="lazy" style="width:100%;max-height:220px;object-fit:cover;border-radius:10px;display:block;cursor:zoom-in;" onerror="this.parentElement.innerHTML='<span style=&quot;display:flex;align-items:center;gap:7px;padding:6px 9px;background:rgba(0,0,0,0.06);border-radius:7px;&quot;><i class=&quot;fas fa-file-image&quot; style=&quot;color:#0ea5e9;font-size:13px;&quot;></i><span style=&quot;color:${tc};font-size:11.5px;&quot;>${esc(f.name)}</span></span>';">
+            </a>`;
+        }
+        const ic=fileIcons[ext]||'fa-file';
+        return`<a href="${url}" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:7px;padding:6px 9px;background:rgba(0,0,0,0.06);border-radius:7px;text-decoration:none;"><i class="fas ${ic}" style="color:#0ea5e9;font-size:13px;flex-shrink:0;"></i><span style="color:${tc};font-size:11.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;">${esc(f.name)}</span><i class="fas fa-download" style="color:#94a3b8;font-size:9px;flex-shrink:0;margin-left:4px;"></i></a>`;
+    }).join('')}</div>` : '';
     return `
         <div style="display:flex;justify-content:${isMine?'flex-end':'flex-start'};margin-bottom:2px;">
             <div style="max-width:78%;background:${bg};backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.6);border-radius:${br};padding:8px 12px 6px;box-shadow:0 2px 8px rgba(0,0,0,.1);">

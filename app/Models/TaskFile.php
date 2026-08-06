@@ -17,8 +17,14 @@ class TaskFile extends Model
     public function getDownloadUrlAttribute(): string
     {
         if ($this->disk_path) {
-            return asset('uploads/' . basename($this->disk_path));
+            return asset($this->disk_path);
         }
         return $this->bitrix_download_url ?? '#';
+    }
+
+    public function getIsImageAttribute(): bool
+    {
+        $ext = strtolower(pathinfo($this->name ?? '', PATHINFO_EXTENSION));
+        return in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp']);
     }
 }
