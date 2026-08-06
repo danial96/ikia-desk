@@ -66,9 +66,12 @@ class ImportChats extends BitrixCommand
             $items = $response['result']['items'] ?? [];
             if (empty($items)) break;
 
-            // Only direct and group chats (skip task chats — imported as task comments)
             foreach ($items as $item) {
-                if (in_array($item['type'] ?? '', ['user', 'chat'])) {
+                $t     = $item['type'] ?? '';
+                $title = $item['title'] ?? '';
+                // Skip task chats (already imported as task comments)
+                if ($t === 'chat' && str_starts_with($title, 'Task:')) continue;
+                if (in_array($t, ['user', 'chat'])) {
                     $all[] = $item;
                 }
             }
@@ -82,8 +85,13 @@ class ImportChats extends BitrixCommand
 
     private function importChat(array $chat): int
     {
-        $type    = $chat['type'];           // 'user' or 'chat'
-        $otherId = (int)($chat['id'] ?? 0); // for 'user': the other user's bitrix_id; for 'chat': chatId
+        $type  = $chat['type'];  // 'user' or 'chat'
+        $rawId = (string)($chat['id'] ?? '');
+
+        // User IDs are plain integers; chat IDs come as 'chat6233' strings — strip prefix
+        $otherId = $type === 'user'
+            ? (int)$rawId
+            : (int)preg_replace('/[^0-9]/', '', $rawId);
 
         // Derive a stable identifier for deduplication
         $bitrixChatId = $type === 'user'
