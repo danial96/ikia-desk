@@ -10,9 +10,10 @@ use App\Models\User;
 class ImportComments extends BitrixCommand
 {
     protected $signature = 'bitrix:import-comments
-                            {--limit=0  : Max tasks to process (0 = all)}
-                            {--task=0   : Import comments for a single task by its LOCAL id}
-                            {--fresh    : Delete existing imported comments before re-importing}';
+                            {--limit=0    : Max tasks to process (0 = all)}
+                            {--task=0     : Import comments for a single task by its LOCAL id}
+                            {--fresh      : Delete existing imported comments before re-importing}
+                            {--chat-only  : Only process tasks that have a Bitrix chat_id (faster for IM file fix)}';
 
     protected $description = 'Import Bitrix task comments (forum + IM chat) and file attachments';
 
@@ -34,11 +35,12 @@ class ImportComments extends BitrixCommand
             return 0;
         }
 
-        $limit = (int)$this->option('limit');
-        $fresh = $this->option('fresh');
+        $limit    = (int)$this->option('limit');
+        $fresh    = $this->option('fresh');
+        $chatOnly = $this->option('chat-only');
 
-        // Process ALL tasks that came from Bitrix (both chat-based and forum-based)
         $query = Task::whereNotNull('bitrix_id');
+        if ($chatOnly) $query->whereNotNull('chat_id');
         if ($limit > 0) $query->limit($limit);
 
         $tasks = $query->get();
