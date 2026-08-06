@@ -411,8 +411,7 @@ const chatBubble = ({isMine, name, nameColor, text, time, showName=true, isSyste
     const filesHtml = (files||[]).length ? `<div style="display:flex;flex-direction:column;gap:6px;margin-top:6px;">${(files||[]).map(f=>{
         const ext=(f.name||'').split('.').pop().toLowerCase();
         const url=f.downloadUrl||'#';
-        // Show inline image preview only when file is locally stored (Bitrix CDN URLs force-download, not displayable as <img>)
-        if(imgExts.has(ext) && f.isLocal){
+        if(imgExts.has(ext)){
             return`<a href="${url}" target="_blank" rel="noopener" style="display:block;border-radius:10px;overflow:hidden;max-width:260px;line-height:0;">
                 <img src="${url}" alt="${esc(f.name)}" loading="lazy" style="width:100%;max-height:220px;object-fit:cover;border-radius:10px;display:block;cursor:zoom-in;" onerror="this.parentElement.innerHTML='<span style=&quot;display:flex;align-items:center;gap:7px;padding:6px 9px;background:rgba(0,0,0,0.06);border-radius:7px;&quot;><i class=&quot;fas fa-file-image&quot; style=&quot;color:#0ea5e9;font-size:13px;&quot;></i><span style=&quot;color:${tc};font-size:11.5px;&quot;>${esc(f.name)}</span></span>';">
             </a>`;
