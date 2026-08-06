@@ -87,11 +87,27 @@ Route::middleware('auth')->group(function () {
             if (!$ok) return response()->json(['error'=>'Forbidden'],403);
         }
 
+        // Pre-load file records for comments that have attachments
+        $commentFileIds = $task->comments->flatMap(fn($c) => $c->files ?? [])->unique()->values();
+        $commentFiles = $commentFileIds->isNotEmpty()
+            ? \App\Models\TaskFile::whereIn('id', $commentFileIds)->get()->keyBy('id')
+            : collect();
+
         $feed = collect();
         foreach ($task->comments as $c) {
+            $attachments = collect($c->files ?? [])->map(fn($fid) => $commentFiles->get($fid))
+                ->filter()->map(fn($f) => [
+                    'id'          => $f->id,
+                    'name'        => $f->name,
+                    'size'        => $f->size,
+                    'downloadUrl' => $f->download_url,
+                ])->values();
+
             $feed->push(['type'=>'comment','at'=>$c->created_at->toIso8601String(),'id'=>$c->id,
                 'author'=>['id'=>$c->user_id,'name'=>$c->user?->name??'','avatar'=>$c->user?->avatar_url??''],
-                'text'=>$c->content]);
+                'text'=>$c->content,
+                'files'=>$attachments,
+            ]);
         }
         foreach ($task->activities as $a) {
             if ($a->action === 'commented') continue;

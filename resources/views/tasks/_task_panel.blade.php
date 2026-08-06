@@ -392,7 +392,7 @@ const chatDayLabel = iso => {
 const chatDivider = iso => `<div style="display:flex;align-items:center;justify-content:center;margin:12px 0 8px;"><span style="background:rgba(0,0,0,0.28);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);color:rgba(255,255,255,.9);font-size:11px;font-weight:600;padding:3px 14px;border-radius:12px;letter-spacing:.3px;">${chatDayLabel(iso)}</span></div>`;
 
 /* build a chat bubble — isMine = right green, else left white */
-const chatBubble = ({isMine, name, nameColor, text, time, showName=true, isSystem=false, isFile=false}) => {
+const chatBubble = ({isMine, name, nameColor, text, time, showName=true, isSystem=false, files=[]}) => {
     if(isSystem) return `
         <div style="display:flex;justify-content:center;margin:3px 0 6px;">
             <div style="background:rgba(0,0,0,0.22);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);border-radius:12px;padding:4px 14px;max-width:88%;text-align:center;line-height:1.4;">
@@ -406,11 +406,14 @@ const chatBubble = ({isMine, name, nameColor, text, time, showName=true, isSyste
     const timec= isMine ? '#5a8a6a' : '#94a3b8';
     const tick = isMine ? '<i class="fas fa-check-double" style="font-size:8px;color:#5a8a6a;margin-left:3px;"></i>' : '';
     const nameHtml = (!isMine && showName && name) ? `<div style="color:${nameColor||'#0ea5e9'};font-size:11.5px;font-weight:700;margin-bottom:3px;">${esc(name)}</div>` : '';
+    const fileIcons = {pdf:'fa-file-pdf',doc:'fa-file-word',docx:'fa-file-word',xls:'fa-file-excel',xlsx:'fa-file-excel',ppt:'fa-file-powerpoint',pptx:'fa-file-powerpoint',zip:'fa-file-zipper',rar:'fa-file-zipper',jpg:'fa-file-image',jpeg:'fa-file-image',png:'fa-file-image',gif:'fa-file-image',mp4:'fa-file-video',mov:'fa-file-video',mp3:'fa-file-audio'};
+    const filesHtml = (files||[]).length ? `<div style="display:flex;flex-direction:column;gap:4px;margin-top:6px;">${(files||[]).map(f=>{const ext=(f.name||'').split('.').pop().toLowerCase();const ic=fileIcons[ext]||'fa-file';return`<a href="${f.downloadUrl||'#'}" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:7px;padding:6px 9px;background:rgba(0,0,0,0.06);border-radius:7px;text-decoration:none;"><i class="fas ${ic}" style="color:#0ea5e9;font-size:13px;flex-shrink:0;"></i><span style="color:${tc};font-size:11.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(f.name)}</span><i class="fas fa-download" style="color:#94a3b8;font-size:9px;flex-shrink:0;margin-left:auto;"></i></a>`;}).join('')}</div>` : '';
     return `
         <div style="display:flex;justify-content:${isMine?'flex-end':'flex-start'};margin-bottom:2px;">
             <div style="max-width:78%;background:${bg};backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.6);border-radius:${br};padding:8px 12px 6px;box-shadow:0 2px 8px rgba(0,0,0,.1);">
                 ${nameHtml}
-                <div style="color:${tc};font-size:13px;line-height:1.5;word-break:break-word;">${text}</div>
+                ${text ? `<div style="color:${tc};font-size:13px;line-height:1.5;word-break:break-word;">${text}</div>` : ''}
+                ${filesHtml}
                 <div style="text-align:right;margin-top:3px;">
                     <span style="color:${timec};font-size:10px;">${time}${tick}</span>
                 </div>
@@ -1366,7 +1369,7 @@ window.tpRenderLocalFeed = function(data, taskId) {
             const isMine = u.id ? parseInt(u.id) === ME_LOCAL_ID : false;
             const showName = !isMine && u.name !== lastAuthor2;
             lastAuthor2 = u.name;
-            return div + chatBubble({isMine, name:u.name||'?', nameColor:localColor(u.name||''), text:parseMsg(f.text||f.content||''), time, showName});
+            return div + chatBubble({isMine, name:u.name||'?', nameColor:localColor(u.name||''), text:parseMsg(f.text||f.content||''), time, showName, files:f.files||[]});
         }).join('');
     } else {
         $('tp-messages').innerHTML = _spacer + `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 0;"><i class="fas fa-comment-slash" style="font-size:28px;color:rgba(255,255,255,.25);margin-bottom:10px;"></i><p style="color:rgba(255,255,255,.45);font-size:12.5px;margin:0;">No comments yet — be the first!</p></div>`;
