@@ -53,20 +53,23 @@ class DownloadFiles extends Command
                 $filename = $file->id . '_' . substr($base, 0, 60) . ($ext ? '.' . $ext : '');
                 $savePath = $dir . '/' . $filename;
 
+                $fp = fopen($savePath, 'wb');
                 $ch = curl_init($file->bitrix_download_url);
                 curl_setopt_array($ch, [
-                    CURLOPT_RETURNTRANSFER => true,
+                    CURLOPT_FILE           => $fp,
                     CURLOPT_FOLLOWLOCATION => true,
                     CURLOPT_SSL_VERIFYPEER => false,
                     CURLOPT_TIMEOUT        => 120,
                     CURLOPT_USERAGENT      => 'Mozilla/5.0',
                 ]);
-                $content  = curl_exec($ch);
+                $result   = curl_exec($ch);
                 $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
                 $curlErr  = curl_error($ch);
                 curl_close($ch);
+                fclose($fp);
 
-                if ($curlErr || !$content || $httpCode < 200 || $httpCode >= 300) {
+                if (!$result || $curlErr || $httpCode < 200 || $httpCode >= 300) {
+                    @unlink($savePath);
                     $this->newLine();
                     $this->warn("  FAIL [{$httpCode}] id={$file->id} {$file->name}: $curlErr");
                     $failed++;
@@ -74,9 +77,16 @@ class DownloadFiles extends Command
                     return;
                 }
 
-                file_put_contents($savePath, $content);
+                $fileSize = filesize($savePath);
+                if ($maxBytes > 0 && $fileSize > $maxBytes) {
+                    @unlink($savePath);
+                    $skipped++;
+                    $bar->advance();
+                    return;
+                }
+
                 $file->update(['disk_path' => 'uploads/bitrix/' . $filename]);
-                $totalBytes += strlen($content);
+                $totalBytes += $fileSize;
                 $done++;
             } catch (\Throwable $e) {
                 $failed++;
