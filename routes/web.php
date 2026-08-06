@@ -87,7 +87,7 @@ Route::middleware('auth')->group(function () {
             if (!$ok) return response()->json(['error'=>'Forbidden'],403);
         }
 
-        // Pre-load file records for comments that have attachments
+        // Collect all file IDs that belong to comments (to exclude from task-level file list)
         $commentFileIds = $task->comments->flatMap(fn($c) => $c->files ?? [])->unique()->values();
         $commentFiles = $commentFileIds->isNotEmpty()
             ? \App\Models\TaskFile::whereIn('id', $commentFileIds)->get()->keyBy('id')
@@ -106,7 +106,9 @@ Route::middleware('auth')->group(function () {
             $feed->push(['type'=>'comment','at'=>$c->created_at->toIso8601String(),'id'=>$c->id,
                 'author'=>['id'=>$c->user_id,'name'=>$c->user?->name??'','avatar'=>$c->user?->avatar_url??''],
                 'text'=>$c->content,
-                'files'=>$attachments,
+                'files'=>$attachments->map(fn($f2) => array_merge($f2, [
+                    'isLocal' => !empty($commentFiles->get($f2['id'])?->disk_path),
+                ]))->values(),
             ]);
         }
         foreach ($task->activities as $a) {
@@ -137,13 +139,17 @@ Route::middleware('auth')->group(function () {
                 'id'=>$c->id,'text'=>$c->text,'is_complete'=>$c->is_complete,
                 'completed_by'=>$c->completed_by,
             ])->values(),
-            'localFiles'   => $task->files->map(fn($f)=>[
-                'id'          => $f->id,
-                'name'        => $f->name,
-                'mime'        => $f->mime_type,
-                'size'        => $f->size,
-                'downloadUrl' => $f->download_url,
-            ])->values(),
+            // Only show files directly attached to the task — exclude comment attachments
+            'localFiles'   => $task->files
+                ->reject(fn($f) => $commentFileIds->contains($f->id))
+                ->map(fn($f)=>[
+                    'id'          => $f->id,
+                    'name'        => $f->name,
+                    'mime'        => $f->mime_type,
+                    'size'        => $f->size,
+                    'downloadUrl' => $f->download_url,
+                    'isLocal'     => !empty($f->disk_path),
+                ])->values(),
         ]);
     })->name('api.local.task');
 
