@@ -9,7 +9,7 @@ class Message extends Model
 {
     use SoftDeletes;
 
-    protected $fillable = ['conversation_id', 'user_id', 'content', 'mentions', 'attachment', 'edited_at', 'deleted_for', 'bitrix_id'];
+    protected $fillable = ['conversation_id', 'user_id', 'content', 'mentions', 'attachment', 'edited_at', 'deleted_for', 'bitrix_id', 'created_at', 'updated_at'];
     protected $casts = ['mentions' => 'array', 'deleted_for' => 'array', 'edited_at' => 'datetime'];
 
     public function conversation() { return $this->belongsTo(Conversation::class); }
