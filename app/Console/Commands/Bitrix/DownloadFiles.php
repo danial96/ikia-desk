@@ -64,7 +64,7 @@ class DownloadFiles extends Command
                     CURLOPT_FILE           => $fp,
                     CURLOPT_FOLLOWLOCATION => true,
                     CURLOPT_SSL_VERIFYPEER => false,
-                    CURLOPT_TIMEOUT        => 120,
+                    CURLOPT_TIMEOUT        => 600,
                     CURLOPT_USERAGENT      => 'Mozilla/5.0',
                 ]);
                 $result   = curl_exec($ch);
