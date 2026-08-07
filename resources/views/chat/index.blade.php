@@ -276,20 +276,43 @@ let _cpLoaded       = false;
 
 function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function linkify(text) {
-    const urlRe = /(https?:\/\/[^\s<>"'[\]]+)/g;
-    return String(text||'').split(urlRe).map(function(chunk, i) {
-        if (i % 2 === 1) {
-            const safe = chunk.replace(/&/g,'&amp;').replace(/"/g,'&quot;');
-            return '<a href="'+safe+'" target="_blank" rel="noopener noreferrer" style="color:#0ea5e9;text-decoration:underline;word-break:break-all;">'+safe+'</a>';
+    // Handles [URL=href]label[/URL], [URL]href[/URL], raw https:// links, and BBCode formatting
+    const re = /\[URL=([^\]]+)\]([\s\S]*?)\[\/URL\]|\[URL\]([\s\S]*?)\[\/URL\]|(https?:\/\/[^\s<>"'[\]]+)/gi;
+    const parts = [];
+    let lastIdx = 0, m;
+    const src = String(text||'');
+    re.lastIndex = 0;
+    while ((m = re.exec(src)) !== null) {
+        if (m.index > lastIdx) parts.push({t:'plain', s: src.slice(lastIdx, m.index)});
+        if      (m[1] !== undefined) parts.push({t:'url', href:m[1], label:m[2]||m[1]});
+        else if (m[3] !== undefined) parts.push({t:'url', href:m[3], label:m[3]});
+        else                         parts.push({t:'url', href:m[4], label:m[4]});
+        lastIdx = m.index + m[0].length;
+    }
+    if (lastIdx < src.length) parts.push({t:'plain', s: src.slice(lastIdx)});
+    return parts.map(p => {
+        if (p.t === 'url') {
+            const h = p.href.replace(/&/g,'&amp;').replace(/"/g,'&quot;');
+            const l = p.label.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+            return `<a href="${h}" target="_blank" rel="noopener noreferrer" style="color:#0ea5e9;text-decoration:underline;word-break:break-all;">${l}</a>`;
         }
-        return chunk.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+        let t = p.s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+        t = t.replace(/\[B\]([\s\S]*?)\[\/B\]/gi, '<strong>$1</strong>');
+        t = t.replace(/\[I\]([\s\S]*?)\[\/I\]/gi, '<em>$1</em>');
+        t = t.replace(/\[S\]([\s\S]*?)\[\/S\]/gi, '<s>$1</s>');
+        t = t.replace(/\[U\]([\s\S]*?)\[\/U\]/gi, '<u>$1</u>');
+        t = t.replace(/\[CODE\]([\s\S]*?)\[\/CODE\]/gi, '<code style="background:rgba(0,0,0,.25);padding:1px 5px;border-radius:3px;font-family:monospace;font-size:.9em;">$1</code>');
+        return t;
     }).join('');
 }
 function cpPreviewText(t) {
     return (t||'')
         .replace(/\[img\].*?\[\/img\]/gs,    '📷 Photo')
         .replace(/\[file name="[^"]*"\].*?\[\/file\]/gs, '📎 File')
-        .replace(/\[voice(?:\s+dur="[^"]*")?\].*?\[\/voice\]/gs, '🎤 Voice');
+        .replace(/\[voice(?:\s+dur="[^"]*")?\].*?\[\/voice\]/gs, '🎤 Voice')
+        .replace(/\[URL=[^\]]+\]([\s\S]*?)\[\/URL\]/gi, '$1')
+        .replace(/\[URL\]([\s\S]*?)\[\/URL\]/gi, '$1')
+        .replace(/\[\/?(B|I|S|U|CODE)\]/gi, '');
 }
 
 /* ── Context menu (event delegation — no inline oncontextmenu needed) ── */
@@ -682,7 +705,7 @@ function cpRenderMsgs(msgs, scrollToBottom) {
     let html = '', prevDate = null, prevAuthor = null;
     msgs.forEach(m => {
         const deletedForMe = Array.isArray(m.deletedFor) && m.deletedFor.includes(ME_ID);
-        const isDeleted    = deletedForMe || !m.text;
+        const isDeleted    = deletedForMe || !m.text || m.text === 'This message has been deleted.';
         if (m.date !== prevDate) {
             html += `<div style="display:flex;align-items:center;gap:10px;margin:14px 0 8px;">
                 <div style="flex:1;height:1px;background:rgba(255,255,255,.18);"></div>
