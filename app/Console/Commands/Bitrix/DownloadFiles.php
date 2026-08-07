@@ -26,7 +26,9 @@ class DownloadFiles extends Command
             $query->limit($limit);
         }
 
-        $total = $query->count();
+        // Fetch IDs upfront to avoid offset-shifting bug when disk_path is set mid-loop
+        $ids = $query->pluck('id')->toArray();
+        $total = count($ids);
         $this->info("Files to download: $total");
 
         $dir = public_path('uploads/bitrix');
@@ -40,12 +42,15 @@ class DownloadFiles extends Command
         $done = $failed = $skipped = 0;
         $totalBytes = 0;
 
-        $query->each(function (TaskFile $file) use ($dir, $maxBytes, &$done, &$failed, &$skipped, &$totalBytes, $bar) {
+        foreach ($ids as $id) {
+            $file = TaskFile::find($id);
+            if (!$file) { $bar->advance(); continue; }
+
             try {
                 if ($maxBytes > 0 && $file->size > $maxBytes) {
                     $skipped++;
                     $bar->advance();
-                    return;
+                    continue;
                 }
 
                 $ext      = strtolower(pathinfo($file->name ?? '', PATHINFO_EXTENSION));
@@ -74,7 +79,7 @@ class DownloadFiles extends Command
                     $this->warn("  FAIL [{$httpCode}] id={$file->id} {$file->name}: $curlErr");
                     $failed++;
                     $bar->advance();
-                    return;
+                    continue;
                 }
 
                 $fileSize = filesize($savePath);
@@ -82,7 +87,7 @@ class DownloadFiles extends Command
                     @unlink($savePath);
                     $skipped++;
                     $bar->advance();
-                    return;
+                    continue;
                 }
 
                 $file->update(['disk_path' => 'uploads/bitrix/' . $filename]);
@@ -96,7 +101,7 @@ class DownloadFiles extends Command
 
             usleep(100000); // 100ms between downloads
             $bar->advance();
-        });
+        }
 
         $bar->finish();
         $this->newLine(2);
