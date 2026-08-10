@@ -272,6 +272,9 @@ let _cpAllEmps      = [];
 let _cpPollTimer    = null;
 let _cpMsgCount     = 0;
 let _cpLastMsgId    = 0;
+let _cpFirstMsgId   = 0;
+let _cpHasMore      = false;
+let _cpLoadingOlder = false;
 let _cpLoaded       = false;
 
 function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
@@ -629,8 +632,11 @@ window.cpFilterConvs = function(q) {
 /* ── Select conversation ── */
 window.cpSelect = async function(id) {
     _cpActiveConvId = id;
-    _cpMsgCount = 0;
-    _cpLastMsgId = 0;
+    _cpMsgCount     = 0;
+    _cpLastMsgId    = 0;
+    _cpFirstMsgId   = 0;
+    _cpHasMore      = false;
+    _cpLoadingOlder = false;
     try { localStorage.setItem('cp_active_conv', id); } catch(e) {}
     cpCancelEdit();
     document.querySelectorAll('.cp-conv-item').forEach(el => el.classList.toggle('active', +el.dataset.id === id));
@@ -647,8 +653,12 @@ window.cpSelect = async function(id) {
         const d = await r.json();
         cpUpdateHeader(d.conv);
         const _initMsgs = d.messages || [];
+        _cpHasMore = !!d.hasMore;
         cpRenderMsgs(_initMsgs, true);
-        if (_initMsgs.length) _cpLastMsgId = Math.max(..._initMsgs.map(m => m.id));
+        if (_initMsgs.length) {
+            _cpLastMsgId  = Math.max(..._initMsgs.map(m => m.id));
+            _cpFirstMsgId = Math.min(..._initMsgs.map(m => m.id));
+        }
         cpRenderConvs(_cpAllConvs); // clear unread badge
         const ta = document.getElementById('cp-textarea');
         if (ta) ta.focus();
@@ -907,6 +917,73 @@ function cpAppendMsgs(msgs) {
     if (wasNearBottom) el.scrollTop = el.scrollHeight + 9999;
 }
 
+/* ── Load older messages on scroll up ── */
+async function cpLoadOlderMsgs() {
+    if (_cpLoadingOlder || !_cpHasMore || !_cpFirstMsgId || !_cpActiveConvId) return;
+    _cpLoadingOlder = true;
+
+    const el = document.getElementById('cp-msg-area');
+    const inner = document.getElementById('cp-msg-inner');
+
+    // Show loader at top
+    const loader = document.createElement('div');
+    loader.id = 'cp-older-loader';
+    loader.style.cssText = 'text-align:center;padding:10px;color:rgba(255,255,255,.4);font-size:12px;';
+    loader.innerHTML = '<i class="fas fa-spinner fa-spin" style="margin-right:6px;"></i>Loading older messages...';
+    if (inner) inner.prepend(loader); else el.prepend(loader);
+
+    try {
+        const r = await fetch(API_BASE + '/api/chat/convs/' + _cpActiveConvId + '/msgs?before=' + _cpFirstMsgId);
+        const d = await r.json();
+        const msgs = d.messages || [];
+        _cpHasMore = !!d.hasMore;
+
+        if (msgs.length) {
+            _cpFirstMsgId = Math.min(...msgs.map(m => m.id));
+
+            // Remember scroll position so page doesn't jump
+            const prevHeight = el.scrollHeight;
+
+            // Build HTML for older messages
+            let html = '', prevDate = null, prevAuthor = null;
+            msgs.forEach(m => {
+                const deletedForMe = Array.isArray(m.deletedFor) && m.deletedFor.includes(ME_ID);
+                const isDeleted    = deletedForMe || !m.text || m.text === 'This message has been deleted.';
+                if (m.date !== prevDate) {
+                    html += `<div style="display:flex;align-items:center;gap:10px;margin:14px 0 8px;">
+                        <div style="flex:1;height:1px;background:rgba(255,255,255,.18);"></div>
+                        <span style="color:rgba(255,255,255,.8);font-size:11.5px;white-space:nowrap;background:rgba(0,0,0,.32);padding:2px 12px;border-radius:20px;font-weight:600;letter-spacing:.3px;">${cpDayLabel(m.date)}</span>
+                        <div style="flex:1;height:1px;background:rgba(255,255,255,.18);"></div>
+                    </div>`;
+                    prevDate = m.date; prevAuthor = null;
+                }
+                const showName = !m.isMine && prevAuthor !== m.author.id;
+                html += bubble({isMine:m.isMine, name:m.author.name, avatar:m.author.avatar,
+                    text:m.text||'', time:m.time, showName, msgId:m.id,
+                    editedAt:m.editedAt, createdTs:m.createdTs, isDeleted});
+                prevAuthor = m.author.id;
+            });
+
+            // Remove loader then prepend messages
+            loader.remove();
+            const tmp = document.createElement('div');
+            tmp.innerHTML = html;
+            if (inner) {
+                while (tmp.firstChild) inner.prepend(tmp.firstChild);
+            }
+
+            // Restore scroll position so view doesn't jump
+            el.scrollTop = el.scrollHeight - prevHeight;
+        } else {
+            loader.remove();
+        }
+    } catch(e) {
+        loader.remove();
+    }
+
+    _cpLoadingOlder = false;
+}
+
 /* ── Init ── */
 document.addEventListener('DOMContentLoaded', function() {
     cpLoad().then(function() {
@@ -917,6 +994,14 @@ document.addEventListener('DOMContentLoaded', function() {
         if (toOpen) setTimeout(() => cpSelect(toOpen), 100);
     });
     _cpPollTimer = setInterval(cpPoll, 5000);
+
+    // Scroll-up listener for loading older messages
+    const msgArea = document.getElementById('cp-msg-area');
+    if (msgArea) {
+        msgArea.addEventListener('scroll', function() {
+            if (this.scrollTop < 80) cpLoadOlderMsgs();
+        });
+    }
 });
 })();
 

@@ -363,8 +363,9 @@ Route::middleware('auth')->group(function () {
         if ($conv->type !== 'general' && !$conv->members->contains('id', $user->id))
             return response()->json(['error'=>'Forbidden'],403);
 
-        $afterId = (int)($request->query('after', 0));
-        $msgFmt  = fn($m) => [
+        $afterId  = (int)($request->query('after', 0));
+        $beforeId = (int)($request->query('before', 0));
+        $msgFmt   = fn($m) => [
             'id'        => $m->id,
             'text'      => $m->content,
             'isMine'    => $m->user_id===$user->id,
@@ -386,11 +387,23 @@ Route::middleware('auth')->group(function () {
             return response()->json(['messages' => $msgs->map($msgFmt)->values()]);
         }
 
-        // Full load
+        if ($beforeId > 0) {
+            // Scroll-up pagination — load older messages before given ID
+            $msgs = $conv->messages()->with('user')->where('id','<',$beforeId)
+                         ->latest()->limit(50)->get()
+                         ->sortBy(fn($m) => $m->created_at->timestamp)->values();
+            return response()->json([
+                'messages' => $msgs->map($msgFmt)->values(),
+                'hasMore'  => $msgs->count() === 50,
+            ]);
+        }
+
+        // Full load — latest 50 messages
         \App\Models\ConversationMember::where('conversation_id',$conv->id)->where('user_id',$user->id)
             ->update(['last_read_at'=>now()]);
-        $msgs  = $conv->messages()->with('user')->latest()->limit(100)->get()
+        $msgs  = $conv->messages()->with('user')->latest()->limit(50)->get()
                      ->sortBy(fn($m) => $m->created_at->timestamp)->values();
+        $total = $conv->messages()->count();
         $other  = $conv->type==='direct' ? $conv->members->where('id','!=',$user->id)->first() : null;
         $online = $other && $other->last_seen_at && $other->last_seen_at->diffInMinutes(now()) < 5;
 
@@ -402,6 +415,7 @@ Route::middleware('auth')->group(function () {
                 'online'  => $online,
                 'last_seen' => $other?->last_seen_at?->diffForHumans()],
             'messages' => $msgs->map($msgFmt),
+            'hasMore'  => $total > 50,
         ]);
     });
 
