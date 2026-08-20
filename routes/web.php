@@ -158,18 +158,20 @@ Route::middleware('auth')->group(function () {
     Route::get('/api/disk-file/{id}', function ($id) {
         $id = (int)$id;
 
-        // Serve from cache if already downloaded
-        $cached = \App\Models\TaskFile::where('bitrix_file_id', $id)->whereNotNull('disk_path')->first();
-        if ($cached && file_exists(public_path($cached->disk_path))) {
-            return redirect(asset($cached->disk_path));
+        // Serve from filesystem cache if already downloaded
+        $cacheDir = public_path('uploads/bitrix');
+        $pattern  = $cacheDir . '/disk_' . $id . '_*';
+        $existing = glob($pattern);
+        if ($existing) {
+            $rel = 'uploads/bitrix/' . basename($existing[0]);
+            return redirect(asset($rel));
         }
 
         $webhook = rtrim(env('BITRIX_WEBHOOK', ''), '/') . '/';
         if (!$webhook || $webhook === '/') abort(404);
 
         // Step 1: get file metadata (DOWNLOAD_URL) via curl
-        $apiUrl = $webhook . 'disk.file.get?id=' . $id;
-        $ch = curl_init($apiUrl);
+        $ch = curl_init($webhook . 'disk.file.get?id=' . $id);
         curl_setopt_array($ch, [
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_FOLLOWLOCATION => true,
@@ -185,10 +187,10 @@ Route::middleware('auth')->group(function () {
         if (!$downloadUrl) abort(404);
 
         // Step 2: download the actual file via curl
+        @mkdir($cacheDir, 0755, true);
         $safeName = preg_replace('/[^a-zA-Z0-9._-]/', '_', $name);
         $diskPath = 'uploads/bitrix/disk_' . $id . '_' . substr($safeName, 0, 80);
         $savePath = public_path($diskPath);
-        @mkdir(dirname($savePath), 0755, true);
 
         $fp = fopen($savePath, 'wb');
         if (!$fp) abort(500);
@@ -210,13 +212,6 @@ Route::middleware('auth')->group(function () {
             @unlink($savePath);
             abort(502);
         }
-
-        // Cache record
-        \App\Models\TaskFile::updateOrCreate(
-            ['bitrix_file_id' => $id],
-            ['task_id' => 0, 'uploaded_by' => 1, 'name' => $name,
-             'size' => filesize($savePath), 'disk_path' => $diskPath]
-        );
 
         return redirect(asset($diskPath));
     })->name('disk.file');
