@@ -258,11 +258,14 @@ const uAvatar = (u, size=34) => {
         : `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${bg};display:flex;align-items:center;justify-content:center;font-size:${Math.round(size*.38)}px;font-weight:700;color:#fff;flex-shrink:0;border:2px solid #e9ecef;" title="${esc(u.name)}">${initials}</div>`;
 };
 
+const diskFileUrl = id => `/api/disk-file/${id}`;
+
 /* ── description text only (strips [img]/[file] tags) ── */
 const parseDescText = raw => {
     const stripped = (raw||'')
         .replace(/\[img\][\s\S]*?\[\/img\]/g,'')
         .replace(/\[file name="[^"]*"\][\s\S]*?\[\/file\]/g,'')
+        .replace(/\[disk\s+file\s+id=n(\d+)[^\]]*\]/gi,'')
         .trim();
     if (!stripped) return '';
     return stripped
@@ -288,14 +291,15 @@ const parseDescText = raw => {
         .replace(/\n/g,'<br>');
 };
 
-/* ── attachment cards from [img]/[file] tags ── */
+/* ── attachment cards from [img]/[file]/[disk file] tags ── */
 const parseDescAttachments = raw => {
     const atts = [];
-    const re = /\[img\]([\s\S]*?)\[\/img\]|\[file name="([^"]*)"\]([\s\S]*?)\[\/file\]/g;
+    const re = /\[disk\s+file\s+id=n(\d+)[^\]]*\]|\[img\]([\s\S]*?)\[\/img\]|\[file name="([^"]*)"\]([\s\S]*?)\[\/file\]/gi;
     let m;
     while ((m = re.exec(raw||'')) !== null) {
-        if (m[1] !== undefined) atts.push({ type:'img',  url: m[1].trim() });
-        else                    atts.push({ type:'file', name: m[2], url: m[3].trim() });
+        if (m[1] !== undefined)      atts.push({ type:'img',  url: diskFileUrl(m[1]), isDisk:true });
+        else if (m[2] !== undefined) atts.push({ type:'img',  url: m[2].trim() });
+        else                         atts.push({ type:'file', name: m[3], url: m[4].trim() });
     }
     if (!atts.length) return '';
 
@@ -337,14 +341,25 @@ const parseDescAttachments = raw => {
 };
 
 const parseMsg = txt => {
-    const parts = (txt||'').split(/(\[img\].*?\[\/img\]|\[file name="[^"]*"\].*?\[\/file\])/g);
+    const parts = (txt||'').split(/(\[disk\s+file\s+id=n\d+[^\]]*\]|\[img\].*?\[\/img\]|\[file name="[^"]*"\].*?\[\/file\])/gi);
     const allImgs = [];
-    parts.forEach(p => { const m = p.match(/^\[img\](.*?)\[\/img\]$/); if (m) allImgs.push(m[1]); });
+    parts.forEach(p => {
+        const dm = p.match(/^\[disk\s+file\s+id=n(\d+)[^\]]*\]$/i);
+        const im = p.match(/^\[img\](.*?)\[\/img\]$/);
+        if (dm) allImgs.push(diskFileUrl(dm[1]));
+        else if (im) allImgs.push(im[1]);
+    });
     const galKey = allImgs.length > 1 && window.registerGallery ? window.registerGallery(allImgs) : null;
     let imgIdx = 0;
     return parts.map(part => {
+        const diskM = part.match(/^\[disk\s+file\s+id=n(\d+)[^\]]*\]$/i);
         const imgM  = part.match(/^\[img\](.*?)\[\/img\]$/);
         const fileM = part.match(/^\[file name="([^"]*)"\](.*?)\[\/file\]$/);
+        if (diskM) {
+            const url = diskFileUrl(diskM[1]);
+            const fn = `imgLightbox('${url}',0)`;
+            return `<img src="${url}" style="max-width:280px;max-height:220px;object-fit:cover;border-radius:8px;display:block;margin:4px 0;cursor:zoom-in;transition:opacity .15s;" loading="lazy" onmouseover="this.style.opacity='.88'" onmouseout="this.style.opacity='1'" onclick="${fn}">`;
+        }
         if (imgM) {
             const ci = imgIdx++;
             const url = imgM[1].replace(/"/g,'&quot;');
@@ -416,8 +431,11 @@ const chatBubble = ({isMine, name, nameColor, text, time, showName=true, isSyste
                 <img src="${url}" alt="${esc(f.name)}" loading="lazy" style="width:100%;max-height:220px;object-fit:cover;border-radius:10px;display:block;cursor:zoom-in;" onerror="this.parentElement.innerHTML='<span style=&quot;display:flex;align-items:center;gap:7px;padding:6px 9px;background:rgba(0,0,0,0.06);border-radius:7px;&quot;><i class=&quot;fas fa-file-image&quot; style=&quot;color:#0ea5e9;font-size:13px;&quot;></i><span style=&quot;color:${tc};font-size:11.5px;&quot;>${esc(f.name)}</span></span>';">
             </a>`;
         }
-        const ic=fileIcons[ext]||'fa-file-image';
-        return`<a href="${url}" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:7px;padding:6px 9px;background:rgba(0,0,0,0.06);border-radius:7px;text-decoration:none;"><i class="fas ${ic}" style="color:#0ea5e9;font-size:13px;flex-shrink:0;"></i><span style="color:${tc};font-size:11.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;">${esc(f.name)}</span><i class="fas fa-download" style="color:#94a3b8;font-size:9px;flex-shrink:0;margin-left:4px;"></i></a>`;
+        const ic=fileIcons[ext]||'fa-file';
+        const fclr={pdf:'#ef4444',doc:'#2563eb',docx:'#2563eb',xls:'#16a34a',xlsx:'#16a34a',ppt:'#ea580c',pptx:'#ea580c',zip:'#ca8a04',rar:'#ca8a04'}[ext]||'#6b7280';
+        const fbg={pdf:'rgba(239,68,68,.12)',doc:'rgba(37,99,235,.1)',docx:'rgba(37,99,235,.1)',xls:'rgba(22,163,74,.1)',xlsx:'rgba(22,163,74,.1)',ppt:'rgba(234,88,12,.1)',pptx:'rgba(234,88,12,.1)',zip:'rgba(202,138,4,.1)',rar:'rgba(202,138,4,.1)'}[ext]||'rgba(107,114,128,.1)';
+        const fsz=f.size?(f.size>=1048576?(f.size/1048576).toFixed(1)+' MB':Math.round(f.size/1024)+' KB'):'';
+        return`<a href="${url}" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:10px;padding:8px 11px;background:rgba(255,255,255,0.75);border:1px solid rgba(0,0,0,0.09);border-radius:10px;text-decoration:none;min-width:180px;max-width:280px;"><div style="width:38px;height:46px;background:${fbg};border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><i class="fas ${ic}" style="color:${fclr};font-size:19px;"></i></div><div style="flex:1;overflow:hidden;"><div style="color:${tc};font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(f.name)}</div>${fsz?`<div style="color:${timec};font-size:10px;margin-top:2px;">${fsz}</div>`:''}</div><i class="fas fa-download" style="color:#94a3b8;font-size:10px;flex-shrink:0;"></i></a>`;
     }).join('')}</div>` : '';
     return `
         <div style="display:flex;justify-content:${isMine?'flex-end':'flex-start'};margin-bottom:2px;">
@@ -555,7 +573,7 @@ window.tpUpdateField = function(taskId, field, value, onDone) {
         method:'PATCH',
         headers:{'Content-Type':'application/json','X-CSRF-TOKEN':TP_CSRF,'Accept':'application/json'},
         body:JSON.stringify({field,value}),
-    }).then(r=>r.json()).then(resp=>{ if(resp.success&&onDone) onDone(resp); })
+    }).then(r=>r.json()).then(resp=>{ if(resp.success&&onDone) onDone(resp); else if(!resp.success) alert(resp.message||'Update failed. You may not have permission.'); })
     .catch(()=>alert('Update failed.'));
 };
 window.tpToggleMember = function(taskId,userId,onDone){
@@ -1069,11 +1087,29 @@ function tpRenderLocal(data) {
         /* Files section — always rendered so tab scroll always finds it */
         const localFiles = data.localFiles || [];
         const icons2={pdf:'fa-file-pdf',jpg:'fa-file-image',jpeg:'fa-file-image',png:'fa-file-image',gif:'fa-file-image',doc:'fa-file-word',docx:'fa-file-word',xls:'fa-file-excel',xlsx:'fa-file-excel',zip:'fa-file-archive',rar:'fa-file-archive'};
+        const fileClr2={pdf:'#ef4444',doc:'#2563eb',docx:'#2563eb',xls:'#16a34a',xlsx:'#16a34a',ppt:'#ea580c',pptx:'#ea580c',zip:'#ca8a04',rar:'#ca8a04'};
+        const fileBg2={pdf:'#fee2e2',doc:'#dbeafe',docx:'#dbeafe',xls:'#dcfce7',xlsx:'#dcfce7',ppt:'#ffedd5',pptx:'#ffedd5',zip:'#fef9c3',rar:'#fef9c3'};
         const localFileHtml = localFiles.length
-            ? localFiles.map(f=>{const ext=(f.name||'').split('.').pop().toLowerCase();const ic=icons2[ext]||'fa-file';return`<a href="${f.downloadUrl||'#'}" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:#f8fafc;border:1px solid #e9ecef;border-radius:8px;text-decoration:none;"><i class="fas ${ic}" style="color:#0ea5e9;font-size:15px;width:18px;flex-shrink:0;"></i><p style="color:#374151;font-size:12px;margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;">${esc(f.name)}</p></a>`;}).join('')
+            ? localFiles.map(f=>{
+                const ext=(f.name||'').split('.').pop().toLowerCase();
+                const ic=icons2[ext]||'fa-file';
+                const clr=fileClr2[ext]||'#6b7280';
+                const bg2=fileBg2[ext]||'#f1f5f9';
+                const sz=f.size?(f.size>=1048576?(f.size/1048576).toFixed(1)+' MB':Math.round(f.size/1024)+' KB'):'';
+                return`<a href="${f.downloadUrl||'#'}" target="_blank" rel="noopener"
+                    style="display:flex;flex-direction:column;align-items:center;gap:5px;padding:10px 8px 8px;background:#fff;border:1px solid #e9ecef;border-radius:10px;text-decoration:none;width:90px;flex-shrink:0;transition:border-color .15s,box-shadow .15s;"
+                    onmouseover="this.style.borderColor='${clr}';this.style.boxShadow='0 2px 8px rgba(0,0,0,.08)'"
+                    onmouseout="this.style.borderColor='#e9ecef';this.style.boxShadow='none'">
+                    <div style="width:48px;height:58px;background:${bg2};border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                        <i class="fas ${ic}" style="color:${clr};font-size:22px;"></i>
+                    </div>
+                    <p style="color:#374151;font-size:10.5px;font-weight:500;margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:82px;width:100%;text-align:center;">${esc(f.name)}</p>
+                    ${sz?`<p style="color:#9ca3af;font-size:9.5px;margin:0;">${sz}</p>`:''}
+                </a>`;
+            }).join('')
             : '';
         const localFilesSec = localFiles.length
-            ? sec(`${sLabel('fa-paperclip',`Files (${localFiles.length})`)}<div style="display:flex;flex-direction:column;gap:5px;">${localFileHtml}</div>`)
+            ? sec(`${sLabel('fa-paperclip',`Files (${localFiles.length})`)}<div style="display:flex;flex-wrap:wrap;gap:8px;">${localFileHtml}</div>`)
             : '';
         const filesSection=`<div id="tp-files-section">
             ${attachSec||localFilesSec||sec(`${sLabel('fa-paperclip','Files')}<p style="color:#b0bec5;font-size:12.5px;margin:0;">No files attached yet. Drag files onto this panel to attach them.</p>`)}
@@ -1375,6 +1411,10 @@ window.tpRenderLocalFeed = function(data, taskId) {
                 else if (f.new) actText += ' → <em>' + fmtActVal(f.new, f.field) + '</em>';
                 lastAuthor2 = null;
                 return div + chatBubble({isSystem:true, text:actText, time});
+            }
+            if (f.isSystem) {
+                lastAuthor2 = null;
+                return div + chatBubble({isSystem:true, text:parseMsg(f.text||f.content||''), time});
             }
             const u = typeof f.author === 'object' ? f.author : {name: f.author || '?'};
             const isMine = u.id ? parseInt(u.id) === ME_LOCAL_ID : false;

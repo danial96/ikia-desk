@@ -10,15 +10,31 @@ use Illuminate\Support\Facades\DB;
 class ImportChats extends BitrixCommand
 {
     protected $signature = 'bitrix:import-chats
-                            {--fresh : Delete existing Bitrix-imported chats before re-importing}';
+                            {--fresh : Delete existing Bitrix-imported chats before re-importing}
+                            {--webhook= : Use a custom webhook URL instead of BITRIX_WEBHOOK env}';
 
     protected $description = 'Import Bitrix24 direct and group chats into the local messenger';
 
     private array $userMap = [];  // bitrix_id => local user id
     private int   $adminId;
+    private int   $webhookUserId; // Bitrix user ID extracted from webhook URL
+
+    public function __construct()
+    {
+        parent::__construct();
+    }
 
     public function handle(): int
     {
+        // Override webhook if --webhook option provided
+        if ($customWebhook = $this->option('webhook')) {
+            $this->webhook = rtrim($customWebhook, '/') . '/';
+        }
+
+        // Extract webhook user ID from URL: rest/USER_ID/TOKEN/
+        preg_match('#/rest/(\d+)/#', $this->webhook, $m);
+        $this->webhookUserId = (int)($m[1] ?? 155);
+
         $this->buildUserMap();
 
         if ($this->option('fresh')) {
@@ -28,6 +44,7 @@ class ImportChats extends BitrixCommand
             });
         }
 
+        $this->info("Webhook user: bitrix_id={$this->webhookUserId}");
         $this->info('Fetching Bitrix24 IM chats...');
         $chats = $this->fetchAllChats();
 
@@ -55,8 +72,8 @@ class ImportChats extends BitrixCommand
 
     private function fetchAllChats(): array
     {
-        $all   = [];
-        $limit = 50;
+        $all    = [];
+        $limit  = 50;
         $offset = 0;
 
         do {
@@ -69,7 +86,6 @@ class ImportChats extends BitrixCommand
             foreach ($items as $item) {
                 $t     = $item['type'] ?? '';
                 $title = $item['title'] ?? '';
-                // Skip task chats (already imported as task comments)
                 if ($t === 'chat' && str_starts_with($title, 'Task:')) continue;
                 if (in_array($t, ['user', 'chat'])) {
                     $all[] = $item;
@@ -85,64 +101,98 @@ class ImportChats extends BitrixCommand
 
     private function importChat(array $chat): int
     {
-        $type  = $chat['type'];  // 'user' or 'chat'
+        $type  = $chat['type'];
         $rawId = (string)($chat['id'] ?? '');
 
-        // User IDs are plain integers; chat IDs come as 'chat6233' strings — strip prefix
         $otherId = $type === 'user'
             ? (int)$rawId
             : (int)preg_replace('/[^0-9]/', '', $rawId);
 
-        // Derive a stable identifier for deduplication
-        $bitrixChatId = $type === 'user'
-            ? "direct:{$otherId}"
-            : "chat:{$otherId}";
+        $webhookLocalId = $this->userMap[$this->webhookUserId] ?? $this->adminId;
 
-        // Get or create the local conversation
-        $conversation = Conversation::where('bitrix_chat_id', $bitrixChatId)->first();
+        if ($type === 'user') {
+            // For direct chats: find existing conversation between the two local users
+            // (avoids duplicates when same chat is imported from different webhook perspectives)
+            $otherLocalId = $this->userMap[$otherId] ?? null;
+            $conversation = $this->findOrCreateDirectConv($otherId, $webhookLocalId, $otherLocalId);
+        } else {
+            // Group chat: deduplicate by bitrix_chat_id
+            $bitrixChatId = "chat:{$otherId}";
+            $conversation = Conversation::where('bitrix_chat_id', $bitrixChatId)->first();
 
-        if (!$conversation) {
-            $localUserId = $type === 'user'
-                ? ($this->userMap[$otherId] ?? null)
-                : null;
-
-            $conversation = Conversation::create([
-                'bitrix_chat_id' => $bitrixChatId,
-                'type'           => $type === 'user' ? 'direct' : 'group',
-                'name'           => $type === 'chat' ? ($chat['title'] ?? 'Bitrix Group') : null,
-                'created_by'     => $this->adminId,
-            ]);
-
-            // Add members
-            if ($type === 'user') {
-                // Direct chat: webhook user + the other user
-                $webhookLocalId = $this->userMap[155] ?? $this->adminId;
-                $this->addMember($conversation->id, $webhookLocalId);
-                if ($localUserId) {
-                    $this->addMember($conversation->id, $localUserId);
-                }
-            } else {
-                // Group chat: fetch member list
+            if (!$conversation) {
+                $conversation = Conversation::create([
+                    'bitrix_chat_id' => $bitrixChatId,
+                    'type'           => 'group',
+                    'name'           => $chat['title'] ?? 'Bitrix Group',
+                    'created_by'     => $this->adminId,
+                ]);
+                // Fetch and add members
                 $membersResp = $this->bx('im.chat.get', ['CHAT_ID' => $otherId]);
-                $memberBxIds = $membersResp['result']['users'] ?? [];
-                foreach ($memberBxIds as $bxId) {
+                foreach ($membersResp['result']['users'] ?? [] as $bxId) {
                     $lid = $this->userMap[(int)$bxId] ?? null;
                     if ($lid) $this->addMember($conversation->id, $lid);
                 }
+            } else {
+                // Ensure webhook user is a member
+                $this->addMember($conversation->id, $webhookLocalId);
             }
         }
 
-        // Fetch messages for this chat
         $dialogId = $type === 'user' ? $otherId : 'chat' . $otherId;
         return $this->importMessages($conversation, (string)$dialogId);
     }
 
+    private function findOrCreateDirectConv(int $otherBxId, int $webhookLocalId, ?int $otherLocalId): Conversation
+    {
+        // 1. Members-based check is the most reliable cross-perspective dedup.
+        //    "direct:{X}" is not globally unique — two different users can each have
+        //    a DM with user X, resulting in two different conversations both keyed
+        //    "direct:{X}". Members-based check is collision-free.
+        if ($otherLocalId) {
+            $conv = Conversation::where('type', 'direct')
+                ->whereNotNull('bitrix_chat_id')
+                ->whereHas('members', fn($q) => $q->where('user_id', $webhookLocalId))
+                ->whereHas('members', fn($q) => $q->where('user_id', $otherLocalId))
+                ->first();
+            if ($conv) {
+                $this->addMember($conv->id, $webhookLocalId);
+                return $conv;
+            }
+        }
+
+        // 2. Check by bitrix_chat_id from our perspective, but ONLY if the webhook
+        //    user is already a member (avoids hijacking another user's DM with same person).
+        $fromMyPov = "direct:{$otherBxId}";
+        $conv = Conversation::where('bitrix_chat_id', $fromMyPov)
+            ->whereHas('members', fn($q) => $q->where('user_id', $webhookLocalId))
+            ->first();
+        if ($conv) {
+            return $conv;
+        }
+
+        // 3. Create a new conversation. Use a namespaced key if fromMyPov is already
+        //    taken by another user's conversation to avoid a unique-constraint collision.
+        $key = Conversation::where('bitrix_chat_id', $fromMyPov)->exists()
+            ? "direct:{$this->webhookUserId}:{$otherBxId}"
+            : $fromMyPov;
+
+        $conv = Conversation::create([
+            'bitrix_chat_id' => $key,
+            'type'           => 'direct',
+            'name'           => null,
+            'created_by'     => $this->adminId,
+        ]);
+        $this->addMember($conv->id, $webhookLocalId);
+        if ($otherLocalId) $this->addMember($conv->id, $otherLocalId);
+
+        return $conv;
+    }
+
     private function importMessages(Conversation $conversation, string $dialogId): int
     {
-        $count  = 0;
-        $lastId = null;
-
-        // Paginate through all messages oldest-first by starting from the end and reversing
+        $count       = 0;
+        $lastId      = null;
         $allMessages = [];
 
         do {
@@ -157,12 +207,9 @@ class ImportChats extends BitrixCommand
 
             $allMessages = array_merge($allMessages, $messages);
             $lastId = end($messages)['id'] ?? null;
-
-            // Stop if fewer messages than limit (last page)
             if (count($messages) < 50) break;
         } while (true);
 
-        // Reverse to get oldest-first order
         $allMessages = array_reverse($allMessages);
 
         foreach ($allMessages as $m) {
@@ -171,9 +218,7 @@ class ImportChats extends BitrixCommand
             $text        = trim($m['text'] ?? '');
             $date        = $this->parseDateTime($m['date'] ?? null);
 
-            // Skip system messages
-            if ($authorBxId === 0) continue;
-            if (empty($text)) continue;
+            if ($authorBxId === 0 || empty($text)) continue;
 
             $localUserId = $this->userMap[$authorBxId] ?? $this->adminId;
 

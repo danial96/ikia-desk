@@ -104,6 +104,7 @@ Route::middleware('auth')->group(function () {
                 ])->values();
 
             $feed->push(['type'=>'comment','at'=>$c->created_at->toIso8601String(),'id'=>$c->id,
+                'isSystem' => (bool)$c->is_system,
                 'author'=>['id'=>$c->user_id,'name'=>$c->user?->name??'','avatar'=>$c->user?->avatar_url??''],
                 'text'=>$c->content,
                 'files'=>$attachments->map(fn($f2) => array_merge($f2, [
@@ -152,6 +153,37 @@ Route::middleware('auth')->group(function () {
                 ])->values(),
         ]);
     })->name('api.local.task');
+
+    // ── Bitrix Disk file proxy (download on-demand, cache locally) ──
+    Route::get('/api/disk-file/{id}', function ($id) {
+        $id = (int)$id;
+        // Check if already cached
+        $cached = \App\Models\TaskFile::where('bitrix_file_id', $id)->whereNotNull('disk_path')->first();
+        if ($cached) {
+            return redirect(asset($cached->disk_path));
+        }
+        // Fetch from Bitrix
+        $webhook = rtrim(config('services.bitrix.webhook', env('BITRIX_WEBHOOK', '')), '/') . '/';
+        if (!$webhook) abort(404);
+        $resp = @json_decode(file_get_contents($webhook . 'disk.file.get?id=' . $id), true);
+        $downloadUrl = $resp['result']['DOWNLOAD_URL'] ?? ($resp['result']['DETAIL_URL'] ?? null);
+        if (!$downloadUrl) abort(404);
+        // Download and store
+        $ctx = stream_context_create(['http' => ['timeout' => 30]]);
+        $content = @file_get_contents($downloadUrl, false, $ctx);
+        if ($content === false) return redirect($downloadUrl);
+        $name = $resp['result']['NAME'] ?? 'file_' . $id;
+        $safeName = preg_replace('/[^a-zA-Z0-9._-]/', '_', $name);
+        $diskPath = 'uploads/bitrix/disk_' . $id . '_' . $safeName;
+        file_put_contents(public_path($diskPath), $content);
+        // Cache in task_files (task_id=0 for orphaned disk files)
+        \App\Models\TaskFile::updateOrCreate(
+            ['bitrix_file_id' => $id],
+            ['task_id' => 0, 'uploaded_by' => 1, 'name' => $name,
+             'size' => strlen($content), 'disk_path' => $diskPath]
+        );
+        return redirect(asset($diskPath));
+    })->name('disk.file');
 
     // ── Attach file to existing task ──
     Route::post('/api/local-task/{id}/attach', function ($id, \Illuminate\Http\Request $request) {
@@ -364,7 +396,7 @@ Route::middleware('auth')->group(function () {
             return response()->json(['error'=>'Forbidden'],403);
 
         $afterId  = (int)($request->query('after', 0));
-        $beforeId = (int)($request->query('before', 0));
+        $beforeTs = (int)($request->query('before_ts', 0));
         $msgFmt   = fn($m) => [
             'id'        => $m->id,
             'text'      => $m->content,
@@ -379,7 +411,7 @@ Route::middleware('auth')->group(function () {
 
         if ($afterId > 0) {
             // Incremental poll — only new messages after given ID
-            $msgs = $conv->messages()->with('user')->where('id','>',$afterId)->orderBy('id')->limit(50)->get();
+            $msgs = $conv->messages()->with('user')->reorder()->where('id','>',$afterId)->orderBy('id')->limit(50)->get();
             if ($msgs->isNotEmpty()) {
                 \App\Models\ConversationMember::where('conversation_id',$conv->id)->where('user_id',$user->id)
                     ->update(['last_read_at'=>now()]);
@@ -387,10 +419,12 @@ Route::middleware('auth')->group(function () {
             return response()->json(['messages' => $msgs->map($msgFmt)->values()]);
         }
 
-        if ($beforeId > 0) {
-            // Scroll-up pagination — load older messages before given ID
-            $msgs = $conv->messages()->with('user')->where('id','<',$beforeId)
-                         ->latest()->limit(50)->get()
+        if ($beforeTs > 0) {
+            // Scroll-up pagination — load older messages before given timestamp
+            $beforeDt = \Carbon\Carbon::createFromTimestamp($beforeTs);
+            $msgs = $conv->messages()->with('user')->reorder()
+                         ->where('created_at', '<', $beforeDt)
+                         ->latest('created_at')->limit(50)->get()
                          ->sortBy(fn($m) => $m->created_at->timestamp)->values();
             return response()->json([
                 'messages' => $msgs->map($msgFmt)->values(),
@@ -398,12 +432,11 @@ Route::middleware('auth')->group(function () {
             ]);
         }
 
-        // Full load — latest 50 messages
+        // Full load — latest 50 messages by created_at (reorder() clears the relationship's default ASC scope)
         \App\Models\ConversationMember::where('conversation_id',$conv->id)->where('user_id',$user->id)
             ->update(['last_read_at'=>now()]);
-        $msgs  = $conv->messages()->with('user')->latest()->limit(50)->get()
+        $msgs  = $conv->messages()->with('user')->reorder()->latest('created_at')->limit(50)->get()
                      ->sortBy(fn($m) => $m->created_at->timestamp)->values();
-        $total = $conv->messages()->count();
         $other  = $conv->type==='direct' ? $conv->members->where('id','!=',$user->id)->first() : null;
         $online = $other && $other->last_seen_at && $other->last_seen_at->diffInMinutes(now()) < 5;
 
@@ -415,7 +448,7 @@ Route::middleware('auth')->group(function () {
                 'online'  => $online,
                 'last_seen' => $other?->last_seen_at?->diffForHumans()],
             'messages' => $msgs->map($msgFmt),
-            'hasMore'  => $total > 50,
+            'hasMore'  => $msgs->count() === 50,
         ]);
     });
 
