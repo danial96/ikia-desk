@@ -260,35 +260,39 @@ const uAvatar = (u, size=34) => {
 
 const diskFileUrl = id => `/api/disk-file/${id}`;
 
-/* ── description text only (strips [img]/[file] tags) ── */
+/* ── description text (strips [img]/[file], renders [disk file] inline) ── */
 const parseDescText = raw => {
-    const stripped = (raw||'')
-        .replace(/\[img\][\s\S]*?\[\/img\]/g,'')
-        .replace(/\[file name="[^"]*"\][\s\S]*?\[\/file\]/g,'')
-        .replace(/\[disk\s+file\s+id=n(\d+)[^\]]*\]/gi,'')
-        .trim();
-    if (!stripped) return '';
-    return stripped
-        // Decode HTML entities first (Bitrix imports store &amp; &lt; etc.)
-        .replace(/&amp;/gi,'&').replace(/&lt;/gi,'<').replace(/&gt;/gi,'>').replace(/&nbsp;/gi,' ').replace(/&quot;/gi,'"')
-        // Convert <br> HTML tags to newlines
-        .replace(/<br\s*\/?>/gi,'\n')
-        // Strip any remaining HTML tags
-        .replace(/<[^>]+>/g,'')
-        // Now safely escape for HTML output
-        .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-        // BBcode
-        .replace(/\[USER=\d+\]([^\[]*)\[\/USER\]/g,'<span style="color:#0ea5e9;font-weight:600;">$1</span>')
-        .replace(/\[TIMESTAMP=(\d+)\s+FORMAT=[^\]]*\]/g,(_,ts)=>{
-            const d=new Date(parseInt(ts)*1000);
-            return '<span style="color:#f59e0b;">'+d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})+'</span>';
-        })
-        .replace(/\[url=([^\]]+)\]([^\[]*)\[\/url\]/gi,'<a href="$1" target="_blank" rel="noopener" style="color:#0ea5e9;text-decoration:underline;">$2</a>')
-        .replace(/\[url\](.*?)\[\/url\]/gi,'<a href="$1" target="_blank" rel="noopener" style="color:#0ea5e9;text-decoration:underline;">$1</a>')
-        .replace(/\[\/?\w[^\]]*\]/g,'')
-        // Auto-link plain URLs
-        .replace(/(?<!href=")(https?:\/\/[^\s<>"'[\]]+)/g,'<a href="$1" target="_blank" rel="noopener noreferrer" style="color:#0ea5e9;text-decoration:underline;word-break:break-all;">$1</a>')
-        .replace(/\n/g,'<br>');
+    const processText = t => {
+        const s = t
+            .replace(/\[img\][\s\S]*?\[\/img\]/g,'')
+            .replace(/\[file name="[^"]*"\][\s\S]*?\[\/file\]/g,'');
+        if (!s.trim()) return '';
+        return s
+            .replace(/&amp;/gi,'&').replace(/&lt;/gi,'<').replace(/&gt;/gi,'>').replace(/&nbsp;/gi,' ').replace(/&quot;/gi,'"')
+            .replace(/<br\s*\/?>/gi,'\n')
+            .replace(/<[^>]+>/g,'')
+            .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+            .replace(/\[USER=\d+\]([^\[]*)\[\/USER\]/g,'<span style="color:#0ea5e9;font-weight:600;">$1</span>')
+            .replace(/\[TIMESTAMP=(\d+)\s+FORMAT=[^\]]*\]/g,(_,ts)=>{
+                const d=new Date(parseInt(ts)*1000);
+                return '<span style="color:#f59e0b;">'+d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})+'</span>';
+            })
+            .replace(/\[url=([^\]]+)\]([^\[]*)\[\/url\]/gi,'<a href="$1" target="_blank" rel="noopener" style="color:#0ea5e9;text-decoration:underline;">$2</a>')
+            .replace(/\[url\](.*?)\[\/url\]/gi,'<a href="$1" target="_blank" rel="noopener" style="color:#0ea5e9;text-decoration:underline;">$1</a>')
+            .replace(/\[\/?\w[^\]]*\]/g,'')
+            .replace(/(?<!href=")(https?:\/\/[^\s<>"'[\]]+)/g,'<a href="$1" target="_blank" rel="noopener noreferrer" style="color:#0ea5e9;text-decoration:underline;word-break:break-all;">$1</a>')
+            .replace(/\n/g,'<br>');
+    };
+    // Split on [disk file id=n{id}...] and render inline images
+    const parts = (raw||'').split(/(\[disk\s+file\s+id=n\d+[^\]]*\])/gi);
+    return parts.map(p => {
+        const dm = p.match(/^\[disk\s+file\s+id=n(\d+)[^\]]*\]$/i);
+        if (dm) {
+            const url = diskFileUrl(dm[1]);
+            return `<div style="margin:8px 0;"><img src="${url}" loading="lazy" style="max-width:100%;max-height:400px;object-fit:contain;border-radius:8px;cursor:zoom-in;" onclick="imgLightbox('${url}',0)"></div>`;
+        }
+        return processText(p);
+    }).join('');
 };
 
 /* ── attachment cards from [img]/[file]/[disk file] tags ── */

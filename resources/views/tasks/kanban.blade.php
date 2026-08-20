@@ -504,7 +504,14 @@ function kbRenderCard(t) {
     const statusLabel = (t.status||'').replace('_',' ').replace(/\b\w/g, c => c.toUpperCase());
 
     let thumb = '';
-    if (t.desc) { const m = t.desc.match(/\[img\]([^\[\]\s]+)\[\/img\]/i); if (m) thumb = `<div style="margin:-4px -12px 8px;overflow:hidden;"><img src="${kbH(m[1])}" loading="lazy" style="width:100%;height:200px;object-fit:contain;display:block;border-radius:6px 6px 0 0;"></div>`; }
+    if (t.cover_image) {
+        thumb = `<div style="margin:-4px -12px 8px;overflow:hidden;border-radius:6px 6px 0 0;"><img src="${kbH(t.cover_image)}" loading="lazy" style="width:100%;max-height:180px;object-fit:cover;display:block;" onerror="this.parentElement.style.display='none'"></div>`;
+    } else if (t.desc) {
+        const imgM  = t.desc.match(/\[img\]([^\[\]\s]+)\[\/img\]/i);
+        const diskM = t.desc.match(/\[disk\s+file\s+id=n(\d+)[^\]]*\]/i);
+        const coverUrl = imgM ? imgM[1] : (diskM ? `/api/disk-file/${diskM[1]}` : null);
+        if (coverUrl) thumb = `<div style="margin:-4px -12px 8px;overflow:hidden;"><img src="${kbH(coverUrl)}" loading="lazy" style="width:100%;max-height:180px;object-fit:cover;display:block;border-radius:6px 6px 0 0;" onerror="this.parentElement.style.display='none'"></div>`;
+    }
 
     const proj  = t.project  ? `<p style="font-size:10.5px;color:#64748b;margin:0 0 7px;display:flex;align-items:center;gap:4px;"><i class="fas fa-folder" style="font-size:9px;color:#94a3b8;"></i>${kbH(t.project)}</p>` : '';
     const dl    = t.deadline ? `<span style="font-size:10.5px;color:${t.dl_past?'#ef4444':'#94a3b8'};display:flex;align-items:center;gap:3px;"><i class="fas fa-calendar-alt" style="font-size:9px;"></i>${kbH(t.deadline)}</span>` : `<span style="font-size:10.5px;color:#cbd5e1;">—</span>`;
