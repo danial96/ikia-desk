@@ -282,7 +282,11 @@ class TaskController extends Controller
         }
 
         if ($field === 'status') {
-            if (!$task->isMember($user)) return response()->json(['success' => false], 403);
+            $canUpdateStatus = $user->isSuperAdmin()
+                || $task->isMember($user)
+                || $task->assigned_to === $user->id
+                || $task->created_by === $user->id;
+            if (!$canUpdateStatus) return response()->json(['success' => false, 'message' => 'Not authorized'], 403);
         } else {
             if (!$user->isSuperAdmin() && $task->created_by !== $user->id) {
                 return response()->json(['success' => false], 403);
@@ -464,7 +468,17 @@ class TaskController extends Controller
             $weekEnd     = now()->endOfWeek();
             $nextWeekEnd = now()->addWeek()->endOfWeek();
 
-            $query = Task::with(['project', 'assignee', 'creator']);
+            $query = Task::with(['project', 'assignee', 'creator',
+                'files' => fn($q) => $q->whereNotNull('disk_path')
+                    ->where(function ($q2) {
+                        $q2->whereIn('mime_type', ['image/jpeg','image/jpg','image/png','image/gif','image/webp','image/svg+xml'])
+                           ->orWhere(function ($q3) {
+                               foreach (['jpg','jpeg','png','gif','webp','svg'] as $ext) {
+                                   $q3->orWhere('name', 'like', "%.$ext");
+                               }
+                           });
+                    })->oldest(),
+            ]);
 
             if (!$user->isSuperAdmin()) {
                 $query->where(function ($q) use ($user) {
@@ -571,7 +585,8 @@ class TaskController extends Controller
                     'deadline' => $t->deadline ? $t->deadline->format('M d, Y') : null,
                     'dl_past'  => $t->deadline && $t->deadline->isPast() && $t->status !== 'completed',
                     'project'  => $t->project  ? $t->project->name  : null,
-                    'assignee' => $t->assignee ? ['name' => $t->assignee->name, 'avatar' => $t->assignee->avatar_url] : null,
+                    'assignee'    => $t->assignee ? ['name' => $t->assignee->name, 'avatar' => $t->assignee->avatar_url] : null,
+                    'cover_image' => $t->files->first() ? asset($t->files->first()->disk_path) : null,
                 ])->values();
             }
             return response()->json(['columns' => $result, 'completedTotal' => $completedTotal, 'unseenTaskIds' => $unseenTaskIds]);
