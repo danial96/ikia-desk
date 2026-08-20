@@ -157,31 +157,67 @@ Route::middleware('auth')->group(function () {
     // ── Bitrix Disk file proxy (download on-demand, cache locally) ──
     Route::get('/api/disk-file/{id}', function ($id) {
         $id = (int)$id;
-        // Check if already cached
+
+        // Serve from cache if already downloaded
         $cached = \App\Models\TaskFile::where('bitrix_file_id', $id)->whereNotNull('disk_path')->first();
-        if ($cached) {
+        if ($cached && file_exists(public_path($cached->disk_path))) {
             return redirect(asset($cached->disk_path));
         }
-        // Fetch from Bitrix
-        $webhook = rtrim(config('services.bitrix.webhook', env('BITRIX_WEBHOOK', '')), '/') . '/';
-        if (!$webhook) abort(404);
-        $resp = @json_decode(file_get_contents($webhook . 'disk.file.get?id=' . $id), true);
-        $downloadUrl = $resp['result']['DOWNLOAD_URL'] ?? ($resp['result']['DETAIL_URL'] ?? null);
+
+        $webhook = rtrim(env('BITRIX_WEBHOOK', ''), '/') . '/';
+        if (!$webhook || $webhook === '/') abort(404);
+
+        // Step 1: get file metadata (DOWNLOAD_URL) via curl
+        $apiUrl = $webhook . 'disk.file.get?id=' . $id;
+        $ch = curl_init($apiUrl);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_SSL_VERIFYPEER => false,
+            CURLOPT_TIMEOUT        => 30,
+        ]);
+        $json = curl_exec($ch);
+        curl_close($ch);
+        $resp = $json ? json_decode($json, true) : null;
+
+        $downloadUrl = $resp['result']['DOWNLOAD_URL'] ?? null;
+        $name        = $resp['result']['NAME'] ?? ('file_' . $id);
         if (!$downloadUrl) abort(404);
-        // Download and store
-        $ctx = stream_context_create(['http' => ['timeout' => 30]]);
-        $content = @file_get_contents($downloadUrl, false, $ctx);
-        if ($content === false) return redirect($downloadUrl);
-        $name = $resp['result']['NAME'] ?? 'file_' . $id;
+
+        // Step 2: download the actual file via curl
         $safeName = preg_replace('/[^a-zA-Z0-9._-]/', '_', $name);
-        $diskPath = 'uploads/bitrix/disk_' . $id . '_' . $safeName;
-        file_put_contents(public_path($diskPath), $content);
-        // Cache in task_files (task_id=0 for orphaned disk files)
+        $diskPath = 'uploads/bitrix/disk_' . $id . '_' . substr($safeName, 0, 80);
+        $savePath = public_path($diskPath);
+        @mkdir(dirname($savePath), 0755, true);
+
+        $fp = fopen($savePath, 'wb');
+        if (!$fp) abort(500);
+
+        $ch2 = curl_init($downloadUrl);
+        curl_setopt_array($ch2, [
+            CURLOPT_FILE           => $fp,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_SSL_VERIFYPEER => false,
+            CURLOPT_TIMEOUT        => 60,
+            CURLOPT_USERAGENT      => 'Mozilla/5.0',
+        ]);
+        $ok   = curl_exec($ch2);
+        $code = curl_getinfo($ch2, CURLINFO_HTTP_CODE);
+        curl_close($ch2);
+        fclose($fp);
+
+        if (!$ok || $code < 200 || $code >= 300 || filesize($savePath) === 0) {
+            @unlink($savePath);
+            abort(502);
+        }
+
+        // Cache record
         \App\Models\TaskFile::updateOrCreate(
             ['bitrix_file_id' => $id],
             ['task_id' => 0, 'uploaded_by' => 1, 'name' => $name,
-             'size' => strlen($content), 'disk_path' => $diskPath]
+             'size' => filesize($savePath), 'disk_path' => $diskPath]
         );
+
         return redirect(asset($diskPath));
     })->name('disk.file');
 
