@@ -8,14 +8,7 @@
 
     @php
         $coverFile = $task->files->first();
-        $thumbUrl = null;
-        if ($coverFile) {
-            $thumbUrl = asset($coverFile->disk_path);
-        } elseif ($task->description && preg_match('/\[img\]([^\[\]\s]+)\[\/img\]/i', $task->description, $m)) {
-            $thumbUrl = trim($m[1]);
-        } elseif ($task->description && preg_match('/\[disk\s+file\s+id=n(\d+)[^\]]*\]/i', $task->description, $dm)) {
-            $thumbUrl = url('/api/disk-file/' . $dm[1]);
-        }
+        $thumbUrl = $coverFile ? asset($coverFile->disk_path) : null;
     @endphp
     @if($thumbUrl)
     <div style="margin:-4px -12px 8px;overflow:hidden;border-radius:0;">
