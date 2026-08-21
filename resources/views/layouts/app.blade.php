@@ -1736,8 +1736,10 @@ window.voiceBubbleHtml = function(url, dur, isMine) {
     const playColor = isMine ? '#15803d' : '#0ea5e9';
     const barColor  = isMine ? '#1a3025' : '#374151';
     const timerColor= isMine ? 'rgba(0,0,0,.38)' : '#94a3b8';
+    const safeUrl = url.replace(/&/g,'&amp;').replace(/"/g,'&quot;');
+    const safeDur = String(dur).replace(/&/g,'&amp;').replace(/"/g,'&quot;');
     return `<div class="vn-wrap" style="display:flex;align-items:center;gap:8px;min-width:190px;max-width:260px;padding:2px 0;">
-        <button id="${eid}" onclick="voiceToggle('${eid}','${url.replace(/\\/g,'\\\\').replace(/'/g,"\\'")}','${dur}')"
+        <button id="${eid}" data-url="${safeUrl}" data-dur="${safeDur}" onclick="voiceToggle(this.id,this.dataset.url,this.dataset.dur)"
                 style="width:36px;height:36px;border-radius:50%;background:${playColor};border:none;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:opacity .15s;"
                 onmouseover="this.style.opacity='.8'" onmouseout="this.style.opacity='1'">
             <i class="fas fa-play" style="font-size:11px;margin-left:2px;"></i>

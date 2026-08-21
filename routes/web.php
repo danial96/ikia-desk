@@ -528,13 +528,16 @@ Route::middleware('auth')->group(function () {
         if ($conv->type !== 'general' && !$conv->members->contains('id',$user->id))
             return response()->json(['error'=>'Forbidden'],403);
 
-        $msg = $conv->messages()->create(['user_id'=>$user->id,'content'=>$request->content,'mentions'=>[]]);
+        preg_match_all('/@(\w+)/', $request->content, $mMatches);
+        $mentions = !empty($mMatches[1]) ? \App\Models\User::whereIn('name', $mMatches[1])->pluck('id')->toArray() : [];
+        $msg = $conv->messages()->create(['user_id'=>$user->id,'content'=>$request->content,'mentions'=>$mentions]);
         \App\Models\ConversationMember::where('conversation_id',$conv->id)->where('user_id',$user->id)
             ->update(['last_read_at'=>now()]);
 
         return response()->json(['ok'=>true,'message'=>[
             'id'=>$msg->id,'text'=>$msg->content,'isMine'=>true,
             'time'=>$msg->created_at->format('H:i'),'date'=>$msg->created_at->format('Y-m-d'),
+            'createdTs'=>$msg->created_at->timestamp,'editedAt'=>null,
             'author'=>['id'=>$user->id,'name'=>$user->name,'avatar'=>$user->avatar_url],
         ]]);
     });

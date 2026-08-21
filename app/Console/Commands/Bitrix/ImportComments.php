@@ -127,7 +127,7 @@ class ImportComments extends BitrixCommand
         foreach ($unique as $m) {
             $bitrixMsgId = (int)$m['id'];
             $authorBxId  = (int)($m['author_id'] ?? 0);
-            $isSystem    = $authorBxId === 0;
+            $isSystem    = $authorBxId === 0 || self::isSystemMessage($m);
             $userId      = $isSystem ? null : ($this->userMap[$authorBxId] ?? null);
             $text        = $m['text'] ?? '';
             $date        = $this->parseDateTime($m['date'] ?? null);
@@ -295,5 +295,31 @@ class ImportComments extends BitrixCommand
         if (!$v) return null;
         try { return (new \DateTime($v))->format('Y-m-d H:i:s'); }
         catch (\Throwable) { return null; }
+    }
+
+    private static function isSystemMessage(array $m): bool
+    {
+        // Bitrix marks system bot messages with params.SYSTEM = 'Y'
+        if (($m['params']['SYSTEM'] ?? '') === 'Y') return true;
+
+        $text = trim($m['text'] ?? '');
+        $patterns = [
+            'Observers added:',
+            'task is almost overdue',
+            'task is overdue',
+            'Efficiency KPI',
+            'you have been set as assignee',
+            'Task chat has been created',
+            'completed the task',
+            'returned the completed task',
+            'changed the deadline',
+            'removed participant',
+            'added participant',
+            'changed the task',
+        ];
+        foreach ($patterns as $p) {
+            if (stripos($text, $p) !== false) return true;
+        }
+        return false;
     }
 }

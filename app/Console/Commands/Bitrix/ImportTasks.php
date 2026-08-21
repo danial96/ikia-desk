@@ -91,7 +91,7 @@ class ImportTasks extends BitrixCommand
     {
         $bitrixId      = (int)$t['id'];
         $responsibleBx = (int)($t['responsibleId'] ?? 0);
-        $creatorBx     = (int)($t['creatorId']     ?? 0);
+        $creatorBx     = (int)($t['createdBy']      ?? $t['creatorId'] ?? 0);
         $groupBx       = (int)($t['groupId']       ?? 0);
 
         $assignedTo = $this->userMap[$responsibleBx] ?? null;

@@ -111,7 +111,9 @@ class DownloadChatFiles extends BitrixCommand
                     $isVoice = !empty($info['isVoiceNote']);
 
                     if ($isVoice) {
-                        $parts[] = "[voice]{$localUrl}[/voice]";
+                        $durSecs = isset($info['duration']) ? (int)$info['duration'] : 0;
+                        $durStr  = floor($durSecs / 60) . ':' . str_pad($durSecs % 60, 2, '0', STR_PAD_LEFT);
+                        $parts[] = "[voice dur=\"{$durStr}\"]{$localUrl}[/voice]";
                     } elseif ($isImage) {
                         $parts[] = "[img]{$localUrl}[/img]";
                     } else {

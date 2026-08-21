@@ -272,10 +272,11 @@ let _cpAllEmps      = [];
 let _cpPollTimer    = null;
 let _cpMsgCount     = 0;
 let _cpLastMsgId    = 0;
-let _cpFirstMsgId   = 0;
+let _cpFirstMsgTs   = 0;
 let _cpHasMore      = false;
 let _cpLoadingOlder = false;
 let _cpLoaded       = false;
+let _cpSelecting    = false;
 
 function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function linkify(text) {
@@ -631,10 +632,11 @@ window.cpFilterConvs = function(q) {
 
 /* ── Select conversation ── */
 window.cpSelect = async function(id) {
+    _cpSelecting    = true;
     _cpActiveConvId = id;
     _cpMsgCount     = 0;
     _cpLastMsgId    = 0;
-    _cpFirstMsgId   = 0;
+    _cpFirstMsgTs   = 0;
     _cpHasMore      = false;
     _cpLoadingOlder = false;
     try { localStorage.setItem('cp_active_conv', id); } catch(e) {}
@@ -657,13 +659,15 @@ window.cpSelect = async function(id) {
         cpRenderMsgs(_initMsgs, true);
         if (_initMsgs.length) {
             _cpLastMsgId  = Math.max(..._initMsgs.map(m => m.id));
-            _cpFirstMsgId = Math.min(..._initMsgs.map(m => m.id));
+            _cpFirstMsgTs = Math.min(..._initMsgs.map(m => m.createdTs));
         }
         cpRenderConvs(_cpAllConvs); // clear unread badge
         const ta = document.getElementById('cp-textarea');
         if (ta) ta.focus();
     } catch(e) {
         msgArea.innerHTML = '<div style="padding:30px;text-align:center;color:rgba(255,82,82,.7);font-size:12px;">Failed to load</div>';
+    } finally {
+        _cpSelecting = false;
     }
 };
 
@@ -794,11 +798,13 @@ window.cpSend = async function() {
     el.scrollTop = el.scrollHeight;
     _cpMsgCount++;
     try {
-        await fetch(API_BASE + '/api/chat/convs/' + _cpActiveConvId + '/send', {
+        const r = await fetch(API_BASE + '/api/chat/convs/' + _cpActiveConvId + '/send', {
             method:'POST',
             headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF},
             body: JSON.stringify({content:fullText}),
         });
+        const d = await r.json();
+        if (d.message?.id) _cpLastMsgId = Math.max(_cpLastMsgId, d.message.id);
         cpLoad();
     } catch(e) {}
 };
@@ -885,7 +891,7 @@ window.cpCreateGroup = async function() {
 /* ── Polling ── */
 function cpPoll() {
     cpLoad();
-    if (!_cpActiveConvId) return;
+    if (!_cpActiveConvId || _cpSelecting) return;
     const url = API_BASE + '/api/chat/convs/' + _cpActiveConvId + '/msgs'
               + (_cpLastMsgId ? '?after=' + _cpLastMsgId : '');
     fetch(url).then(r=>r.json()).then(d => {
@@ -919,7 +925,7 @@ function cpAppendMsgs(msgs) {
 
 /* ── Load older messages on scroll up ── */
 async function cpLoadOlderMsgs() {
-    if (_cpLoadingOlder || !_cpHasMore || !_cpFirstMsgId || !_cpActiveConvId) return;
+    if (_cpLoadingOlder || !_cpHasMore || !_cpFirstMsgTs || !_cpActiveConvId) return;
     _cpLoadingOlder = true;
 
     const el = document.getElementById('cp-msg-area');
@@ -933,13 +939,13 @@ async function cpLoadOlderMsgs() {
     if (inner) inner.prepend(loader); else el.prepend(loader);
 
     try {
-        const r = await fetch(API_BASE + '/api/chat/convs/' + _cpActiveConvId + '/msgs?before=' + _cpFirstMsgId);
+        const r = await fetch(API_BASE + '/api/chat/convs/' + _cpActiveConvId + '/msgs?before_ts=' + _cpFirstMsgTs);
         const d = await r.json();
         const msgs = d.messages || [];
         _cpHasMore = !!d.hasMore;
 
         if (msgs.length) {
-            _cpFirstMsgId = Math.min(...msgs.map(m => m.id));
+            _cpFirstMsgTs = Math.min(...msgs.map(m => m.createdTs));
 
             // Remember scroll position so page doesn't jump
             const prevHeight = el.scrollHeight;
