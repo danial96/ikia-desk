@@ -19,6 +19,6 @@ class Conversation extends Model
         if (!$member || !$member->pivot->last_read_at) {
             return $this->messages()->count();
         }
-        return $this->messages()->where('created_at', '>', $member->pivot->last_read_at)->count();
+        return $this->messages()->where('user_id', '!=', $user->id)->where('created_at', '>', $member->pivot->last_read_at)->count();
     }
 }

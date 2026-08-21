@@ -388,7 +388,7 @@ Route::middleware('auth')->group(function () {
             })
             ->where('messages.user_id', '!=', $user->id)
             ->whereNull('messages.deleted_at')
-            ->whereRaw('messages.created_at > COALESCE(conversation_members.last_read_at, "2000-01-01")')
+            ->whereRaw("messages.created_at > COALESCE(conversation_members.last_read_at, '2000-01-01')")
             ->groupBy('messages.conversation_id')
             ->selectRaw('messages.conversation_id, COUNT(*) as cnt')
             ->pluck('cnt', 'messages.conversation_id');

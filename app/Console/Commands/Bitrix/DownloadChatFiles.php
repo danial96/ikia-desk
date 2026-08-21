@@ -117,7 +117,7 @@ class DownloadChatFiles extends BitrixCommand
                     } elseif ($isImage) {
                         $parts[] = "[img]{$localUrl}[/img]";
                     } else {
-                        $safeName = addslashes($name);
+                        $safeName = str_replace('"', '', $name);
                         $parts[] = "[file name=\"{$safeName}\"]{$localUrl}[/file]";
                     }
                     $downloaded++;

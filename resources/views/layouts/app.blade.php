@@ -822,7 +822,9 @@ window.chatOpenDirect = async function(userId) {
         return;
     }
     if (!_chatOpen) chatOpen();
-    await new Promise(r => setTimeout(r, _allConvs.length ? 0 : 800));
+    for (let i = 0; i < 30 && !_allConvs.length; i++) {
+        await new Promise(r => setTimeout(r, 100));
+    }
     chatStartDirect(userId);
 };
 

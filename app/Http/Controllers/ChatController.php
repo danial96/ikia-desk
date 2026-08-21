@@ -95,6 +95,10 @@ class ChatController extends Controller
         $user = Auth::user();
         $otherId = $request->user_id;
 
+        if ($otherId == $user->id) {
+            abort(422, 'Cannot create a conversation with yourself.');
+        }
+
         $existing = Conversation::where('type', 'direct')
             ->whereHas('members', fn($q) => $q->where('user_id', $user->id))
             ->whereHas('members', fn($q) => $q->where('user_id', $otherId))
