@@ -393,22 +393,13 @@ Route::middleware('auth')->group(function () {
             ->selectRaw('messages.conversation_id, COUNT(*) as cnt')
             ->pluck('cnt', 'messages.conversation_id');
 
-        $general = \App\Models\Conversation::where('type','general')->with(['lastMessage.user','members'])->first();
         $list = [];
-        if ($general) {
-            $lm     = $general->lastMessage;
-            $list[] = ['id'=>$general->id,'type'=>'general','name'=>'General Chat','avatar'=>null,'members'=>0,
-                'unread'  => $unreadCounts->get($general->id, 0),
-                'online'  => false,
-                'lastMsg' => $lm ? ['text'=>$lm->content,'byMe'=>$lm->user_id===$user->id,'senderName'=>$lm->user?->name,'time'=>$lm->created_at->format('H:i')] : null];
-        }
         foreach ($convs as $c) {
-            if ($c->type==='general') continue;
             $other  = $c->type==='direct' ? $c->members->where('id','!=',$user->id)->first() : null;
             $lm     = $c->lastMessage;
             $online = $other && $other->last_seen_at && $other->last_seen_at->diffInMinutes(now()) < 5;
             $list[] = ['id'=>$c->id,'type'=>$c->type,
-                'name'          => $c->type==='direct' ? ($other?->name??'Unknown') : ($c->name??'Group'),
+                'name'          => $c->type==='general' ? 'General Chat' : ($c->type==='direct' ? ($other?->name??'Unknown') : ($c->name??'Group')),
                 'other_user_id' => $c->type==='direct' ? ($other?->id) : null,
                 'avatar'        => $c->type==='direct' ? ($other?->avatar_url??null) : null,
                 'members'       => $c->members->count(),
