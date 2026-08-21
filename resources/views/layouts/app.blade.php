@@ -1145,15 +1145,17 @@ function chatDayLabel(dateStr) {
 }
 
 function renderMsgContent(text, isMine) {
-    const parts = text.split(/(\[img\].*?\[\/img\]|\[file name="[^"]*"\].*?\[\/file\]|\[voice(?:\s+dur="[^"]*")?\].*?\[\/voice\])/g);
+    const parts = text.split(/(\[img\].*?\[\/img\]|\[file name="[^"]*"\].*?\[\/file\]|\[voice(?:\s+dur="[^"]*")?\].*?\[\/voice\]|\[URL=[^\]]*\].*?\[\/URL\]|\[URL\].*?\[\/URL\])/gi);
     const allImgs = [];
-    parts.forEach(p => { const m = p.match(/^\[img\](.*?)\[\/img\]$/); if (m) allImgs.push(m[1]); });
+    parts.forEach(p => { const m = p.match(/^\[img\](.*?)\[\/img\]$/i); if (m) allImgs.push(m[1]); });
     const galKey = allImgs.length > 1 && window.registerGallery ? window.registerGallery(allImgs) : null;
     let out = '', imgIdx = 0;
     parts.forEach(part => {
-        const imgM   = part.match(/^\[img\](.*?)\[\/img\]$/);
-        const fileM  = part.match(/^\[file name="([^"]*)"\](.*?)\[\/file\]$/);
-        const voiceM = part.match(/^\[voice(?:\s+dur="([^"]*)")?\](.*?)\[\/voice\]$/);
+        const imgM   = part.match(/^\[img\](.*?)\[\/img\]$/i);
+        const fileM  = part.match(/^\[file name="([^"]*)"\](.*?)\[\/file\]$/i);
+        const voiceM = part.match(/^\[voice(?:\s+dur="([^"]*)")?\](.*?)\[\/voice\]$/i);
+        const urlAtM = part.match(/^\[URL=([^\]]*)\](.*?)\[\/URL\]$/i);
+        const urlM   = part.match(/^\[URL\](.*?)\[\/URL\]$/i);
         if (imgM) {
             const ci = imgIdx++;
             const fn = galKey !== null ? `imgLightbox(${galKey},${ci})` : `imgLightbox('${escH(imgM[1])}',0)`;
@@ -1165,6 +1167,10 @@ function renderMsgContent(text, isMine) {
             </a>`;
         } else if (voiceM) {
             out += window.voiceBubbleHtml ? window.voiceBubbleHtml(voiceM[2]||'', voiceM[1]||'0:00', !!isMine) : '';
+        } else if (urlAtM) {
+            out += `<a href="${escH(urlAtM[1])}" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline;">${escH(urlAtM[2]||urlAtM[1])}</a>`;
+        } else if (urlM) {
+            out += `<a href="${escH(urlM[1])}" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline;">${escH(urlM[1])}</a>`;
         } else if (part) {
             out += `<span style="white-space:pre-wrap;word-break:break-word;">${linkify(part)}</span>`;
         }
