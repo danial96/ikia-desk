@@ -477,7 +477,14 @@ class TaskController extends Controller
                                    $q3->orWhere('name', 'like', "%.$ext");
                                }
                            });
-                    })->oldest(),
+                    })
+                    ->whereRaw('NOT EXISTS (
+                        SELECT 1 FROM task_comments tc
+                        WHERE tc.task_id = task_files.task_id
+                        AND tc.files IS NOT NULL
+                        AND JSON_CONTAINS(tc.files, CAST(task_files.id AS CHAR))
+                    )')
+                    ->oldest(),
             ]);
 
             if (!$user->isSuperAdmin()) {
