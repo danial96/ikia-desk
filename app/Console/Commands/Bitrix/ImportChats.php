@@ -11,7 +11,9 @@ class ImportChats extends BitrixCommand
 {
     protected $signature = 'bitrix:import-chats
                             {--fresh : Delete existing Bitrix-imported chats before re-importing}
-                            {--webhook= : Use a custom webhook URL instead of BITRIX_WEBHOOK env}';
+                            {--webhook= : Use a custom webhook URL instead of BITRIX_WEBHOOK env}
+                            {--offset=0 : Skip the first N chats in the recent list}
+                            {--skip-with-messages : Skip importMessages for convs that already have messages}';
 
     protected $description = 'Import Bitrix24 direct and group chats into the local messenger';
 
@@ -47,6 +49,12 @@ class ImportChats extends BitrixCommand
         $this->info("Webhook user: bitrix_id={$this->webhookUserId}");
         $this->info('Fetching Bitrix24 IM chats...');
         $chats = $this->fetchAllChats();
+
+        $offset = (int)$this->option('offset');
+        if ($offset > 0) {
+            $chats = array_slice($chats, $offset);
+            $this->info("Skipping first {$offset} chats (--offset).");
+        }
 
         $this->info("Found " . count($chats) . " chats. Importing...");
         $bar = $this->output->createProgressBar(count($chats));
@@ -94,7 +102,7 @@ class ImportChats extends BitrixCommand
 
             $offset += $limit;
             $total = $response['result']['totalCount'] ?? 0;
-        } while (count($all) < $total && count($items) === $limit);
+        } while ($offset < $total && count($items) === $limit);
 
         return $all;
     }
@@ -140,6 +148,13 @@ class ImportChats extends BitrixCommand
         }
 
         $dialogId = $type === 'user' ? $otherId : 'chat' . $otherId;
+
+        if ($this->option('skip-with-messages') && !$this->option('fresh')) {
+            if (Message::where('conversation_id', $conversation->id)->exists()) {
+                return 0;
+            }
+        }
+
         return $this->importMessages($conversation, (string)$dialogId);
     }
 

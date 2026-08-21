@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'IKIA Desk') — IKIA Desk</title>
+    <link rel="icon" type="image/png" href="{{ asset('logo-dark.png') }}">
+    <link rel="shortcut icon" href="{{ asset('logo-dark.png') }}">
+    <link rel="apple-touch-icon" href="{{ asset('logo-dark.png') }}">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1226,11 +1229,14 @@ window.chatSend = async function() {
     el.scrollTop = el.scrollHeight;
 
     try {
-        await fetch(API_BASE + '/api/chat/convs/' + _activeConvId + '/send', {
+        const r = await fetch(API_BASE + '/api/chat/convs/' + _activeConvId + '/send', {
             method: 'POST',
             headers: {'Content-Type':'application/json','X-CSRF-TOKEN':CSRF},
             body: JSON.stringify({content: fullText}),
         });
+        const d = await r.json();
+        // Advance _lastMsgId so the next poll skips this just-sent message
+        if (d.message?.id) _lastMsgId = Math.max(_lastMsgId, d.message.id);
         chatLoadConvs(); // refresh conv list for last message
     } catch(e) {}
 };
@@ -2145,8 +2151,10 @@ function notifSchedulePoll() {
 document.addEventListener('DOMContentLoaded', () => {
     notifPoll();
     notifSchedulePoll();
-    // Background chat poll — runs even when chat panel is closed
-    setInterval(chatPoll, 10000);
+    // Background conv-list refresh — keeps unread counts fresh when panel is closed.
+    // Uses a separate lightweight call instead of full chatPoll to avoid racing the
+    // 5-second message-poll timer that chatOpen() starts.
+    setInterval(chatLoadConvs, 15000);
 });
 document.addEventListener('visibilitychange', () => {
     clearTimeout(notifPollTimer);

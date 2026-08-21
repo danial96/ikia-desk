@@ -37,8 +37,7 @@ class ChatController extends Controller
             abort(403);
         }
 
-        $messages = $conversation->messages()->with('user')->latest()->paginate(50);
-        $messages = $messages->reverse()->values();
+        $messages = $conversation->messages()->with('user')->latest()->limit(50)->get()->reverse()->values();
 
         ConversationMember::where('conversation_id', $conversation->id)
             ->where('user_id', $user->id)
@@ -57,7 +56,7 @@ class ChatController extends Controller
 
         $user = Auth::user();
 
-        if (!$conversation->members->contains($user->id) && $conversation->type !== 'general') {
+        if (!$conversation->members->contains($user->id)) {
             if ($conversation->type === 'general') {
                 $conversation->members()->syncWithoutDetaching([$user->id]);
             } else {

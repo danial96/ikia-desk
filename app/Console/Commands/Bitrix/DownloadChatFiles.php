@@ -5,7 +5,6 @@ namespace App\Console\Commands\Bitrix;
 use App\Models\Conversation;
 use App\Models\Message;
 use App\Models\User;
-use Illuminate\Support\Facades\DB;
 
 class DownloadChatFiles extends BitrixCommand
 {
@@ -37,7 +36,11 @@ class DownloadChatFiles extends BitrixCommand
         $totalDone = $totalFailed = 0;
 
         foreach ($conversations as $conv) {
-            [$type, $rawId] = explode(':', $conv->bitrix_chat_id, 2);
+            $parts    = explode(':', $conv->bitrix_chat_id);
+            $type     = $parts[0];
+            // For direct chats the key can be "direct:{otherId}" or "direct:{webhookUserId}:{otherId}"
+            // — always take the last segment as the actual Bitrix user ID
+            $rawId    = $type === 'direct' ? end($parts) : ($parts[1] ?? '');
             $dialogId = $type === 'direct' ? $rawId : 'chat' . $rawId;
 
             [$done, $failed] = $this->processDialog($conv, $dialogId);
@@ -73,6 +76,17 @@ class DownloadChatFiles extends BitrixCommand
                 $filesMap[(int)$f['id']] = $f;
             }
 
+            // Collect all file IDs on this page that need downloading
+            $pageFileIds = [];
+            foreach ($messages as $m) {
+                foreach ($m['params']['FILE_ID'] ?? [] as $fid) {
+                    if (isset($filesMap[(int)$fid])) $pageFileIds[] = (int)$fid;
+                }
+            }
+
+            // Batch disk.file.get to get authenticated download URLs (50 per batch call)
+            $downloadUrls = $this->batchGetDownloadUrls($pageFileIds);
+
             foreach ($messages as $m) {
                 $fileIds = $m['params']['FILE_ID'] ?? [];
                 if (empty($fileIds)) continue;
@@ -84,20 +98,17 @@ class DownloadChatFiles extends BitrixCommand
 
                 $parts = [];
                 foreach ($fileIds as $fileId) {
-                    $info = $filesMap[(int)$fileId] ?? null;
-                    if (!$info) {
-                        $this->newLine();
-                        $this->warn("  No file info for file_id=$fileId in msg=$bitrixMsgId");
-                        continue;
-                    }
+                    $fileId = (int)$fileId;
+                    $info   = $filesMap[$fileId] ?? null;
+                    if (!$info) continue;
 
-                    $localUrl = $this->downloadFile($info);
+                    $dlUrl    = $downloadUrls[$fileId] ?? null;
+                    $localUrl = $this->downloadFile($info, $dlUrl);
                     if (!$localUrl) { $failed++; continue; }
 
-                    $name        = $info['name'] ?? 'file';
-                    $isImage     = ($info['type'] ?? '') === 'image';
-                    $isVoice     = !empty($info['isVoiceNote']);
-                    $dur         = '';
+                    $name    = $info['name'] ?? 'file';
+                    $isImage = ($info['type'] ?? '') === 'image';
+                    $isVoice = !empty($info['isVoiceNote']);
 
                     if ($isVoice) {
                         $parts[] = "[voice]{$localUrl}[/voice]";
@@ -136,12 +147,35 @@ class DownloadChatFiles extends BitrixCommand
         return [$downloaded, $failed];
     }
 
-    private function downloadFile(array $info): ?string
+    // Batch-fetch authenticated download URLs for up to 50 file IDs per API call
+    private function batchGetDownloadUrls(array $fileIds): array
     {
-        $url  = $info['urlDownload'] ?? null;
+        if (empty($fileIds)) return [];
+
+        $result = [];
+        foreach (array_chunk(array_unique($fileIds), 50) as $chunk) {
+            $cmd = [];
+            foreach ($chunk as $id) {
+                $cmd["f{$id}"] = "disk.file.get?id={$id}";
+            }
+            $resp = $this->bx('batch', ['halt' => 0, 'cmd' => $cmd]);
+            foreach ($resp['result']['result'] ?? [] as $key => $res) {
+                $id = (int)substr($key, 1); // strip 'f' prefix
+                if (!empty($res['DOWNLOAD_URL'])) {
+                    $result[$id] = $res['DOWNLOAD_URL'];
+                }
+            }
+        }
+        return $result;
+    }
+
+    private function downloadFile(array $info, ?string $url): ?string
+    {
         $name = $info['name'] ?? 'file';
         $id   = (int)$info['id'];
 
+        // Fall back to urlDownload if batch didn't return a URL
+        if (!$url) $url = $info['urlDownload'] ?? null;
         if (!$url) return null;
 
         $ext      = strtolower(pathinfo($name, PATHINFO_EXTENSION));
@@ -149,9 +183,13 @@ class DownloadChatFiles extends BitrixCommand
         $filename = 'chat_' . $id . '_' . substr($base, 0, 60) . ($ext ? '.' . $ext : '');
         $savePath = $this->dir . '/' . $filename;
 
-        // Skip if already downloaded
+        // Skip if already downloaded and not corrupt (check for HTML content)
         if (!$this->option('fresh') && file_exists($savePath) && filesize($savePath) > 0) {
-            return $this->urlBase . '/' . $filename;
+            $header = file_get_contents($savePath, false, null, 0, 5);
+            if (strpos($header, '<') === false) {
+                return $this->urlBase . '/' . $filename;
+            }
+            // File is corrupt HTML — re-download
         }
 
         $fp = fopen($savePath, 'wb');
@@ -172,10 +210,19 @@ class DownloadChatFiles extends BitrixCommand
         curl_close($ch);
         fclose($fp);
 
+        // Verify downloaded file is not an HTML error page
         if (!$ok || $curlErr || $code < 200 || $code >= 300 || filesize($savePath) === 0) {
             @unlink($savePath);
             $this->newLine();
             $this->warn("  FAIL [{$code}] file_id={$id} {$name}: $curlErr");
+            return null;
+        }
+
+        $header = file_get_contents($savePath, false, null, 0, 5);
+        if (strpos($header, '<') !== false) {
+            @unlink($savePath);
+            $this->newLine();
+            $this->warn("  HTML response for file_id={$id} {$name} (auth failed)");
             return null;
         }
 

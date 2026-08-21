@@ -76,11 +76,15 @@ $convName = $conversation->type === 'direct' ? ($other?->name ?? 'Unknown') : ($
             @php $isMe = $msg->user_id === auth()->id(); @endphp
             <div class="flex {{ $isMe ? 'justify-end' : 'justify-start' }} gap-3 items-end">
                 @if(!$isMe)
+                @if($msg->user)
                 <img src="{{ $msg->user->avatar_url }}" class="w-7 h-7 rounded-full flex-shrink-0 mb-1" alt="">
+                @else
+                <div class="w-7 h-7 rounded-full flex-shrink-0 mb-1 bg-gray-300 flex items-center justify-center text-xs text-gray-600">?</div>
+                @endif
                 @endif
                 <div class="max-w-xs lg:max-w-md">
                     @if(!$isMe)
-                    <p class="text-xs text-gray-500 mb-1 ml-1">{{ $msg->user->name }}</p>
+                    <p class="text-xs text-gray-500 mb-1 ml-1">{{ $msg->user?->name ?? 'Unknown' }}</p>
                     @endif
                     <div class="px-4 py-2.5 rounded-2xl text-sm leading-relaxed
                         {{ $isMe ? 'bg-indigo-600 text-white rounded-br-sm' : 'bg-gray-100 text-gray-800 rounded-bl-sm' }}">

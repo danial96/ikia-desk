@@ -452,22 +452,25 @@ Route::middleware('auth')->group(function () {
 
         if ($beforeTs > 0) {
             // Scroll-up pagination — load older messages before given timestamp
+            // Fetch limit+1 to detect whether more exist without a separate COUNT query
             $beforeDt = \Carbon\Carbon::createFromTimestamp($beforeTs);
-            $msgs = $conv->messages()->with('user')->reorder()
-                         ->where('created_at', '<', $beforeDt)
-                         ->latest('created_at')->limit(50)->get()
-                         ->sortBy(fn($m) => $m->created_at->timestamp)->values();
+            $raw = $conv->messages()->with('user')->reorder()
+                        ->where('created_at', '<', $beforeDt)
+                        ->latest('created_at')->limit(51)->get();
+            $hasMore = $raw->count() > 50;
+            $msgs = $raw->take(50)->sortBy(fn($m) => $m->created_at->timestamp)->values();
             return response()->json([
                 'messages' => $msgs->map($msgFmt)->values(),
-                'hasMore'  => $msgs->count() === 50,
+                'hasMore'  => $hasMore,
             ]);
         }
 
         // Full load — latest 50 messages by created_at (reorder() clears the relationship's default ASC scope)
         \App\Models\ConversationMember::where('conversation_id',$conv->id)->where('user_id',$user->id)
             ->update(['last_read_at'=>now()]);
-        $msgs  = $conv->messages()->with('user')->reorder()->latest('created_at')->limit(50)->get()
-                     ->sortBy(fn($m) => $m->created_at->timestamp)->values();
+        $raw   = $conv->messages()->with('user')->reorder()->latest('created_at')->limit(51)->get();
+        $hasMore = $raw->count() > 50;
+        $msgs  = $raw->take(50)->sortBy(fn($m) => $m->created_at->timestamp)->values();
         $other  = $conv->type==='direct' ? $conv->members->where('id','!=',$user->id)->first() : null;
         $online = $other && $other->last_seen_at && $other->last_seen_at->diffInMinutes(now()) < 5;
 
@@ -479,7 +482,7 @@ Route::middleware('auth')->group(function () {
                 'online'  => $online,
                 'last_seen' => $other?->last_seen_at?->diffForHumans()],
             'messages' => $msgs->map($msgFmt),
-            'hasMore'  => $msgs->count() === 50,
+            'hasMore'  => $hasMore,
         ]);
     });
 
