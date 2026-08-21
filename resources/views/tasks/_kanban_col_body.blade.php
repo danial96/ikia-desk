@@ -61,7 +61,7 @@
 </div>
 @endforelse
 
-@if($colKey === 'completed' && $completedTotal > 50)
+@if($colKey === 'completed' && $completedTotal > 50 && count($tasks) > 0)
 <div style="padding:10px 6px 4px;text-align:center;">
     <span style="font-size:10.5px;color:rgba(255,255,255,.3);">Showing latest 50 of {{ number_format($completedTotal) }}</span>
 </div>
