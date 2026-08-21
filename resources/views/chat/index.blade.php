@@ -87,7 +87,7 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
 
         {{-- Messages --}}
-        <div id="cp-msg-area" style="display:none;flex:1;overflow-y:auto;padding:20px;background-image:url('{{ asset('pattern-chat.svg') }}');background-size:cover;background-position:center;flex-direction:column;"></div>
+        <div id="cp-msg-area" style="display:none;flex:1;overflow-y:auto;padding:20px 40px;background:#f8fafc;flex-direction:column;"></div>
 
         {{-- Input --}}
         <div id="cp-input-area" style="display:none;padding:10px 16px 14px;border-top:1px solid #e2e8f0;background:#fff;flex-shrink:0;">
@@ -534,7 +534,7 @@ function bubble(m) {
     if (isMine) {
         const dotsBtn = msgId ? `<button class="cp-dots-btn cp-dots-mine" onclick="cpDotsClick(event,${msgId},true,${createdTs||0})" title="More">⋯</button>` : '';
         return `<div ${dataAttrs} style="display:flex;justify-content:flex-end;margin-bottom:2px;">
-            <div class="cp-bubble-wrap" style="max-width:70%;position:relative;">
+            <div class="cp-bubble-wrap" style="max-width:55%;position:relative;">
                 ${dotsBtn}
                 <div style="background:rgba(200,240,210,.92);border-radius:14px 4px 14px 14px;padding:9px 13px 7px;cursor:default;">
                     <div data-msg-text data-raw="${esc(text)}" style="font-size:13.5px;color:#1a3025;line-height:1.5;">${content}</div>
@@ -554,7 +554,7 @@ function bubble(m) {
     const dotsBtnOther = msgId ? `<button class="cp-dots-btn cp-dots-other" onclick="cpDotsClick(event,${msgId},false,${createdTs||0})" title="More">⋯</button>` : '';
     return `<div ${dataAttrs} style="display:flex;align-items:flex-start;gap:8px;margin-bottom:2px;${showName?'margin-top:6px':''}">
         ${av}
-        <div class="cp-bubble-wrap" style="max-width:70%;position:relative;">
+        <div class="cp-bubble-wrap" style="max-width:55%;position:relative;">
             ${dotsBtnOther}
             ${nm}
             <div style="background:rgba(255,255,255,.88);border-radius:4px 14px 14px 14px;padding:9px 13px 7px;cursor:default;">
@@ -1056,7 +1056,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const toOpen    = fromQuery ? +fromQuery : (fromStore ? +fromStore : null);
         if (toOpen) setTimeout(() => cpSelect(toOpen), 100);
     });
-    _cpPollTimer = setInterval(cpPoll, 5000);
+    _cpPollTimer = setInterval(cpPoll, 3000);
 
     // Scroll-up listener for loading older messages
     const msgArea = document.getElementById('cp-msg-area');

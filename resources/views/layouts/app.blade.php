@@ -615,31 +615,30 @@
 <div id="chat-panel" style="display:none;position:fixed;top:0;right:52px;bottom:0;width:calc(90% - 52px);z-index:250;display:none;flex-direction:row;box-shadow:-8px 0 40px rgba(0,0,0,.45);animation:chatSlideIn .25s cubic-bezier(.22,1,.36,1);">
 
     {{-- LEFT: Conversation list --}}
-    <div id="chat-left" style="width:280px;flex-shrink:0;display:flex;flex-direction:column;background:rgba(10,15,60,.92);backdrop-filter:blur(28px);border-right:1px solid rgba(255,255,255,.1);">
+    <div id="chat-left" style="width:280px;flex-shrink:0;display:flex;flex-direction:column;background:#f0f4f8;border-right:1px solid #e2e8f0;">
 
         {{-- Header --}}
-        <div style="padding:14px 14px 10px;border-bottom:1px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:8px;flex-shrink:0;">
-            <i class="fas fa-comment-dots" style="color:#00D4E8;font-size:16px;"></i>
-            <span style="color:#fff;font-size:14px;font-weight:700;flex:1;">Messenger</span>
+        <div style="padding:14px 14px 10px;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;gap:8px;flex-shrink:0;background:#fff;">
+            <i class="fas fa-comment-dots" style="color:#0891b2;font-size:16px;"></i>
+            <span style="color:#1e293b;font-size:14px;font-weight:700;flex:1;">Messenger</span>
         </div>
 
         {{-- Search --}}
         <div style="padding:10px 12px 8px;flex-shrink:0;">
-            <div style="display:flex;align-items:center;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:0 10px;gap:6px;">
-                <i class="fas fa-search" style="font-size:11px;color:rgba(255,255,255,.3);"></i>
+            <div style="display:flex;align-items:center;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:0 10px;gap:6px;">
+                <i class="fas fa-search" style="font-size:11px;color:#94a3b8;"></i>
                 <input type="text" id="chat-search-input" placeholder="Search chats..."
                        oninput="chatFilterConvs(this.value)"
-                       style="background:none;border:none;outline:none;color:#fff;font-size:12.5px;padding:7px 0;width:100%;font-family:inherit;"
-                       placeholder-style="color:rgba(255,255,255,.25)">
+                       style="background:none;border:none;outline:none;color:#1e293b;font-size:12.5px;padding:7px 0;width:100%;font-family:inherit;">
             </div>
         </div>
 
         {{-- New chat actions --}}
         <div style="padding:0 12px 8px;display:flex;gap:6px;flex-shrink:0;">
-            <button onclick="chatNewDirect()" style="flex:1;background:rgba(0,212,232,.12);border:1px solid rgba(0,212,232,.25);color:#00D4E8;border-radius:7px;padding:5px 0;font-size:11.5px;font-weight:600;cursor:pointer;">
+            <button onclick="chatNewDirect()" style="flex:1;background:#e0f7fa;border:1px solid #b2ebf2;color:#0891b2;border-radius:7px;padding:5px 0;font-size:11.5px;font-weight:600;cursor:pointer;">
                 <i class="fas fa-user-plus" style="font-size:10px;margin-right:3px;"></i>Direct
             </button>
-            <button onclick="chatNewGroup()" style="flex:1;background:rgba(139,92,246,.12);border:1px solid rgba(139,92,246,.25);color:#a78bfa;border-radius:7px;padding:5px 0;font-size:11.5px;font-weight:600;cursor:pointer;">
+            <button onclick="chatNewGroup()" style="flex:1;background:#ede9fe;border:1px solid #ddd6fe;color:#7c3aed;border-radius:7px;padding:5px 0;font-size:11.5px;font-weight:600;cursor:pointer;">
                 <i class="fas fa-users" style="font-size:10px;margin-right:3px;"></i>Group
             </button>
         </div>
@@ -653,56 +652,56 @@
     </div>
 
     {{-- RIGHT: Active conversation --}}
-    <div id="chat-right" style="flex:1;display:flex;flex-direction:column;background:rgba(8,12,45,.95);backdrop-filter:blur(28px);">
+    <div id="chat-right" style="flex:1;display:flex;flex-direction:column;background:#f8fafc;">
 
         {{-- Placeholder when no conv selected --}}
-        <div id="chat-right-empty" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:rgba(255,255,255,.2);">
+        <div id="chat-right-empty" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#cbd5e1;">
             <i class="fas fa-comments" style="font-size:48px;margin-bottom:14px;"></i>
             <p style="font-size:13px;margin:0;">Select a conversation to start chatting</p>
         </div>
 
         {{-- Header (hidden until conv selected) --}}
-        <div id="chat-right-head" style="display:none;padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.08);display:none;align-items:center;gap:10px;background:rgba(255,255,255,.05);backdrop-filter:blur(14px);flex-shrink:0;">
-            <div id="chat-rh-avatar" style="width:34px;height:34px;border-radius:50%;overflow:hidden;flex-shrink:0;background:rgba(0,212,232,.2);display:flex;align-items:center;justify-content:center;">
-                <i class="fas fa-user" style="font-size:14px;color:#00D4E8;"></i>
+        <div id="chat-right-head" style="display:none;padding:12px 16px;border-bottom:1px solid #e2e8f0;display:none;align-items:center;gap:10px;background:#fff;flex-shrink:0;">
+            <div id="chat-rh-avatar" style="width:34px;height:34px;border-radius:50%;overflow:hidden;flex-shrink:0;background:#e0f7fa;display:flex;align-items:center;justify-content:center;">
+                <i class="fas fa-user" style="font-size:14px;color:#0891b2;"></i>
             </div>
             <div style="flex:1;min-width:0;">
-                <p id="chat-rh-name" style="margin:0;color:#fff;font-size:13.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></p>
-                <p id="chat-rh-sub" style="margin:0;color:rgba(255,255,255,.35);font-size:11px;"></p>
+                <p id="chat-rh-name" style="margin:0;color:#1e293b;font-size:13.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></p>
+                <p id="chat-rh-sub" style="margin:0;color:#94a3b8;font-size:11px;"></p>
             </div>
         </div>
 
         {{-- Messages --}}
-        <div id="chat-msg-area" style="flex:1;overflow-y:auto;padding:16px;display:none;flex-direction:column;gap:2px;background-image:url('{{ asset('pattern-chat.svg') }}');background-size:cover;background-position:center;"></div>
+        <div id="chat-msg-area" style="flex:1;overflow-y:auto;padding:16px 24px;display:none;flex-direction:column;gap:2px;background:#f8fafc;"></div>
 
         {{-- Input --}}
-        <div id="chat-input-area" style="display:none;padding:8px 12px 10px;border-top:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.05);backdrop-filter:blur(14px);flex-shrink:0;">
+        <div id="chat-input-area" style="display:none;padding:8px 12px 10px;border-top:1px solid #e2e8f0;background:#fff;flex-shrink:0;">
             {{-- Normal input --}}
             <div id="chat-normal-input" style="display:flex;align-items:flex-end;gap:8px;">
-                <div style="flex:1;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);border-radius:10px;overflow:hidden;">
+                <div style="flex:1;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;overflow:hidden;">
                     <textarea id="chat-textarea" rows="1" placeholder="Type a message..."
-                              style="display:block;width:100%;background:none;border:none;color:#fff;font-size:13px;padding:9px 12px 6px;outline:none;resize:none;font-family:inherit;line-height:1.45;max-height:120px;overflow-y:auto;box-sizing:border-box;"
+                              style="display:block;width:100%;background:none;border:none;color:#1e293b;font-size:13px;padding:9px 12px 6px;outline:none;resize:none;font-family:inherit;line-height:1.45;max-height:120px;overflow-y:auto;box-sizing:border-box;"
                               onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();chatSend();}"
                               oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,120)+'px'"></textarea>
-                    <div style="display:flex;align-items:center;gap:2px;padding:4px 8px;border-top:1px solid rgba(255,255,255,.07);">
+                    <div style="display:flex;align-items:center;gap:2px;padding:4px 8px;border-top:1px solid #e2e8f0;">
                         <button type="button" onclick="emojiToggle('chat-textarea',this)"
-                                title="Emoji" style="background:none;border:none;color:rgba(255,255,255,.45);cursor:pointer;padding:3px 5px;border-radius:6px;font-size:15px;line-height:1;transition:color .12s;"
-                                onmouseover="this.style.color='#00D4E8'" onmouseout="this.style.color='rgba(255,255,255,.45)'">
+                                title="Emoji" style="background:none;border:none;color:#94a3b8;cursor:pointer;padding:3px 5px;border-radius:6px;font-size:15px;line-height:1;transition:color .12s;"
+                                onmouseover="this.style.color='#0891b2'" onmouseout="this.style.color='#94a3b8'">
                             <i class="far fa-smile-beam"></i>
                         </button>
                         <button type="button" onclick="document.getElementById('chat-file-input').click()"
-                                title="Attach file" style="background:none;border:none;color:rgba(255,255,255,.45);cursor:pointer;padding:3px 5px;border-radius:6px;font-size:14px;line-height:1;transition:color .12s;"
-                                onmouseover="this.style.color='#00D4E8'" onmouseout="this.style.color='rgba(255,255,255,.45)'">
+                                title="Attach file" style="background:none;border:none;color:#94a3b8;cursor:pointer;padding:3px 5px;border-radius:6px;font-size:14px;line-height:1;transition:color .12s;"
+                                onmouseover="this.style.color='#0891b2'" onmouseout="this.style.color='#94a3b8'">
                             <i class="fas fa-paperclip"></i>
                         </button>
                         <input type="file" id="chat-file-input" style="display:none" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.zip"
                                onchange="uploadAndInsert('chat-textarea','chat-file-input','chat-attach-preview')">
                     </div>
-                    <div id="chat-attach-preview" style="display:none;padding:6px 8px 4px;gap:8px;flex-wrap:wrap;border-top:1px solid rgba(255,255,255,.08);"></div>
+                    <div id="chat-attach-preview" style="display:none;padding:6px 8px 4px;gap:8px;flex-wrap:wrap;border-top:1px solid #e2e8f0;"></div>
                 </div>
                 <button onclick="vnStart('chat')" title="Voice note"
-                        style="width:38px;height:38px;border-radius:10px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.6);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s;"
-                        onmouseover="this.style.background='rgba(255,255,255,.18)';this.style.color='#fff'" onmouseout="this.style.background='rgba(255,255,255,.1)';this.style.color='rgba(255,255,255,.6)'">
+                        style="width:38px;height:38px;border-radius:10px;background:#e2e8f0;border:1px solid #cbd5e1;color:#64748b;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s;"
+                        onmouseover="this.style.background='#cbd5e1';this.style.color='#334155'" onmouseout="this.style.background='#e2e8f0';this.style.color='#64748b'">
                     <i class="fas fa-microphone" style="font-size:14px;"></i>
                 </button>
                 <button onclick="chatSend()" style="width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,#00C4D8,#1B72E8);border:none;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
@@ -783,14 +782,14 @@
 @keyframes chatPopupIn  { from{transform:translateX(24px);opacity:0} to{transform:translateX(0);opacity:1} }
 @keyframes chatPopupOut { from{opacity:1;transform:translateX(0)} to{opacity:0;transform:translateX(24px)} }
 @keyframes vnPulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(.7)} }
-.chat-conv-item { display:flex;align-items:center;gap:10px;padding:10px 12px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.04);transition:background .12s; }
-.chat-conv-item:hover { background:rgba(255,255,255,.07); }
-.chat-conv-item.active { background:rgba(0,212,232,.12);border-left:2px solid #00D4E8; }
-.chat-conv-unread { background:rgba(37,211,102,.07);border-left:2px solid #25D366 !important; }
-.chat-conv-unread:hover { background:rgba(37,211,102,.12) !important; }
-@keyframes chatFlash { 0%{background:rgba(37,211,102,.3)} 100%{background:rgba(37,211,102,.07)} }
+.chat-conv-item { display:flex;align-items:center;gap:10px;padding:10px 12px;cursor:pointer;border-bottom:1px solid #e2e8f0;transition:background .12s; }
+.chat-conv-item:hover { background:#e8f4f8; }
+.chat-conv-item.active { background:#e0f7fa;border-left:2px solid #0891b2; }
+.chat-conv-unread { background:#f0fdf4;border-left:2px solid #22c55e !important; }
+.chat-conv-unread:hover { background:#dcfce7 !important; }
+@keyframes chatFlash { 0%{background:rgba(34,197,94,.2)} 100%{background:#f0fdf4} }
 #chat-conv-list::-webkit-scrollbar { width:3px; }
-#chat-conv-list::-webkit-scrollbar-thumb { background:rgba(255,255,255,.1);border-radius:3px; }
+#chat-conv-list::-webkit-scrollbar-thumb { background:#cbd5e1;border-radius:3px; }
 #chat-msg-area::-webkit-scrollbar { width:3px; }
 #chat-msg-area::-webkit-scrollbar-thumb { background:rgba(255,255,255,.12);border-radius:3px; }
 #chat-textarea::placeholder { color:rgba(255,255,255,.28); }
@@ -845,7 +844,7 @@ window.chatOpen = function() {
         btn.style.display = 'flex';
     }
     chatLoadConvs();
-    _pollTimer = setInterval(chatPoll, 5000);
+    _pollTimer = setInterval(chatPoll, 3000);
 };
 
 window.chatClose = function() {
@@ -987,25 +986,25 @@ function previewText(t) {
 function chatRenderConvs(list) {
     const el = document.getElementById('chat-conv-list');
     if (!list.length) {
-        el.innerHTML = '<div style="padding:30px 16px;text-align:center;color:rgba(255,255,255,.65);font-size:12px;">No conversations yet</div>';
+        el.innerHTML = '<div style="padding:30px 16px;text-align:center;color:#94a3b8;font-size:12px;">No conversations yet</div>';
         return;
     }
     el.innerHTML = list.map(c => {
         const avatar  = convAvatar(c, 32);
         const unread  = (c.unread && _activeConvId !== c.id) ? c.unread : 0;
         const lastLine = c.lastMsg
-            ? `<span style="color:${unread?'#fff':'rgba(255,255,255,.35)'};font-size:11px;font-weight:${unread?'600':'400'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+            ? `<span style="color:${unread?'#0f172a':'#64748b'};font-size:11px;font-weight:${unread?'600':'400'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
                  ${c.lastMsg.byMe ? 'You: ' : (c.type!=='direct'?escH(c.lastMsg.senderName||'')+': ':'')}${escH(previewText(c.lastMsg.text).substring(0,40))}
                </span>`
-            : `<span style="color:rgba(255,255,255,.5);font-size:11px;">No messages yet</span>`;
-        const timeStr = c.lastMsg ? `<span style="color:${unread?'#25D366':'rgba(255,255,255,.25)'};font-size:10.5px;flex-shrink:0;">${c.lastMsg.time}</span>` : '';
-        const badge   = unread ? `<div style="min-width:18px;height:18px;border-radius:9px;background:#25D366;color:#000;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0 4px;flex-shrink:0;">${unread>99?'99+':unread}</div>` : '';
+            : `<span style="color:#94a3b8;font-size:11px;">No messages yet</span>`;
+        const timeStr = c.lastMsg ? `<span style="color:${unread?'#0891b2':'#94a3b8'};font-size:10.5px;flex-shrink:0;">${c.lastMsg.time}</span>` : '';
+        const badge   = unread ? `<div style="min-width:18px;height:18px;border-radius:9px;background:#0891b2;color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0 4px;flex-shrink:0;">${unread>99?'99+':unread}</div>` : '';
         const isActive = _activeConvId === c.id;
         return `<div class="chat-conv-item${isActive?' active':''}${unread?' chat-conv-unread':''}" onclick="chatSelectConv(${c.id})" data-id="${c.id}">
             ${avatar}
             <div style="flex:1;min-width:0;">
                 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px;">
-                    <span style="color:#fff;font-size:12.5px;font-weight:${unread?'700':'600'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:110px;">${escH(c.name)}</span>
+                    <span style="color:#1e293b;font-size:12.5px;font-weight:${unread?'700':'600'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:110px;">${escH(c.name)}</span>
                     ${timeStr}
                 </div>
                 <div style="display:flex;align-items:center;justify-content:space-between;gap:4px;">
@@ -1190,7 +1189,7 @@ function chatBubble({isMine, name, avatar, text, time, showName=true}) {
     const content = renderMsgContent(text, isMine);
     if (isMine) {
         return `<div style="display:flex;justify-content:flex-end;margin-bottom:2px;">
-            <div style="max-width:72%;">
+            <div style="max-width:55%;">
                 <div style="background:rgba(200,240,210,.88);border-radius:14px 4px 14px 14px;padding:8px 12px;position:relative;">
                     <div style="font-size:13px;color:#1a3025;line-height:1.5;">${content}</div>
                     <div style="display:flex;align-items:center;justify-content:flex-end;gap:4px;margin-top:3px;">
@@ -1205,11 +1204,11 @@ function chatBubble({isMine, name, avatar, text, time, showName=true}) {
             ? `<img src="${avatar}" style="width:26px;height:26px;border-radius:50%;object-fit:cover;flex-shrink:0;margin-top:2px;">`
             : `<div style="width:26px;height:26px;border-radius:50%;background:rgba(100,116,139,.3);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px;font-size:10px;color:#94a3b8;">${name[0]||'?'}</div>`;
         const nameHtml = showName
-            ? `<span style="font-size:11px;color:rgba(255,255,255,.45);font-weight:600;display:block;margin-bottom:2px;">${escH(name)}</span>`
+            ? `<span style="font-size:11px;color:#64748b;font-weight:600;display:block;margin-bottom:2px;">${escH(name)}</span>`
             : '';
         return `<div style="display:flex;align-items:flex-start;gap:7px;margin-bottom:2px;${showName?'margin-top:6px':''}">
             ${avatarHtml}
-            <div style="max-width:72%;">
+            <div style="max-width:55%;">
                 ${nameHtml}
                 <div style="background:rgba(255,255,255,.82);border-radius:4px 14px 14px 14px;padding:8px 12px;">
                     <div style="font-size:13px;color:#1e293b;line-height:1.5;">${content}</div>
