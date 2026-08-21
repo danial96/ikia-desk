@@ -672,7 +672,7 @@
         </div>
 
         {{-- Messages --}}
-        <div id="chat-msg-area" style="flex:1;overflow-y:auto;padding:16px 24px;display:none;flex-direction:column;gap:2px;background:#f8fafc;"></div>
+        <div id="chat-msg-area" style="flex:1;overflow-y:auto;padding:16px 24px;display:none;flex-direction:column;gap:2px;background-image:url('{{ asset('pattern-chat.svg') }}');background-size:cover;background-position:center;background-color:#e8f4f8;"></div>
 
         {{-- Input --}}
         <div id="chat-input-area" style="display:none;padding:8px 12px 10px;border-top:1px solid #e2e8f0;background:#fff;flex-shrink:0;">
