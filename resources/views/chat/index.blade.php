@@ -126,14 +126,14 @@ document.addEventListener('DOMContentLoaded', function() {
             {{-- Recording UI --}}
             <div id="cp-vn-rec" style="display:none;align-items:center;gap:8px;">
                 <button onclick="vnCancel('cp')" title="Cancel"
-                        style="width:42px;height:42px;border-radius:12px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.6);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s;"
-                        onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='rgba(255,255,255,.6)'">
+                        style="width:42px;height:42px;border-radius:12px;background:#fee2e2;border:1px solid #fca5a5;color:#ef4444;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s;"
+                        onmouseover="this.style.background='#fca5a5'" onmouseout="this.style.background='#fee2e2'">
                     <i class="fas fa-trash" style="font-size:13px;"></i>
                 </button>
-                <div style="flex:1;display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:10px 14px;">
+                <div style="flex:1;display:flex;align-items:center;gap:8px;background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:10px 14px;">
                     <div style="width:8px;height:8px;border-radius:50%;background:#ef4444;animation:vnPulse 1.2s ease-in-out infinite;flex-shrink:0;"></div>
-                    <span style="color:rgba(255,255,255,.55);font-size:12px;">Recording</span>
-                    <span id="cp-vn-timer" style="color:#fff;font-weight:700;font-size:13px;min-width:30px;margin-left:auto;">0:00</span>
+                    <span style="color:#64748b;font-size:12px;">Recording</span>
+                    <span id="cp-vn-timer" style="color:#1e293b;font-weight:700;font-size:13px;min-width:30px;margin-left:auto;">0:00</span>
                 </div>
                 <button onclick="vnSend('cp')"
                         style="width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,#22c55e,#16a34a);border:none;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
@@ -243,12 +243,12 @@ document.addEventListener('DOMContentLoaded', function() {
 #cp-ctx-menu { animation:ctxFade .1s ease;background:#fff;border:1px solid #e2e8f0;box-shadow:0 8px 28px rgba(0,0,0,.12); }
 @keyframes ctxFade { from{opacity:0;transform:scale(.95)} to{opacity:1;transform:scale(1)} }
 /* ── Dots button on message hover ── */
-.cp-bubble-wrap { position:relative; }
-.cp-dots-btn { position:absolute;top:50%;transform:translateY(-50%);width:28px;height:28px;border-radius:50%;background:#e2e8f0;border:none;cursor:pointer;display:none;align-items:center;justify-content:center;font-size:16px;color:#64748b;line-height:1;transition:background .12s;z-index:10;padding:0; }
-.cp-dots-btn:hover { background:#cbd5e1; }
-.cp-bubble-wrap:hover .cp-dots-btn { display:flex; }
-.cp-dots-mine { right:-36px; }
-.cp-dots-other { left:-36px; }
+.cp-bubble-bg { position:relative; }
+.cp-dots-btn { position:absolute;top:5px;width:24px;height:24px;border-radius:50%;background:rgba(0,0,0,.1);border:none;cursor:pointer;display:none;align-items:center;justify-content:center;font-size:14px;color:#374151;line-height:1;transition:background .12s;z-index:10;padding:0; }
+.cp-dots-btn:hover { background:rgba(0,0,0,.18); }
+.cp-bubble-bg:hover .cp-dots-btn { display:flex; }
+.cp-dots-mine { right:5px; }
+.cp-dots-other { left:5px; }
 </style>
 
 {{-- Edit bar shown above input when editing --}}
@@ -534,10 +534,10 @@ function bubble(m) {
     if (isMine) {
         const dotsBtn = msgId ? `<button class="cp-dots-btn cp-dots-mine" onclick="cpDotsClick(event,${msgId},true,${createdTs||0})" title="More">⋯</button>` : '';
         return `<div ${dataAttrs} style="display:flex;justify-content:flex-end;margin-bottom:2px;">
-            <div class="cp-bubble-wrap" style="max-width:55%;position:relative;">
-                ${dotsBtn}
-                <div style="background:rgba(200,240,210,.92);border-radius:14px 4px 14px 14px;padding:9px 13px 7px;cursor:default;">
-                    <div data-msg-text data-raw="${esc(text)}" style="font-size:13.5px;color:#1a3025;line-height:1.5;">${content}</div>
+            <div style="max-width:45%;">
+                <div class="cp-bubble-bg" style="background:rgba(200,240,210,.92);border-radius:14px 4px 14px 14px;padding:9px 13px 7px;cursor:default;">
+                    ${dotsBtn}
+                    <div data-msg-text data-raw="${esc(text)}" style="font-size:13.5px;color:#1a3025;line-height:1.5;padding-right:${dotsBtn?'18px':'0'};">${content}</div>
                     <div style="display:flex;align-items:center;justify-content:flex-end;gap:4px;margin-top:3px;">
                         ${editedHtml}<span style="font-size:10.5px;color:rgba(0,0,0,.38);">${time}</span>
                         <i class="fas fa-check-double" style="font-size:9px;color:rgba(0,140,90,.6);"></i>
@@ -554,11 +554,11 @@ function bubble(m) {
     const dotsBtnOther = msgId ? `<button class="cp-dots-btn cp-dots-other" onclick="cpDotsClick(event,${msgId},false,${createdTs||0})" title="More">⋯</button>` : '';
     return `<div ${dataAttrs} style="display:flex;align-items:flex-start;gap:8px;margin-bottom:2px;${showName?'margin-top:6px':''}">
         ${av}
-        <div class="cp-bubble-wrap" style="max-width:55%;position:relative;">
-            ${dotsBtnOther}
+        <div style="max-width:45%;">
             ${nm}
-            <div style="background:rgba(255,255,255,.88);border-radius:4px 14px 14px 14px;padding:9px 13px 7px;cursor:default;">
-                <div data-msg-text data-raw="${esc(text)}" style="font-size:13.5px;color:#1e293b;line-height:1.5;">${content}</div>
+            <div class="cp-bubble-bg" style="background:rgba(255,255,255,.92);border-radius:4px 14px 14px 14px;padding:9px 13px 7px;cursor:default;">
+                ${dotsBtnOther}
+                <div data-msg-text data-raw="${esc(text)}" style="font-size:13.5px;color:#1e293b;line-height:1.5;padding-left:${dotsBtnOther?'18px':'0'};">${content}</div>
                 <div style="display:flex;align-items:center;justify-content:flex-end;gap:2px;margin-top:3px;">
                     ${editedHtmlOther}<span style="font-size:10.5px;color:rgba(0,0,0,.35);">${time}</span>
                 </div>

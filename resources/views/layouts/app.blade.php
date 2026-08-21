@@ -711,14 +711,14 @@
             {{-- Recording UI --}}
             <div id="chat-vn-rec" style="display:none;align-items:center;gap:8px;">
                 <button onclick="vnCancel('chat')" title="Cancel"
-                        style="width:38px;height:38px;border-radius:10px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.6);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s;"
-                        onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='rgba(255,255,255,.6)'">
+                        style="width:38px;height:38px;border-radius:10px;background:#fee2e2;border:1px solid #fca5a5;color:#ef4444;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s;"
+                        onmouseover="this.style.background='#fca5a5'" onmouseout="this.style.background='#fee2e2'">
                     <i class="fas fa-trash" style="font-size:13px;"></i>
                 </button>
-                <div style="flex:1;display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:9px 14px;">
+                <div style="flex:1;display:flex;align-items:center;gap:8px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:9px 14px;">
                     <div style="width:8px;height:8px;border-radius:50%;background:#ef4444;animation:vnPulse 1.2s ease-in-out infinite;flex-shrink:0;"></div>
-                    <span style="color:rgba(255,255,255,.55);font-size:12px;">Recording</span>
-                    <span id="chat-vn-timer" style="color:#fff;font-weight:700;font-size:13px;min-width:30px;margin-left:auto;">0:00</span>
+                    <span style="color:#64748b;font-size:12px;">Recording</span>
+                    <span id="chat-vn-timer" style="color:#1e293b;font-weight:700;font-size:13px;min-width:30px;margin-left:auto;">0:00</span>
                 </div>
                 <button onclick="vnSend('chat')" title="Send"
                         style="width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,#00C4D8,#1B72E8);border:none;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:opacity .15s;"
@@ -728,6 +728,12 @@
             </div>
         </div>
     </div>
+</div>
+
+{{-- Message context menu --}}
+<div id="chat-msg-ctx">
+    <div class="chat-ctx-item" id="chat-ctx-edit" onclick="chatCtxEdit()"><i class="fas fa-pen" style="font-size:11px;opacity:.7;"></i>Edit</div>
+    <div class="chat-ctx-item chat-ctx-del" onclick="chatCtxDelete()"><i class="fas fa-trash-alt" style="font-size:11px;opacity:.7;"></i>Delete</div>
 </div>
 
 {{-- New Direct Chat overlay (inside panel) --}}
@@ -788,6 +794,16 @@
 .chat-conv-unread { background:#f0fdf4;border-left:2px solid #22c55e !important; }
 .chat-conv-unread:hover { background:#dcfce7 !important; }
 @keyframes chatFlash { 0%{background:rgba(34,197,94,.2)} 100%{background:#f0fdf4} }
+.chat-bubble-bg { position:relative; }
+.chat-dots-btn { position:absolute;top:5px;width:22px;height:22px;border-radius:50%;background:rgba(0,0,0,.1);border:none;cursor:pointer;display:none;align-items:center;justify-content:center;font-size:13px;color:#374151;line-height:1;transition:background .12s;z-index:10;padding:0; }
+.chat-dots-btn:hover { background:rgba(0,0,0,.18); }
+.chat-bubble-bg:hover .chat-dots-btn { display:flex; }
+.chat-dots-mine { right:5px; }
+.chat-dots-other { left:5px; }
+#chat-msg-ctx { display:none;position:fixed;z-index:9999;background:#fff;border:1px solid #e2e8f0;border-radius:9px;padding:4px 0;min-width:130px;box-shadow:0 8px 28px rgba(0,0,0,.12); }
+.chat-ctx-item { display:flex;align-items:center;gap:8px;padding:8px 14px;color:#374151;font-size:13px;cursor:pointer;transition:background .1s; }
+.chat-ctx-item:hover { background:#f1f5f9; }
+.chat-ctx-del { color:#ef4444; }
 #chat-conv-list::-webkit-scrollbar { width:3px; }
 #chat-conv-list::-webkit-scrollbar-thumb { background:#cbd5e1;border-radius:3px; }
 #chat-msg-area::-webkit-scrollbar { width:3px; }
@@ -1115,14 +1131,14 @@ function chatRenderMsgs(msgs) {
         if (m.date !== prevDate) {
             const label = chatDayLabel(m.date);
             html += `<div style="display:flex;align-items:center;justify-content:center;margin:12px 0 8px;">
-                <span style="background:rgba(0,0,0,.32);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);color:rgba(255,255,255,.85);font-size:11px;font-weight:600;padding:3px 14px;border-radius:20px;letter-spacing:.3px;white-space:nowrap;">${label}</span>
+                <span style="background:rgba(0,0,0,.18);color:#fff;font-size:11px;font-weight:600;padding:3px 14px;border-radius:20px;letter-spacing:.3px;white-space:nowrap;">${label}</span>
             </div>`;
             prevDate = m.date;
             prevAuthorId = null;
         }
 
         const showName = !m.isMine && prevAuthorId !== m.author.id;
-        html += chatBubble({isMine: m.isMine, name: m.author.name, avatar: m.author.avatar, text: m.text, time: m.time, showName});
+        html += chatBubble({isMine: m.isMine, name: m.author.name, avatar: m.author.avatar, text: m.text, time: m.time, showName, msgId: m.id, createdTs: m.createdTs||0});
         prevAuthorId = m.author.id;
     });
 
@@ -1185,13 +1201,15 @@ function renderMsgContent(text, isMine) {
     return out;
 }
 
-function chatBubble({isMine, name, avatar, text, time, showName=true}) {
+function chatBubble({isMine, name, avatar, text, time, showName=true, msgId=null, createdTs=0}) {
     const content = renderMsgContent(text, isMine);
     if (isMine) {
-        return `<div style="display:flex;justify-content:flex-end;margin-bottom:2px;">
-            <div style="max-width:55%;">
-                <div style="background:rgba(200,240,210,.88);border-radius:14px 4px 14px 14px;padding:8px 12px;position:relative;">
-                    <div style="font-size:13px;color:#1a3025;line-height:1.5;">${content}</div>
+        const dotsBtn = msgId ? `<button class="chat-dots-btn chat-dots-mine" onclick="chatDotsClick(event,${msgId},true,${createdTs})" title="More">⋯</button>` : '';
+        return `<div data-msg-id="${msgId||''}" data-mine="1" data-created-ts="${createdTs}" style="display:flex;justify-content:flex-end;margin-bottom:2px;">
+            <div style="max-width:45%;">
+                <div class="chat-bubble-bg" style="background:rgba(200,240,210,.92);border-radius:14px 4px 14px 14px;padding:8px 12px;">
+                    ${dotsBtn}
+                    <div style="font-size:13px;color:#1a3025;line-height:1.5;${dotsBtn?'padding-right:20px;':''}">${content}</div>
                     <div style="display:flex;align-items:center;justify-content:flex-end;gap:4px;margin-top:3px;">
                         <span style="font-size:10px;color:rgba(0,0,0,.35);">${time}</span>
                         <i class="fas fa-check-double" style="font-size:9px;color:rgba(0,120,80,.5);"></i>
@@ -1206,11 +1224,11 @@ function chatBubble({isMine, name, avatar, text, time, showName=true}) {
         const nameHtml = showName
             ? `<span style="font-size:11px;color:#64748b;font-weight:600;display:block;margin-bottom:2px;">${escH(name)}</span>`
             : '';
-        return `<div style="display:flex;align-items:flex-start;gap:7px;margin-bottom:2px;${showName?'margin-top:6px':''}">
+        return `<div data-msg-id="${msgId||''}" data-mine="0" data-created-ts="${createdTs}" style="display:flex;align-items:flex-start;gap:7px;margin-bottom:2px;${showName?'margin-top:6px':''}">
             ${avatarHtml}
-            <div style="max-width:55%;">
+            <div style="max-width:45%;">
                 ${nameHtml}
-                <div style="background:rgba(255,255,255,.82);border-radius:4px 14px 14px 14px;padding:8px 12px;">
+                <div class="chat-bubble-bg" style="background:rgba(255,255,255,.92);border-radius:4px 14px 14px 14px;padding:8px 12px;">
                     <div style="font-size:13px;color:#1e293b;line-height:1.5;">${content}</div>
                     <span style="font-size:10px;color:rgba(0,0,0,.35);display:block;margin-top:3px;text-align:right;">${time}</span>
                 </div>
@@ -1218,6 +1236,45 @@ function chatBubble({isMine, name, avatar, text, time, showName=true}) {
         </div>`;
     }
 }
+
+let _chatCtxMsgId = null, _chatCtxIsMine = false;
+function chatDotsClick(e, msgId, isMine, createdTs) {
+    e.stopPropagation();
+    _chatCtxMsgId = msgId;
+    _chatCtxIsMine = isMine;
+    const menu = document.getElementById('chat-msg-ctx');
+    const canEdit = isMine && (Date.now()/1000 - createdTs) < 86400;
+    document.getElementById('chat-ctx-edit').style.display = canEdit ? 'flex' : 'none';
+    menu.style.display = 'block';
+    const x = Math.min(e.clientX, window.innerWidth - menu.offsetWidth - 8);
+    const y = Math.min(e.clientY + 4, window.innerHeight - menu.offsetHeight - 8);
+    menu.style.left = x + 'px';
+    menu.style.top  = y + 'px';
+}
+async function chatCtxEdit() {
+    document.getElementById('chat-msg-ctx').style.display = 'none';
+    if (!_chatCtxMsgId || !_chatCtxIsMine) return;
+    const row = document.querySelector(`[data-msg-id="${_chatCtxMsgId}"]`);
+    const raw = row ? (row.querySelector('[data-raw]')?.dataset.raw || '') : '';
+    const newText = prompt('Edit message:', raw);
+    if (!newText || newText === raw) return;
+    await fetch(API_BASE + '/api/chat/msgs/' + _chatCtxMsgId, {
+        method:'PATCH', headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF},
+        body: JSON.stringify({content: newText})
+    });
+    chatLoadConvs();
+}
+async function chatCtxDelete() {
+    document.getElementById('chat-msg-ctx').style.display = 'none';
+    if (!_chatCtxMsgId) return;
+    await fetch(API_BASE + '/api/chat/msgs/' + _chatCtxMsgId, {
+        method:'DELETE', headers:{'X-CSRF-TOKEN':CSRF}
+    });
+    chatLoadConvs();
+}
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('#chat-msg-ctx')) document.getElementById('chat-msg-ctx').style.display = 'none';
+});
 
 /* ── Send message ── */
 window.chatSend = async function() {
@@ -1347,7 +1404,7 @@ function chatAppendMsgs(msgs) {
     msgs.forEach(m => {
         inner.insertAdjacentHTML('beforeend', chatBubble({
             isMine: m.isMine, name: m.author.name, avatar: m.author.avatar,
-            text: m.text, time: m.time, showName: !m.isMine,
+            text: m.text, time: m.time, showName: !m.isMine, msgId: m.id, createdTs: m.createdTs||0,
         }));
     });
     el.scrollTop = el.scrollHeight + 9999;

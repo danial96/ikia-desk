@@ -228,7 +228,7 @@ Route::middleware('auth')->group(function () {
         $origName = $file->getClientOriginalName();
         $mime     = $file->getClientMimeType() ?? '';
         $ext      = strtolower($file->getClientOriginalExtension());
-        $allowed  = ['jpg','jpeg','png','gif','webp','pdf','doc','docx','xls','xlsx','ppt','pptx','txt','zip','mp3','mp4','mov','avi','csv'];
+        $allowed  = ['jpg','jpeg','png','gif','webp','pdf','doc','docx','xls','xlsx','ppt','pptx','txt','zip','mp3','mp4','mov','avi','csv','webm','ogg'];
         if (!in_array($ext, $allowed)) abort(422, 'File type not allowed.');
         $fileSize = $file->getSize() ?: 0;
         $filename = 'up_' . uniqid() . '.' . $ext;
@@ -361,7 +361,7 @@ Route::middleware('auth')->group(function () {
             $origName = $file->getClientOriginalName();
             $mime     = $file->getClientMimeType() ?? '';
             $ext      = strtolower($file->getClientOriginalExtension()) ?: 'bin';
-            $allowed  = ['jpg','jpeg','png','gif','webp','pdf','doc','docx','xls','xlsx','ppt','pptx','txt','zip','mp3','mp4','mov','avi','csv'];
+            $allowed  = ['jpg','jpeg','png','gif','webp','pdf','doc','docx','xls','xlsx','ppt','pptx','txt','zip','mp3','mp4','mov','avi','csv','webm','ogg'];
             if (!in_array($ext, $allowed)) return response()->json(['error'=>'File type not allowed.'],422);
             $filename = 'up_' . uniqid() . '.' . $ext;
 
