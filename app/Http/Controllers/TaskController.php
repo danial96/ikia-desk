@@ -468,12 +468,14 @@ class TaskController extends Controller
             $weekEnd     = now()->endOfWeek();
             $nextWeekEnd = now()->addWeek()->endOfWeek();
 
+            $imgExts = ['jpg','jpeg','png','gif','webp','svg'];
             $query = Task::with(['project', 'assignee', 'creator',
-                'files' => fn($q) => $q->whereNotNull('disk_path')
-                    ->where(function ($q2) {
+                'coverFile' => fn($q) => $q->whereNotNull('disk_path')
+                    ->where('is_task_attachment', true)
+                    ->where(function ($q2) use ($imgExts) {
                         $q2->whereIn('mime_type', ['image/jpeg','image/jpg','image/png','image/gif','image/webp','image/svg+xml'])
-                           ->orWhere(function ($q3) {
-                               foreach (['jpg','jpeg','png','gif','webp','svg'] as $ext) {
+                           ->orWhere(function ($q3) use ($imgExts) {
+                               foreach ($imgExts as $ext) {
                                    $q3->orWhere('name', 'like', "%.$ext");
                                }
                            });
@@ -586,7 +588,7 @@ class TaskController extends Controller
                     'dl_past'  => $t->deadline && $t->deadline->isPast() && $t->status !== 'completed',
                     'project'  => $t->project  ? $t->project->name  : null,
                     'assignee'    => $t->assignee ? ['name' => $t->assignee->name, 'avatar' => $t->assignee->avatar_url] : null,
-                    'cover_image' => $t->files->first() ? asset($t->files->first()->disk_path) : null,
+                    'cover_image' => $t->coverFile->first() ? asset($t->coverFile->first()->disk_path) : null,
                 ])->values();
             }
             return response()->json(['columns' => $result, 'completedTotal' => $completedTotal, 'unseenTaskIds' => $unseenTaskIds]);

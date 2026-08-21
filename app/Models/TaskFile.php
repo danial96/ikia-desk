@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class TaskFile extends Model
 {
     protected $fillable = [
-        'task_id', 'uploaded_by', 'bitrix_file_id',
+        'task_id', 'uploaded_by', 'bitrix_file_id', 'is_task_attachment',
         'name', 'size', 'mime_type', 'disk_path', 'bitrix_download_url',
     ];
 

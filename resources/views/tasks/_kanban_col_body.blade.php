@@ -7,7 +7,7 @@
     <p style="font-size:12.5px;font-weight:600;color:#1a1a2e;margin:0 0 7px;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">{{ $task->title }}</p>
 
     @php
-        $coverFile = $task->files->first();
+        $coverFile = $task->coverFile->first();
         $thumbUrl = $coverFile ? asset($coverFile->disk_path) : null;
     @endphp
     @if($thumbUrl)

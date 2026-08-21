@@ -37,6 +37,7 @@ class Task extends Model
     public function activities() { return $this->hasMany(TaskActivity::class)->orderBy('created_at'); }
     public function checklists() { return $this->hasMany(TaskChecklist::class)->orderBy('sort_index'); }
     public function files()      { return $this->hasMany(TaskFile::class)->orderBy('created_at'); }
+    public function coverFile()  { return $this->hasMany(TaskFile::class)->where('is_task_attachment', true)->orderBy('created_at'); }
 
     public function isMember(User $user): bool
     {
