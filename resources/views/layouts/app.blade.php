@@ -976,7 +976,10 @@ function previewText(t) {
     return (t||'')
         .replace(/\[img\].*?\[\/img\]/gs,    '📷 Photo')
         .replace(/\[file name="[^"]*"\].*?\[\/file\]/gs, '📎 File')
-        .replace(/\[voice(?:\s+dur="[^"]*")?\].*?\[\/voice\]/gs, '🎤 Voice');
+        .replace(/\[voice(?:\s+dur="[^"]*")?\].*?\[\/voice\]/gs, '🎤 Voice')
+        .replace(/\[URL=([^\]]*)\]([\s\S]*?)\[\/URL\]/gi, '$2')
+        .replace(/\[URL\]([\s\S]*?)\[\/URL\]/gi, '$1')
+        .replace(/\[\/?(B|I|S|U|CODE)\]/gi, '');
 }
 
 function chatRenderConvs(list) {
