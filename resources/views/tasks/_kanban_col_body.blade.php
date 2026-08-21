@@ -7,15 +7,21 @@
     <p style="font-size:12.5px;font-weight:600;color:#1a1a2e;margin:0 0 7px;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">{{ $task->title }}</p>
 
     @php
+        $coverFile = $task->files->first();
         $thumbUrl = null;
-        if ($task->description && preg_match('/\[img\]([^\[\]\s]+)\[\/img\]/i', $task->description, $m)) {
+        if ($coverFile) {
+            $thumbUrl = asset($coverFile->disk_path);
+        } elseif ($task->description && preg_match('/\[img\]([^\[\]\s]+)\[\/img\]/i', $task->description, $m)) {
             $thumbUrl = trim($m[1]);
+        } elseif ($task->description && preg_match('/\[disk\s+file\s+id=n(\d+)[^\]]*\]/i', $task->description, $dm)) {
+            $thumbUrl = url('/api/disk-file/' . $dm[1]);
         }
     @endphp
     @if($thumbUrl)
     <div style="margin:-4px -12px 8px;overflow:hidden;border-radius:0;">
         <img src="{{ $thumbUrl }}" alt="" loading="lazy"
-             style="width:100%;height:200px;object-fit:contain;display:block;border-radius:6px 6px 0 0;">
+             style="width:100%;max-height:180px;object-fit:cover;display:block;border-radius:6px 6px 0 0;"
+             onerror="this.parentElement.style.display='none'">
     </div>
     @endif
 
