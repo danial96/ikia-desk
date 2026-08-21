@@ -188,7 +188,7 @@ document.addEventListener('DOMContentLoaded', function() {
 </div>
 
 {{-- Context menu --}}
-<div id="cp-ctx-menu" style="display:none;position:absolute;z-index:200;background:rgba(15,23,42,.97);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:5px;min-width:140px;box-shadow:0 8px 30px rgba(0,0,0,.5);"></div>
+<div id="cp-ctx-menu" style="display:none;position:fixed;z-index:9999;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:5px;min-width:140px;box-shadow:0 8px 28px rgba(0,0,0,.15);"></div>
 
 {{-- Conversation context menu --}}
 <div id="cp-conv-ctx">
@@ -240,7 +240,7 @@ document.addEventListener('DOMContentLoaded', function() {
 .cp-ctx-item i { width:15px;text-align:center;font-size:12px;opacity:.65; }
 .cp-ctx-del { color:#ef4444; }
 .cp-ctx-del:hover { background:rgba(239,68,68,.08) !important; }
-#cp-ctx-menu { animation:ctxFade .1s ease;background:#fff;border:1px solid #e2e8f0;box-shadow:0 8px 28px rgba(0,0,0,.12); }
+#cp-ctx-menu { animation:ctxFade .1s ease; }
 @keyframes ctxFade { from{opacity:0;transform:scale(.95)} to{opacity:1;transform:scale(1)} }
 /* ── Dots button on message hover ── */
 .cp-bubble-bg { position:relative; }
@@ -343,17 +343,11 @@ function cpShowCtxAt(e, msgId, canEdit) {
     const menu = document.getElementById('cp-ctx-menu');
     menu.innerHTML =
         (canEdit ? `<div class="cp-ctx-item" data-action="edit"><i class="fas fa-pen"></i>Edit</div>` : '') +
-        `<div class="cp-ctx-item" data-action="reply"><i class="fas fa-reply"></i>Reply</div>` +
         `<div class="cp-ctx-item" data-action="copy"><i class="fas fa-copy"></i>Copy</div>` +
         `<div class="cp-ctx-item cp-ctx-del" data-action="delete"><i class="fas fa-trash"></i>Delete</div>`;
     menu.style.display = 'block';
-    const wrapRect = document.getElementById('cp-wrap').getBoundingClientRect();
-    let x = e.clientX - wrapRect.left;
-    let y = e.clientY - wrapRect.top;
-    if (x + 165 > wrapRect.width)  x -= 170;
-    if (y + 130 > wrapRect.height) y -= 130;
-    if (x < 4) x = 4;
-    if (y < 4) y = 4;
+    const x = Math.min(e.clientX, window.innerWidth  - menu.offsetWidth  - 8);
+    const y = Math.min(e.clientY + 4, window.innerHeight - menu.offsetHeight - 8);
     menu.style.left = x + 'px';
     menu.style.top  = y + 'px';
 }
