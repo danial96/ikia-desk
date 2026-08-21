@@ -42,6 +42,11 @@ class ImportTaskAttachments extends BitrixCommand
                 ]);
 
                 $diskIds = $resp['result']['task']['ufTaskWebdavFiles'] ?? [];
+                // Fallback: extract disk file IDs from description
+                if (empty($diskIds) && $task->description) {
+                    preg_match_all('/\[disk\s+file\s+id=n(\d+)[^\]]*\]/i', $task->description, $dm);
+                    $diskIds = array_map('intval', $dm[1] ?? []);
+                }
                 if (empty($diskIds)) {
                     $bar->advance();
                     continue;
@@ -65,7 +70,21 @@ class ImportTaskAttachments extends BitrixCommand
                     // Get file metadata from Bitrix
                     $fileResp = $this->bx('disk.file.get', ['id' => $diskId]);
                     $info = $fileResp['result'] ?? null;
-                    if (!$info) { $failed++; continue; }
+                    if (!$info) {
+                        // ACCESS_DENIED — try to reuse an already-cached file for this disk ID
+                        $cached = TaskFile::where('bitrix_file_id', $diskId)->whereNotNull('disk_path')->first();
+                        if ($cached) {
+                            TaskFile::updateOrCreate(
+                                ['bitrix_file_id' => $diskId, 'task_id' => $task->id, 'is_task_attachment' => true],
+                                ['uploaded_by' => $task->created_by ?? 1, 'name' => $cached->name,
+                                 'size' => $cached->size, 'disk_path' => $cached->disk_path, 'is_task_attachment' => true]
+                            );
+                            $imported++;
+                        } else {
+                            $failed++;
+                        }
+                        continue;
+                    }
 
                     $downloadUrl = $info['DOWNLOAD_URL'] ?? null;
                     $name        = $info['NAME'] ?? ('file_' . $diskId);
