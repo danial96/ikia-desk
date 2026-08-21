@@ -16,46 +16,46 @@ document.addEventListener('DOMContentLoaded', function() {
 <div id="cp-wrap" style="display:flex;flex:1;min-height:0;overflow:hidden;">
 
     {{-- ═══ LEFT: Conversation list ═══ --}}
-    <div id="cp-left" style="width:300px;flex-shrink:0;display:flex;flex-direction:column;background:rgba(10,15,60,.96);border-right:1px solid rgba(255,255,255,.1);">
+    <div id="cp-left" style="width:300px;flex-shrink:0;display:flex;flex-direction:column;background:#f0f4f8;border-right:1px solid #e2e8f0;">
 
         {{-- Header --}}
-        <div style="padding:16px 16px 12px;border-bottom:1px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:8px;flex-shrink:0;">
-            <i class="fas fa-comment-dots" style="color:#00D4E8;font-size:17px;"></i>
-            <span style="color:#fff;font-size:15px;font-weight:700;flex:1;">Messenger</span>
+        <div style="padding:16px 16px 12px;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;gap:8px;flex-shrink:0;background:#fff;">
+            <i class="fas fa-comment-dots" style="color:#0891b2;font-size:17px;"></i>
+            <span style="color:#1e293b;font-size:15px;font-weight:700;flex:1;">Messenger</span>
         </div>
 
         {{-- Search --}}
         <div style="padding:12px 14px 8px;flex-shrink:0;">
-            <div style="display:flex;align-items:center;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1);border-radius:9px;padding:0 12px;gap:7px;">
-                <i class="fas fa-search" style="font-size:12px;color:rgba(255,255,255,.3);"></i>
+            <div style="display:flex;align-items:center;background:#fff;border:1px solid #e2e8f0;border-radius:9px;padding:0 12px;gap:7px;">
+                <i class="fas fa-search" style="font-size:12px;color:#94a3b8;"></i>
                 <input type="text" id="cp-search" placeholder="Search chats..."
                        oninput="cpFilterConvs(this.value)"
-                       style="background:none;border:none;outline:none;color:#fff;font-size:13px;padding:8px 0;width:100%;font-family:inherit;">
+                       style="background:none;border:none;outline:none;color:#1e293b;font-size:13px;padding:8px 0;width:100%;font-family:inherit;">
             </div>
         </div>
 
         {{-- New chat buttons --}}
         <div style="padding:0 14px 10px;display:flex;gap:6px;flex-shrink:0;">
-            <button onclick="cpNewDirect()" style="flex:1;background:rgba(0,212,232,.12);border:1px solid rgba(0,212,232,.28);color:#00D4E8;border-radius:8px;padding:6px 0;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;"
-                    onmouseover="this.style.background='rgba(0,212,232,.22)'" onmouseout="this.style.background='rgba(0,212,232,.12)'">
+            <button onclick="cpNewDirect()" style="flex:1;background:#e0f7fa;border:1px solid #b2ebf2;color:#0891b2;border-radius:8px;padding:6px 0;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;"
+                    onmouseover="this.style.background='#b2ebf2'" onmouseout="this.style.background='#e0f7fa'">
                 <i class="fas fa-user-plus" style="font-size:10px;margin-right:4px;"></i>Direct
             </button>
-            <button onclick="cpNewGroup()" style="flex:1;background:rgba(139,92,246,.12);border:1px solid rgba(139,92,246,.28);color:#a78bfa;border-radius:8px;padding:6px 0;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;"
-                    onmouseover="this.style.background='rgba(139,92,246,.22)'" onmouseout="this.style.background='rgba(139,92,246,.12)'">
+            <button onclick="cpNewGroup()" style="flex:1;background:#ede9fe;border:1px solid #ddd6fe;color:#7c3aed;border-radius:8px;padding:6px 0;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;"
+                    onmouseover="this.style.background='#ddd6fe'" onmouseout="this.style.background='#ede9fe'">
                 <i class="fas fa-users" style="font-size:10px;margin-right:4px;"></i>Group
             </button>
         </div>
 
         {{-- Conversation list --}}
         <div id="cp-conv-list" style="flex:1;overflow-y:auto;">
-            <div style="padding:40px 16px;text-align:center;color:rgba(255,255,255,.6);font-size:12px;">
+            <div style="padding:40px 16px;text-align:center;color:#94a3b8;font-size:12px;">
                 <i class="fas fa-spinner fa-spin" style="display:block;font-size:22px;margin-bottom:10px;"></i>Loading...
             </div>
         </div>
     </div>
 
     {{-- ═══ RIGHT: Active conversation ═══ --}}
-    <div id="cp-right" style="flex:1;display:flex;flex-direction:column;background:rgba(8,12,45,.97);min-width:0;position:relative;">
+    <div id="cp-right" style="flex:1;display:flex;flex-direction:column;background:#f8fafc;min-width:0;position:relative;">
 
         {{-- Drag-and-drop overlay --}}
         <div id="cp-drop-overlay"
@@ -76,13 +76,13 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
 
         {{-- Header --}}
-        <div id="cp-right-head" style="display:none;padding:13px 20px;border-bottom:1px solid rgba(255,255,255,.08);align-items:center;gap:12px;background:rgba(255,255,255,.04);flex-shrink:0;">
-            <div id="cp-rh-avatar" style="width:38px;height:38px;border-radius:50%;overflow:hidden;flex-shrink:0;background:rgba(0,212,232,.2);display:flex;align-items:center;justify-content:center;">
-                <i class="fas fa-user" style="font-size:16px;color:#00D4E8;"></i>
+        <div id="cp-right-head" style="display:none;padding:13px 20px;border-bottom:1px solid #e2e8f0;align-items:center;gap:12px;background:#fff;flex-shrink:0;box-shadow:0 1px 3px rgba(0,0,0,.06);">
+            <div id="cp-rh-avatar" style="width:38px;height:38px;border-radius:50%;overflow:hidden;flex-shrink:0;background:#e0f7fa;display:flex;align-items:center;justify-content:center;">
+                <i class="fas fa-user" style="font-size:16px;color:#0891b2;"></i>
             </div>
             <div style="flex:1;min-width:0;">
-                <p id="cp-rh-name" style="margin:0;color:#fff;font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></p>
-                <p id="cp-rh-sub" style="margin:0;color:rgba(255,255,255,.35);font-size:11.5px;"></p>
+                <p id="cp-rh-name" style="margin:0;color:#1e293b;font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></p>
+                <p id="cp-rh-sub" style="margin:0;color:#94a3b8;font-size:11.5px;"></p>
             </div>
         </div>
 
@@ -90,33 +90,33 @@ document.addEventListener('DOMContentLoaded', function() {
         <div id="cp-msg-area" style="display:none;flex:1;overflow-y:auto;padding:20px;background-image:url('{{ asset('pattern-chat.svg') }}');background-size:cover;background-position:center;flex-direction:column;"></div>
 
         {{-- Input --}}
-        <div id="cp-input-area" style="display:none;padding:10px 16px 14px;border-top:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.04);flex-shrink:0;">
+        <div id="cp-input-area" style="display:none;padding:10px 16px 14px;border-top:1px solid #e2e8f0;background:#fff;flex-shrink:0;">
             {{-- Normal input --}}
             <div id="cp-normal-input" style="display:flex;align-items:flex-end;gap:8px;">
-                <div style="flex:1;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);border-radius:12px;overflow:hidden;">
+                <div style="flex:1;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;">
                     <textarea id="cp-textarea" rows="1" placeholder="Type a message..."
-                              style="display:block;width:100%;background:none;border:none;color:#fff;font-size:13.5px;padding:10px 14px 7px;outline:none;resize:none;font-family:inherit;line-height:1.5;max-height:140px;overflow-y:auto;box-sizing:border-box;"
+                              style="display:block;width:100%;background:none;border:none;color:#1e293b;font-size:13.5px;padding:10px 14px 7px;outline:none;resize:none;font-family:inherit;line-height:1.5;max-height:140px;overflow-y:auto;box-sizing:border-box;"
                               onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();cpSend();}"
                               oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,140)+'px'"></textarea>
-                    <div style="display:flex;align-items:center;gap:2px;padding:4px 10px;border-top:1px solid rgba(255,255,255,.07);">
+                    <div style="display:flex;align-items:center;gap:2px;padding:4px 10px;border-top:1px solid #e2e8f0;">
                         <button type="button" onclick="emojiToggle('cp-textarea',this)"
-                                title="Emoji" style="background:none;border:none;color:rgba(255,255,255,.4);cursor:pointer;padding:4px 6px;border-radius:6px;font-size:16px;line-height:1;transition:color .12s;"
-                                onmouseover="this.style.color='#00D4E8'" onmouseout="this.style.color='rgba(255,255,255,.4)'">
+                                title="Emoji" style="background:none;border:none;color:#94a3b8;cursor:pointer;padding:4px 6px;border-radius:6px;font-size:16px;line-height:1;transition:color .12s;"
+                                onmouseover="this.style.color='#0891b2'" onmouseout="this.style.color='#94a3b8'">
                             <i class="far fa-smile-beam"></i>
                         </button>
                         <button type="button" onclick="document.getElementById('cp-file-input').click()"
-                                title="Attach file" style="background:none;border:none;color:rgba(255,255,255,.4);cursor:pointer;padding:4px 6px;border-radius:6px;font-size:15px;line-height:1;transition:color .12s;"
-                                onmouseover="this.style.color='#00D4E8'" onmouseout="this.style.color='rgba(255,255,255,.4)'">
+                                title="Attach file" style="background:none;border:none;color:#94a3b8;cursor:pointer;padding:4px 6px;border-radius:6px;font-size:15px;line-height:1;transition:color .12s;"
+                                onmouseover="this.style.color='#0891b2'" onmouseout="this.style.color='#94a3b8'">
                             <i class="fas fa-paperclip"></i>
                         </button>
                         <input type="file" id="cp-file-input" style="display:none" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.zip"
                                onchange="uploadAndInsert('cp-textarea','cp-file-input','cp-attach-preview')">
                     </div>
-                    <div id="cp-attach-preview" style="display:none;padding:6px 10px 4px;gap:8px;flex-wrap:wrap;border-top:1px solid rgba(255,255,255,.08);"></div>
+                    <div id="cp-attach-preview" style="display:none;padding:6px 10px 4px;gap:8px;flex-wrap:wrap;border-top:1px solid #e2e8f0;"></div>
                 </div>
                 <button onclick="vnStart('cp')" title="Voice note"
-                        style="width:42px;height:42px;border-radius:12px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.6);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s;"
-                        onmouseover="this.style.background='rgba(255,255,255,.18)';this.style.color='#fff'" onmouseout="this.style.background='rgba(255,255,255,.1)';this.style.color='rgba(255,255,255,.6)'">
+                        style="width:42px;height:42px;border-radius:12px;background:#e2e8f0;border:1px solid #cbd5e1;color:#64748b;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s;"
+                        onmouseover="this.style.background='#cbd5e1';this.style.color='#334155'" onmouseout="this.style.background='#e2e8f0';this.style.color='#64748b'">
                     <i class="fas fa-microphone" style="font-size:14px;"></i>
                 </button>
                 <button onclick="cpSend()" style="width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,#00C4D8,#1B72E8);border:none;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
@@ -219,29 +219,36 @@ document.addEventListener('DOMContentLoaded', function() {
 <style>
 #cp-wrap { position:relative; }
 #cp-direct-modal.cp-show, #cp-group-modal.cp-show { display:flex !important; }
-.cp-conv-item { display:flex;align-items:center;gap:11px;padding:11px 16px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.04);transition:background .12s;position:relative; }
-.cp-conv-item:hover { background:rgba(255,255,255,.06); }
-.cp-conv-item.active { background:rgba(0,212,232,.1);border-left:3px solid #00D4E8;padding-left:13px; }
-.cp-conv-item.unread { background:rgba(0,212,232,.06);border-left:3px solid #25D366;padding-left:13px; }
-.cp-conv-item.unread:hover { background:rgba(0,212,232,.11); }
+.cp-conv-item { display:flex;align-items:center;gap:11px;padding:11px 16px;cursor:pointer;border-bottom:1px solid #e2e8f0;transition:background .12s;position:relative; }
+.cp-conv-item:hover { background:#e8f4f8; }
+.cp-conv-item.active { background:#e0f7fa;border-left:3px solid #0891b2;padding-left:13px; }
+.cp-conv-item.unread { background:#e0f7fa;border-left:3px solid #22c55e;padding-left:13px; }
+.cp-conv-item.unread:hover { background:#b2ebf2; }
 @keyframes cp-flash { 0%{background:rgba(37,211,102,.22)} 100%{background:rgba(0,212,232,.06)} }
 .cp-conv-item.flash { animation:cp-flash .6s ease-out forwards; }
-#cp-conv-ctx { position:fixed;z-index:500;background:#1a2535;border:1px solid rgba(255,255,255,.1);border-radius:9px;padding:4px 0;min-width:150px;box-shadow:0 8px 28px rgba(0,0,0,.55);display:none; }
-.cp-cctx-item { display:flex;align-items:center;gap:9px;padding:9px 16px;color:rgba(255,255,255,.8);font-size:13px;cursor:pointer;transition:background .1s; }
-.cp-cctx-item:hover { background:rgba(255,255,255,.07); }
-.cp-cctx-del { color:#ff5252; }
+#cp-conv-ctx { position:fixed;z-index:500;background:#fff;border:1px solid #e2e8f0;border-radius:9px;padding:4px 0;min-width:150px;box-shadow:0 8px 28px rgba(0,0,0,.12);display:none; }
+.cp-cctx-item { display:flex;align-items:center;gap:9px;padding:9px 16px;color:#374151;font-size:13px;cursor:pointer;transition:background .1s; }
+.cp-cctx-item:hover { background:#f1f5f9; }
+.cp-cctx-del { color:#ef4444; }
 #cp-conv-list::-webkit-scrollbar { width:3px; }
-#cp-conv-list::-webkit-scrollbar-thumb { background:rgba(255,255,255,.1);border-radius:3px; }
+#cp-conv-list::-webkit-scrollbar-thumb { background:#cbd5e1;border-radius:3px; }
 #cp-msg-area::-webkit-scrollbar { width:4px; }
-#cp-msg-area::-webkit-scrollbar-thumb { background:rgba(255,255,255,.15);border-radius:4px; }
-#cp-textarea::placeholder, #cp-search::placeholder, #cp-emp-search::placeholder { color:rgba(255,255,255,.28); }
-.cp-ctx-item { display:flex;align-items:center;gap:10px;padding:9px 14px;border-radius:7px;color:rgba(255,255,255,.85);font-size:13px;cursor:pointer;transition:background .1s;white-space:nowrap; }
-.cp-ctx-item:hover { background:rgba(255,255,255,.09); }
+#cp-msg-area::-webkit-scrollbar-thumb { background:#cbd5e1;border-radius:4px; }
+#cp-textarea::placeholder, #cp-search::placeholder, #cp-emp-search::placeholder { color:#94a3b8; }
+.cp-ctx-item { display:flex;align-items:center;gap:10px;padding:9px 14px;border-radius:7px;color:#374151;font-size:13px;cursor:pointer;transition:background .1s;white-space:nowrap; }
+.cp-ctx-item:hover { background:#f1f5f9; }
 .cp-ctx-item i { width:15px;text-align:center;font-size:12px;opacity:.65; }
-.cp-ctx-del { color:#f87171; }
-.cp-ctx-del:hover { background:rgba(239,68,68,.12) !important; }
-#cp-ctx-menu { animation:ctxFade .1s ease; }
+.cp-ctx-del { color:#ef4444; }
+.cp-ctx-del:hover { background:rgba(239,68,68,.08) !important; }
+#cp-ctx-menu { animation:ctxFade .1s ease;background:#fff;border:1px solid #e2e8f0;box-shadow:0 8px 28px rgba(0,0,0,.12); }
 @keyframes ctxFade { from{opacity:0;transform:scale(.95)} to{opacity:1;transform:scale(1)} }
+/* ── Dots button on message hover ── */
+.cp-bubble-wrap { position:relative; }
+.cp-dots-btn { position:absolute;top:50%;transform:translateY(-50%);width:28px;height:28px;border-radius:50%;background:#e2e8f0;border:none;cursor:pointer;display:none;align-items:center;justify-content:center;font-size:16px;color:#64748b;line-height:1;transition:background .12s;z-index:10;padding:0; }
+.cp-dots-btn:hover { background:#cbd5e1; }
+.cp-bubble-wrap:hover .cp-dots-btn { display:flex; }
+.cp-dots-mine { right:-36px; }
+.cp-dots-other { left:-36px; }
 </style>
 
 {{-- Edit bar shown above input when editing --}}
@@ -525,8 +532,10 @@ function bubble(m) {
     const content = renderContent(text, isMine);
 
     if (isMine) {
+        const dotsBtn = msgId ? `<button class="cp-dots-btn cp-dots-mine" onclick="cpDotsClick(event,${msgId},true,${createdTs||0})" title="More">⋯</button>` : '';
         return `<div ${dataAttrs} style="display:flex;justify-content:flex-end;margin-bottom:2px;">
-            <div style="max-width:70%;">
+            <div class="cp-bubble-wrap" style="max-width:70%;position:relative;">
+                ${dotsBtn}
                 <div style="background:rgba(200,240,210,.92);border-radius:14px 4px 14px 14px;padding:9px 13px 7px;cursor:default;">
                     <div data-msg-text data-raw="${esc(text)}" style="font-size:13.5px;color:#1a3025;line-height:1.5;">${content}</div>
                     <div style="display:flex;align-items:center;justify-content:flex-end;gap:4px;margin-top:3px;">
@@ -540,11 +549,13 @@ function bubble(m) {
     const av = avatar
         ? `<img src="${avatar}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;flex-shrink:0;margin-top:2px;">`
         : `<div style="width:28px;height:28px;border-radius:50%;background:rgba(100,116,139,.3);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px;font-size:11px;color:#94a3b8;">${(name||'?')[0]}</div>`;
-    const nm = showName ? `<span style="font-size:11.5px;color:rgba(255,255,255,.45);font-weight:600;display:block;margin-bottom:2px;">${esc(name)}</span>` : '';
+    const nm = showName ? `<span style="font-size:11.5px;color:#64748b;font-weight:600;display:block;margin-bottom:2px;">${esc(name)}</span>` : '';
     const editedHtmlOther = editedAt ? `<span style="font-size:9.5px;color:rgba(0,0,0,.3);margin-right:4px;font-style:italic;">edited</span>` : '';
+    const dotsBtnOther = msgId ? `<button class="cp-dots-btn cp-dots-other" onclick="cpDotsClick(event,${msgId},false,${createdTs||0})" title="More">⋯</button>` : '';
     return `<div ${dataAttrs} style="display:flex;align-items:flex-start;gap:8px;margin-bottom:2px;${showName?'margin-top:6px':''}">
         ${av}
-        <div style="max-width:70%;">
+        <div class="cp-bubble-wrap" style="max-width:70%;position:relative;">
+            ${dotsBtnOther}
             ${nm}
             <div style="background:rgba(255,255,255,.88);border-radius:4px 14px 14px 14px;padding:9px 13px 7px;cursor:default;">
                 <div data-msg-text data-raw="${esc(text)}" style="font-size:13.5px;color:#1e293b;line-height:1.5;">${content}</div>
@@ -554,6 +565,12 @@ function bubble(m) {
             </div>
         </div>
     </div>`;
+}
+
+function cpDotsClick(e, msgId, isMine, createdTs) {
+    e.stopPropagation();
+    const canEdit = isMine && (Date.now()/1000 - createdTs) < 86400;
+    cpShowCtxAt(e, msgId, canEdit);
 }
 
 /* ── Conversation avatar with online dot ── */
@@ -568,7 +585,7 @@ function convAvatar(c, size) {
         inner = `<div style="width:${s};height:${s};border-radius:50%;background:rgba(27,114,232,.25);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#60a5fa;font-size:${Math.round(size*.38)}px;font-weight:700;">${initials}</div>`;
     }
     const dot = (c.type==='direct')
-        ? `<div style="position:absolute;bottom:0;right:0;width:11px;height:11px;border-radius:50%;background:${c.online?'#22c55e':'#f97316'};border:2px solid rgba(10,15,60,.96);"></div>`
+        ? `<div style="position:absolute;bottom:0;right:0;width:11px;height:11px;border-radius:50%;background:${c.online?'#22c55e':'#f97316'};border:2px solid #f0f4f8;"></div>`
         : '';
     return `<div style="position:relative;flex-shrink:0;">${inner}${dot}</div>`;
 }
@@ -608,16 +625,16 @@ function cpRenderConvs(list) {
         const lm      = c.lastMsg;
         const unread  = (c.unread && _cpActiveConvId !== c.id) ? c.unread : 0;
         const lastLine = lm
-            ? `<span style="color:${unread?'#fff':'rgba(255,255,255,.35)'};font-size:11.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${unread?'font-weight:600;':''}">${lm.byMe?'You: ':(c.type!=='direct'?esc(lm.senderName||'')+': ':'')}${esc(cpPreviewText(lm.text).substring(0,45))}</span>`
-            : `<span style="color:rgba(255,255,255,.5);font-size:11.5px;">No messages yet</span>`;
-        const timeStr = lm ? `<span style="color:${unread?'#00D4E8':'rgba(255,255,255,.55)'};font-size:10.5px;flex-shrink:0;">${lm.time}</span>` : '';
-        const badge   = unread ? `<div style="min-width:18px;height:18px;border-radius:9px;background:#00D4E8;color:#000;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0 4px;flex-shrink:0;">${unread>99?'99+':unread}</div>` : '';
+            ? `<span style="color:${unread?'#0f172a':'#64748b'};font-size:11.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${unread?'font-weight:600;':''}">${lm.byMe?'You: ':(c.type!=='direct'?esc(lm.senderName||'')+': ':'')}${esc(cpPreviewText(lm.text).substring(0,45))}</span>`
+            : `<span style="color:#94a3b8;font-size:11.5px;">No messages yet</span>`;
+        const timeStr = lm ? `<span style="color:${unread?'#0891b2':'#94a3b8'};font-size:10.5px;flex-shrink:0;">${lm.time}</span>` : '';
+        const badge   = unread ? `<div style="min-width:18px;height:18px;border-radius:9px;background:#0891b2;color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0 4px;flex-shrink:0;">${unread>99?'99+':unread}</div>` : '';
         const unreadClass = (_cpActiveConvId!==c.id && unread) ? ' unread' : '';
         return `<div class="cp-conv-item${_cpActiveConvId===c.id?' active':''}${unreadClass}" onclick="cpSelect(${c.id})" data-id="${c.id}">
             ${av}
             <div style="flex:1;min-width:0;">
                 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px;">
-                    <span style="color:#fff;font-size:13px;font-weight:${unread?'700':'600'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:150px;">${esc(c.name)}</span>
+                    <span style="color:#1e293b;font-size:13px;font-weight:${unread?'700':'600'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:150px;">${esc(c.name)}</span>
                     ${timeStr}
                 </div>
                 <div style="display:flex;align-items:center;justify-content:space-between;gap:4px;">
