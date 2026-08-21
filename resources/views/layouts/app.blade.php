@@ -1238,7 +1238,7 @@ function chatBubble({isMine, name, avatar, text, time, showName=true, msgId=null
 }
 
 let _chatCtxMsgId = null, _chatCtxIsMine = false;
-function chatDotsClick(e, msgId, isMine, createdTs) {
+window.chatDotsClick = function(e, msgId, isMine, createdTs) {
     e.stopPropagation();
     _chatCtxMsgId = msgId;
     _chatCtxIsMine = isMine;
@@ -1250,8 +1250,8 @@ function chatDotsClick(e, msgId, isMine, createdTs) {
     const y = Math.min(e.clientY + 4, window.innerHeight - menu.offsetHeight - 8);
     menu.style.left = x + 'px';
     menu.style.top  = y + 'px';
-}
-async function chatCtxEdit() {
+};
+window.chatCtxEdit = async function() {
     document.getElementById('chat-msg-ctx').style.display = 'none';
     if (!_chatCtxMsgId || !_chatCtxIsMine) return;
     const row = document.querySelector(`[data-msg-id="${_chatCtxMsgId}"]`);
@@ -1263,15 +1263,15 @@ async function chatCtxEdit() {
         body: JSON.stringify({content: newText})
     });
     chatLoadConvs();
-}
-async function chatCtxDelete() {
+};
+window.chatCtxDelete = async function() {
     document.getElementById('chat-msg-ctx').style.display = 'none';
     if (!_chatCtxMsgId) return;
     await fetch(API_BASE + '/api/chat/msgs/' + _chatCtxMsgId, {
         method:'DELETE', headers:{'X-CSRF-TOKEN':CSRF}
     });
     chatLoadConvs();
-}
+};
 document.addEventListener('click', function(e) {
     if (!e.target.closest('#chat-msg-ctx')) document.getElementById('chat-msg-ctx').style.display = 'none';
 });
