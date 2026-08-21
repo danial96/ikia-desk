@@ -30,7 +30,7 @@
 
         {{-- Left arrow --}}
         <button id="kb-left"
-                style="position:fixed;left:230px;top:50%;transform:translateY(-50%);z-index:99;width:44px;height:44px;border-radius:50%;background:rgba(30,30,80,.55);backdrop-filter:blur(12px);border:1.5px solid rgba(255,255,255,.25);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .2s,opacity .2s;opacity:0;pointer-events:none;box-shadow:0 4px 20px rgba(0,0,0,.4);"
+                style="position:fixed;left:184px;top:50%;transform:translateY(-50%);z-index:99;width:44px;height:44px;border-radius:50%;background:rgba(30,30,80,.55);backdrop-filter:blur(12px);border:1.5px solid rgba(255,255,255,.25);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .2s,opacity .2s;opacity:0;pointer-events:none;box-shadow:0 4px 20px rgba(0,0,0,.4);"
                 onclick="document.getElementById('kb-scroll').scrollBy({left:-280,behavior:'smooth'})"
                 onmouseover="this.style.background='rgba(255,255,255,.25)'"
                 onmouseout="this.style.background='rgba(30,30,80,.55)'">
