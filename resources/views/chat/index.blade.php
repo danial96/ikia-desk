@@ -277,6 +277,7 @@ let _cpHasMore      = false;
 let _cpLoadingOlder = false;
 let _cpLoaded       = false;
 let _cpSelecting    = false;
+let _cpSending      = false;
 
 function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function linkify(text) {
@@ -797,6 +798,7 @@ window.cpSend = async function() {
     _inner.insertAdjacentHTML('beforeend', bubble({isMine:true, name:'Me', avatar:'', text:fullText, time:timeStr, showName:false}));
     el.scrollTop = el.scrollHeight;
     _cpMsgCount++;
+    _cpSending = true;
     try {
         const r = await fetch(API_BASE + '/api/chat/convs/' + _cpActiveConvId + '/send', {
             method:'POST',
@@ -806,7 +808,7 @@ window.cpSend = async function() {
         const d = await r.json();
         if (d.message?.id) _cpLastMsgId = Math.max(_cpLastMsgId, d.message.id);
         cpLoad();
-    } catch(e) {}
+    } catch(e) {} finally { _cpSending = false; }
 };
 
 /* ── Send raw tag (voice note) ── */
@@ -820,13 +822,16 @@ window.cpSendRaw = async function(tag) {
     _inner2.insertAdjacentHTML('beforeend', bubble({isMine:true, name:'Me', avatar:'', text:tag, time:timeStr, showName:false}));
     el.scrollTop = el.scrollHeight;
     _cpMsgCount++;
+    _cpSending = true;
     try {
-        await fetch(API_BASE + '/api/chat/convs/' + _cpActiveConvId + '/send', {
+        const r2 = await fetch(API_BASE + '/api/chat/convs/' + _cpActiveConvId + '/send', {
             method:'POST', headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF},
             body: JSON.stringify({content:tag}),
         });
+        const d2 = await r2.json();
+        if (d2.message?.id) _cpLastMsgId = Math.max(_cpLastMsgId, d2.message.id);
         cpLoad();
-    } catch(e) {}
+    } catch(e) {} finally { _cpSending = false; }
 };
 
 /* ── New Direct ── */
@@ -891,7 +896,7 @@ window.cpCreateGroup = async function() {
 /* ── Polling ── */
 function cpPoll() {
     cpLoad();
-    if (!_cpActiveConvId || _cpSelecting) return;
+    if (!_cpActiveConvId || _cpSelecting || _cpSending) return;
     const url = API_BASE + '/api/chat/convs/' + _cpActiveConvId + '/msgs'
               + (_cpLastMsgId ? '?after=' + _cpLastMsgId : '');
     fetch(url).then(r=>r.json()).then(d => {
