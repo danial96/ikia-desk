@@ -220,11 +220,16 @@ Route::middleware('auth')->group(function () {
     Route::post('/api/local-task/{id}/attach', function ($id, \Illuminate\Http\Request $request) {
         $task = \App\Models\Task::findOrFail($id);
         $user = auth()->user();
+        if (!$user->isSuperAdmin() && !$task->isMember($user) && $task->created_by !== $user->id && $task->assigned_to !== $user->id) {
+            abort(403);
+        }
         $request->validate(['file' => 'required|file|max:20480']);
         $file     = $request->file('file');
         $origName = $file->getClientOriginalName();
         $mime     = $file->getClientMimeType() ?? '';
         $ext      = strtolower($file->getClientOriginalExtension());
+        $allowed  = ['jpg','jpeg','png','gif','webp','pdf','doc','docx','xls','xlsx','ppt','pptx','txt','zip','mp3','mp4','mov','avi','csv'];
+        if (!in_array($ext, $allowed)) abort(422, 'File type not allowed.');
         $fileSize = $file->getSize() ?: 0;
         $filename = 'up_' . uniqid() . '.' . $ext;
         $file->move(public_path('uploads'), $filename);
@@ -287,8 +292,11 @@ Route::middleware('auth')->group(function () {
 
     // Kanban column data (for real-time card movement)
     Route::get('/api/kanban-task/{id}', function ($id) {
-        $task = \App\Models\Task::select('id','title','status','priority','deadline','assigned_to','project_id')->with(['assignee:id,name','project:id,name'])->findOrFail($id);
+        $task = \App\Models\Task::select('id','title','status','priority','deadline','assigned_to','project_id','created_by')->with(['assignee:id,name','project:id,name'])->findOrFail($id);
         $user = auth()->user();
+        if (!$user->isSuperAdmin() && !$task->isMember($user) && $task->created_by !== $user->id && $task->assigned_to !== $user->id) {
+            abort(403);
+        }
         $today    = now()->startOfDay();
         $todayEnd = now()->endOfDay();
         $weekEnd  = now()->endOfWeek();
@@ -320,6 +328,10 @@ Route::middleware('auth')->group(function () {
     Route::post('/api/local-task/{id}/comment', function ($id, \Illuminate\Http\Request $request) {
         $request->validate(['content'=>'required|string|max:5000']);
         $task    = \App\Models\Task::findOrFail($id);
+        $authUser = auth()->user();
+        if (!$authUser->isSuperAdmin() && !$task->isMember($authUser) && $task->created_by !== $authUser->id && $task->assigned_to !== $authUser->id) {
+            abort(403);
+        }
         $comment = $task->comments()->create(['user_id'=>auth()->id(),'content'=>$request->content,'mentions'=>[]]);
         $task->logActivity(auth()->user(),'commented',null,null,$request->content);
 
@@ -349,6 +361,8 @@ Route::middleware('auth')->group(function () {
             $origName = $file->getClientOriginalName();
             $mime     = $file->getClientMimeType() ?? '';
             $ext      = strtolower($file->getClientOriginalExtension()) ?: 'bin';
+            $allowed  = ['jpg','jpeg','png','gif','webp','pdf','doc','docx','xls','xlsx','ppt','pptx','txt','zip','mp3','mp4','mov','avi','csv'];
+            if (!in_array($ext, $allowed)) return response()->json(['error'=>'File type not allowed.'],422);
             $filename = 'up_' . uniqid() . '.' . $ext;
 
             $uploadPath = public_path('uploads');
@@ -542,6 +556,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/api/chat/direct', function (\Illuminate\Http\Request $request) {
         $request->validate(['user_id'=>'required|exists:users,id']);
         $user = auth()->user(); $otherId = $request->user_id;
+        if ($otherId == $user->id) return response()->json(['error'=>'Cannot chat with yourself.'],422);
         $existing = \App\Models\Conversation::where('type','direct')
             ->whereHas('members',fn($q)=>$q->where('user_id',$user->id))
             ->whereHas('members',fn($q)=>$q->where('user_id',$otherId))->first();

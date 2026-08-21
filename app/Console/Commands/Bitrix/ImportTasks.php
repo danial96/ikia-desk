@@ -148,7 +148,7 @@ class ImportTasks extends BitrixCommand
         return match($s) {
             '1'     => 'new',
             '2','3' => 'in_progress',
-            '4'     => 'review',
+            '4'     => 'in_progress',
             '5'     => 'completed',
             '6'     => 'paused',
             default => 'new',

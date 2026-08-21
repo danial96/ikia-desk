@@ -44,6 +44,7 @@ class TaskCommentController extends Controller
 
     public function destroy(Task $task, TaskComment $comment)
     {
+        if ($comment->task_id !== $task->id) abort(404);
         if ($comment->user_id !== Auth::id() && !Auth::user()->isSuperAdmin()) {
             abort(403);
         }

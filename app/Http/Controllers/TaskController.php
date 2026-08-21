@@ -156,6 +156,10 @@ class TaskController extends Controller
 
     public function show(Task $task)
     {
+        $user = Auth::user();
+        if (!$user->isSuperAdmin() && !$task->isMember($user) && $task->created_by !== $user->id && $task->assigned_to !== $user->id) {
+            abort(403);
+        }
         $task->load(['project', 'creator', 'assignee', 'members', 'observers', 'comments.user', 'activities.user']);
         $employees = User::where('is_active', true)->get();
         $projects = Project::all();
@@ -169,6 +173,10 @@ class TaskController extends Controller
         if ($request->has('status') && !$request->has('title')) {
             if (!$task->isMember($user)) {
                 abort(403, 'You are not a member of this task.');
+            }
+            $validStatuses = ['new', 'in_progress', 'paused', 'completed'];
+            if (!in_array($request->status, $validStatuses)) {
+                abort(422, 'Invalid status value.');
             }
             $oldStatus = $task->status;
             $task->update(['status' => $request->status]);
@@ -404,10 +412,16 @@ class TaskController extends Controller
 
     public function move(Request $request, Task $task)
     {
+        $user = Auth::user();
+        if (!$user->isSuperAdmin() && !$task->isMember($user) && $task->created_by !== $user->id && $task->assigned_to !== $user->id) {
+            abort(403);
+        }
         $all     = $request->all();
         $updates = ['updated_at' => now()];
 
         if (array_key_exists('status', $all) && $all['status']) {
+            $validStatuses = ['new', 'in_progress', 'paused', 'completed'];
+            if (!in_array($all['status'], $validStatuses)) abort(422, 'Invalid status.');
             $updates['status'] = $all['status'];
         }
         if (array_key_exists('deadline', $all)) {

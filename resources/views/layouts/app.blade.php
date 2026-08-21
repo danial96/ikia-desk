@@ -1142,8 +1142,9 @@ function chatRenderMsgs(msgs) {
 }
 
 function chatDayLabel(dateStr) {
-    const today  = new Date().toISOString().slice(0,10);
-    const yest   = new Date(Date.now()-86400000).toISOString().slice(0,10);
+    const _pad = n => String(n).padStart(2,'0');
+    const _n = new Date(); const today = _n.getFullYear()+'-'+_pad(_n.getMonth()+1)+'-'+_pad(_n.getDate());
+    const _y = new Date(Date.now()-86400000); const yest = _y.getFullYear()+'-'+_pad(_y.getMonth()+1)+'-'+_pad(_y.getDate());
     if (dateStr === today)  return 'Today';
     if (dateStr === yest)   return 'Yesterday';
     return new Date(dateStr).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
@@ -1173,9 +1174,11 @@ function renderMsgContent(text, isMine) {
         } else if (voiceM) {
             out += window.voiceBubbleHtml ? window.voiceBubbleHtml(voiceM[2]||'', voiceM[1]||'0:00', !!isMine) : '';
         } else if (urlAtM) {
-            out += `<a href="${escH(urlAtM[1])}" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline;">${escH(urlAtM[2]||urlAtM[1])}</a>`;
+            const _su1 = /^https?:\/\//i.test(urlAtM[1]) ? urlAtM[1] : '#';
+            out += `<a href="${escH(_su1)}" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline;">${escH(urlAtM[2]||urlAtM[1])}</a>`;
         } else if (urlM) {
-            out += `<a href="${escH(urlM[1])}" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline;">${escH(urlM[1])}</a>`;
+            const _su2 = /^https?:\/\//i.test(urlM[1]) ? urlM[1] : '#';
+            out += `<a href="${escH(_su2)}" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline;">${escH(urlM[1])}</a>`;
         } else if (part) {
             out += `<span style="white-space:pre-wrap;word-break:break-word;">${linkify(part)}</span>`;
         }

@@ -299,7 +299,8 @@ function linkify(text) {
     if (lastIdx < src.length) parts.push({t:'plain', s: src.slice(lastIdx)});
     return parts.map(p => {
         if (p.t === 'url') {
-            const h = p.href.replace(/&/g,'&amp;').replace(/"/g,'&quot;');
+            const safeHref = /^https?:\/\//i.test(p.href) ? p.href : '#';
+            const h = safeHref.replace(/&/g,'&amp;').replace(/"/g,'&quot;');
             const l = p.label.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
             return `<a href="${h}" target="_blank" rel="noopener noreferrer" style="color:#0ea5e9;text-decoration:underline;word-break:break-all;">${l}</a>`;
         }
@@ -709,8 +710,9 @@ function cpUpdateHeader(conv) {
 }
 
 function cpDayLabel(dateStr) {
-    const today = new Date().toISOString().slice(0,10);
-    const yest  = new Date(Date.now()-86400000).toISOString().slice(0,10);
+    const _pad = n => String(n).padStart(2,'0');
+    const _n = new Date(); const today = _n.getFullYear()+'-'+_pad(_n.getMonth()+1)+'-'+_pad(_n.getDate());
+    const _y = new Date(Date.now()-86400000); const yest = _y.getFullYear()+'-'+_pad(_y.getMonth()+1)+'-'+_pad(_y.getDate());
     if (dateStr === today) return 'Today';
     if (dateStr === yest)  return 'Yesterday';
     return new Date(dateStr).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
