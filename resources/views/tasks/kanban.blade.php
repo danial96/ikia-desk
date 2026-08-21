@@ -369,11 +369,10 @@ function kbUpdateArrows() {
     right.style.opacity      = atEnd   ? '0' : '1';
     right.style.pointerEvents = atEnd  ? 'none' : 'auto';
 
-    // Sidebar-aware positions
-    const sidebar = document.getElementById('sidebar');
-    const sbWidth = (sidebar && !sidebar.classList.contains('hidden-sidebar')) ? 220 : 0;
-    left.style.left        = (sbWidth + 10) + 'px';
-    if (track) track.style.left = (sbWidth + 10) + 'px';
+    // Position arrows relative to actual kb-scroll bounds
+    const kbLeft = el.getBoundingClientRect().left;
+    left.style.left = Math.max(0, kbLeft - 44) + 'px';
+    if (track) track.style.left = kbLeft + 'px';
 
     // Thumb width & position
     if (thumb && track) {
