@@ -28,8 +28,8 @@
             @endif
         </div>
         @if($task->deadline)
-        <p style="font-size:11.5px;margin:3px 0 0;color:{{ $task->deadline->isPast() && $task->status !== 'completed' ? '#f87171' : 'rgba(255,255,255,.35)' }};">
-            Due {{ $task->deadline->format('M d, Y') }}
+        <p style="font-size:11.5px;margin:3px 0 0;color:{{ $task->deadline->copy()->setTimezone('Asia/Karachi')->toDateString() < now('Asia/Karachi')->toDateString() && $task->status !== 'completed' ? '#f87171' : 'rgba(255,255,255,.35)' }};">
+            Due {{ $task->deadline->copy()->setTimezone('Asia/Karachi')->format('M d, Y') }}
         </p>
         @endif
     </div>

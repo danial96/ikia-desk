@@ -40,9 +40,9 @@
 
     <div style="display:flex;align-items:center;justify-content:space-between;margin-top:4px;">
         @if($task->deadline)
-        <span style="font-size:10.5px;color:{{ $task->deadline->isPast() && $task->status !== 'completed' ? '#ef4444' : '#94a3b8' }};display:flex;align-items:center;gap:3px;">
+        <span style="font-size:10.5px;color:{{ $task->deadline->copy()->setTimezone('Asia/Karachi')->toDateString() < now('Asia/Karachi')->toDateString() && $task->status !== 'completed' ? '#ef4444' : '#94a3b8' }};display:flex;align-items:center;gap:3px;">
             <i class="fas fa-calendar-alt" style="font-size:9px;"></i>
-            {{ $task->deadline->format('M d, Y') }}
+            {{ $task->deadline->copy()->setTimezone('Asia/Karachi')->format('M d, Y') }}
         </span>
         @else
         <span style="font-size:10.5px;color:#cbd5e1;">—</span>

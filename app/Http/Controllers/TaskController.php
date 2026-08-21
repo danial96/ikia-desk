@@ -463,10 +463,11 @@ class TaskController extends Controller
             : [];
 
         $buildColumns = function () use ($request, $user, $unseenTaskIds) {
-            $today       = now()->startOfDay();
-            $todayEnd    = now()->endOfDay();
-            $weekEnd     = now()->endOfWeek();
-            $nextWeekEnd = now()->addWeek()->endOfWeek();
+            $tz          = 'Asia/Karachi';
+            $today       = now($tz)->startOfDay();
+            $todayEnd    = now($tz)->endOfDay();
+            $weekEnd     = now($tz)->endOfWeek();
+            $nextWeekEnd = now($tz)->addWeek()->endOfWeek();
 
             $imgExts = ['jpg','jpeg','png','gif','webp','svg'];
             $query = Task::with(['project', 'assignee', 'creator',
@@ -546,16 +547,19 @@ class TaskController extends Controller
                     $columns['completed']->push($task);
                 } elseif (is_null($task->deadline)) {
                     $columns['no_deadline']->push($task);
-                } elseif ($task->deadline->lt($today)) {
-                    $columns['overdue']->push($task);
-                } elseif ($task->deadline->lte($todayEnd)) {
-                    $columns['due_today']->push($task);
-                } elseif ($task->deadline->lte($weekEnd)) {
-                    $columns['due_this_week']->push($task);
-                } elseif ($task->deadline->lte($nextWeekEnd)) {
-                    $columns['due_next_week']->push($task);
                 } else {
-                    $columns['due_over_two_weeks']->push($task);
+                    $dl = $task->deadline->copy()->setTimezone($tz);
+                    if ($dl->lt($today)) {
+                        $columns['overdue']->push($task);
+                    } elseif ($dl->lte($todayEnd)) {
+                        $columns['due_today']->push($task);
+                    } elseif ($dl->lte($weekEnd)) {
+                        $columns['due_this_week']->push($task);
+                    } elseif ($dl->lte($nextWeekEnd)) {
+                        $columns['due_next_week']->push($task);
+                    } else {
+                        $columns['due_over_two_weeks']->push($task);
+                    }
                 }
             }
 
@@ -584,8 +588,8 @@ class TaskController extends Controller
                     'desc'     => $t->description,
                     'priority' => $t->priority,
                     'status'   => $t->status,
-                    'deadline' => $t->deadline ? $t->deadline->format('M d, Y') : null,
-                    'dl_past'  => $t->deadline && $t->deadline->isPast() && $t->status !== 'completed',
+                    'deadline' => $t->deadline ? $t->deadline->copy()->setTimezone('Asia/Karachi')->format('M d, Y') : null,
+                    'dl_past'  => $t->deadline && $t->deadline->copy()->setTimezone('Asia/Karachi')->toDateString() < now('Asia/Karachi')->toDateString() && $t->status !== 'completed',
                     'project'  => $t->project  ? $t->project->name  : null,
                     'assignee'    => $t->assignee ? ['name' => $t->assignee->name, 'avatar' => $t->assignee->avatar_url] : null,
                     'cover_image' => $t->coverFile->first() ? asset($t->coverFile->first()->disk_path) : null,
