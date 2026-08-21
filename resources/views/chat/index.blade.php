@@ -276,8 +276,10 @@ let _cpFirstMsgTs   = 0;
 let _cpHasMore      = false;
 let _cpLoadingOlder = false;
 let _cpLoaded       = false;
-let _cpSelecting    = false;
-let _cpSending      = false;
+let _cpSelecting      = false;
+let _cpSending        = false;
+let _cpOtherLastReadTs = 0;
+let _cpConvType       = '';
 
 function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function linkify(text) {
@@ -655,6 +657,8 @@ window.cpSelect = async function(id) {
         const r = await fetch(API_BASE + '/api/chat/convs/' + id + '/msgs');
         const d = await r.json();
         cpUpdateHeader(d.conv);
+        _cpConvType = d.conv?.type || '';
+        _cpOtherLastReadTs = d.otherLastReadTs || 0;
         const _initMsgs = d.messages || [];
         _cpHasMore = !!d.hasMore;
         cpRenderMsgs(_initMsgs, true);
@@ -662,7 +666,11 @@ window.cpSelect = async function(id) {
             _cpLastMsgId  = Math.max(..._initMsgs.map(m => m.id));
             _cpFirstMsgTs = Math.min(..._initMsgs.map(m => m.createdTs));
         }
-        cpRenderConvs(_cpAllConvs); // clear unread badge
+        cpUpdateSeen();
+        // Zero unread immediately in local cache so badge clears right away
+        const _ac = _cpAllConvs.find(c => c.id === id);
+        if (_ac) _ac.unread = 0;
+        cpRenderConvs(_cpAllConvs);
         const ta = document.getElementById('cp-textarea');
         if (ta) ta.focus();
     } catch(e) {
@@ -901,6 +909,10 @@ function cpPoll() {
               + (_cpLastMsgId ? '?after=' + _cpLastMsgId : '');
     fetch(url).then(r=>r.json()).then(d => {
         const msgs = d.messages || [];
+        if (d.otherLastReadTs && d.otherLastReadTs !== _cpOtherLastReadTs) {
+            _cpOtherLastReadTs = d.otherLastReadTs;
+            cpUpdateSeen();
+        }
         if (!msgs.length) return;
         if (_cpLastMsgId === 0) {
             cpRenderMsgs(msgs, false);
@@ -909,7 +921,28 @@ function cpPoll() {
             cpAppendMsgs(msgs);
         }
         _cpLastMsgId = Math.max(...msgs.map(m => m.id));
+        cpUpdateSeen();
     }).catch(()=>{});
+}
+function cpUpdateSeen() {
+    if (_cpConvType !== 'direct' || !_cpOtherLastReadTs) return;
+    const inner = document.getElementById('cp-msg-inner');
+    if (!inner) return;
+    // Remove existing seen indicator
+    inner.querySelectorAll('.cp-seen-indicator').forEach(el => el.remove());
+    // Find last "mine" bubble whose createdTs <= otherLastReadTs
+    const bubbles = [...inner.querySelectorAll('[data-mine="1"]')];
+    let lastSeen = null;
+    for (const b of bubbles) {
+        const ts = parseInt(b.dataset.createdTs || '0');
+        if (ts && ts <= _cpOtherLastReadTs) lastSeen = b;
+    }
+    if (!lastSeen) return;
+    const seenEl = document.createElement('div');
+    seenEl.className = 'cp-seen-indicator';
+    seenEl.style.cssText = 'text-align:right;font-size:10px;color:rgba(255,255,255,.45);margin:-4px 4px 6px 0;padding-right:2px;';
+    seenEl.textContent = 'Seen';
+    lastSeen.insertAdjacentElement('afterend', seenEl);
 }
 function cpAppendMsgs(msgs) {
     const el    = document.getElementById('cp-msg-area');

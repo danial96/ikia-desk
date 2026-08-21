@@ -440,6 +440,12 @@ Route::middleware('auth')->group(function () {
             'author'    => ['id'=>$m->user_id,'name'=>$m->user?->name??'','avatar'=>$m->user?->avatar_url??''],
         ];
 
+        $other = $conv->type === 'direct' ? $conv->members->where('id', '!=', $user->id)->first() : null;
+        $otherLastReadTs = $other
+            ? \App\Models\ConversationMember::where('conversation_id', $conv->id)->where('user_id', $other->id)->value('last_read_at')
+            : null;
+        $otherLastReadTs = $otherLastReadTs ? \Carbon\Carbon::parse($otherLastReadTs)->timestamp : null;
+
         if ($afterId > 0) {
             // Incremental poll — only new messages after given ID
             $msgs = $conv->messages()->with('user')->reorder()->where('id','>',$afterId)->orderBy('id')->limit(50)->get();
@@ -447,7 +453,7 @@ Route::middleware('auth')->group(function () {
                 \App\Models\ConversationMember::where('conversation_id',$conv->id)->where('user_id',$user->id)
                     ->update(['last_read_at'=>now()]);
             }
-            return response()->json(['messages' => $msgs->map($msgFmt)->values()]);
+            return response()->json(['messages' => $msgs->map($msgFmt)->values(), 'otherLastReadTs' => $otherLastReadTs]);
         }
 
         if ($beforeTs > 0) {
@@ -471,7 +477,6 @@ Route::middleware('auth')->group(function () {
         $raw   = $conv->messages()->with('user')->reorder()->latest('created_at')->limit(51)->get();
         $hasMore = $raw->count() > 50;
         $msgs  = $raw->take(50)->sortBy(fn($m) => $m->created_at->timestamp)->values();
-        $other  = $conv->type==='direct' ? $conv->members->where('id','!=',$user->id)->first() : null;
         $online = $other && $other->last_seen_at && $other->last_seen_at->diffInMinutes(now()) < 5;
 
         return response()->json([
@@ -481,8 +486,9 @@ Route::middleware('auth')->group(function () {
                 'members' => $conv->members->count(),
                 'online'  => $online,
                 'last_seen' => $other?->last_seen_at?->diffForHumans()],
-            'messages' => $msgs->map($msgFmt),
-            'hasMore'  => $hasMore,
+            'messages'       => $msgs->map($msgFmt),
+            'hasMore'        => $hasMore,
+            'otherLastReadTs'=> $otherLastReadTs,
         ]);
     });
 
