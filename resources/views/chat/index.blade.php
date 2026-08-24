@@ -339,11 +339,11 @@ function cpShowCtxAt(btn, msgId, isMine, canEdit) {
         (canEdit ? `<div class="cp-ctx-item" data-action="edit"><i class="fas fa-pen"></i>Edit</div>` : '') +
         (isMine ? `<div class="cp-ctx-item cp-ctx-del" data-action="delete"><i class="fas fa-trash"></i>Delete</div>` : '');
     menu.style.display = 'block';
-    const rect = btn.getBoundingClientRect ? btn.getBoundingClientRect() : {left:0,right:0,bottom:0};
+    const rect = btn.getBoundingClientRect ? btn.getBoundingClientRect() : {left:0,right:0,bottom:0,width:0};
     const mW = menu.offsetWidth || 140;
     const mH = menu.offsetHeight || 110;
-    let x = isMine ? (rect.right - mW) : rect.left;
-    let y = rect.bottom + 4;
+    let x = rect.left + (rect.width || 0) / 2 - mW / 2;
+    let y = rect.bottom + 6;
     x = Math.max(8, Math.min(x, window.innerWidth - mW - 8));
     y = Math.max(8, Math.min(y, window.innerHeight - mH - 8));
     menu.style.left = x + 'px';
