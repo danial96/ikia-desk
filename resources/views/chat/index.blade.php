@@ -242,13 +242,11 @@ document.addEventListener('DOMContentLoaded', function() {
 .cp-ctx-del:hover { background:rgba(239,68,68,.08) !important; }
 #cp-ctx-menu { animation:ctxFade .1s ease; }
 @keyframes ctxFade { from{opacity:0;transform:scale(.95)} to{opacity:1;transform:scale(1)} }
-/* ── Dots button on message hover ── */
-.cp-bubble-bg { position:relative; }
-.cp-dots-btn { position:absolute;top:5px;width:24px;height:24px;border-radius:50%;background:rgba(0,0,0,.1);border:none;cursor:pointer;display:none;align-items:center;justify-content:center;font-size:14px;color:#374151;line-height:1;transition:background .12s;z-index:10;padding:0; }
-.cp-dots-btn:hover { background:rgba(0,0,0,.18); }
-.cp-bubble-bg:hover .cp-dots-btn { display:flex; }
-.cp-dots-mine { right:5px; }
-.cp-dots-other { left:5px; }
+/* ── Message action buttons on hover ── */
+.cp-msg-actions { display:none;align-items:center;gap:3px;flex-shrink:0; }
+.cp-msg-outer:hover .cp-msg-actions { display:flex; }
+.cp-action-btn { width:26px;height:26px;border-radius:50%;background:rgba(0,0,0,.13);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px;color:#374151;line-height:1;transition:background .12s;padding:0; }
+.cp-action-btn:hover { background:rgba(0,0,0,.22); }
 </style>
 
 {{-- Edit bar shown above input when editing --}}
@@ -325,23 +323,29 @@ function cpPreviewText(t) {
 }
 
 /* ── Context menu (event delegation — no inline oncontextmenu needed) ── */
-let _ctxMsgId = null;
+let _ctxMsgId = null, _ctxIsMine = false;
 function cpHideCtx() {
     document.getElementById('cp-ctx-menu').style.display = 'none';
     _ctxMsgId = null;
 }
-function cpShowCtxAt(e, msgId, canEdit) {
-    e.preventDefault();
+function cpShowCtxAt(btn, msgId, isMine, canEdit) {
     cpHideCtx();
     _ctxMsgId = msgId;
+    _ctxIsMine = isMine;
     const menu = document.getElementById('cp-ctx-menu');
     menu.innerHTML =
-        (canEdit ? `<div class="cp-ctx-item" data-action="edit"><i class="fas fa-pen"></i>Edit</div>` : '') +
+        `<div class="cp-ctx-item" data-action="reply"><i class="fas fa-reply"></i>Reply</div>` +
         `<div class="cp-ctx-item" data-action="copy"><i class="fas fa-copy"></i>Copy</div>` +
-        `<div class="cp-ctx-item cp-ctx-del" data-action="delete"><i class="fas fa-trash"></i>Delete</div>`;
+        (canEdit ? `<div class="cp-ctx-item" data-action="edit"><i class="fas fa-pen"></i>Edit</div>` : '') +
+        (isMine ? `<div class="cp-ctx-item cp-ctx-del" data-action="delete"><i class="fas fa-trash"></i>Delete</div>` : '');
     menu.style.display = 'block';
-    const x = Math.min(e.clientX, window.innerWidth  - menu.offsetWidth  - 8);
-    const y = Math.min(e.clientY + 4, window.innerHeight - menu.offsetHeight - 8);
+    const rect = btn.getBoundingClientRect ? btn.getBoundingClientRect() : {left:0,right:0,bottom:0};
+    const mW = menu.offsetWidth || 140;
+    const mH = menu.offsetHeight || 110;
+    let x = isMine ? (rect.right - mW) : rect.left;
+    let y = rect.bottom + 4;
+    x = Math.max(8, Math.min(x, window.innerWidth - mW - 8));
+    y = Math.max(8, Math.min(y, window.innerHeight - mH - 8));
     menu.style.left = x + 'px';
     menu.style.top  = y + 'px';
 }
@@ -351,13 +355,15 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('cp-msg-area').addEventListener('contextmenu', function(e) {
         const row = e.target.closest('[data-msg-id]');
         if (!row || !row.dataset.msgId) return;
+        e.preventDefault();
         const msgId = +row.dataset.msgId;
         if (!msgId) return;
         const nowTs = Math.floor(Date.now()/1000);
         const createdTs = +(row.dataset.createdTs || 0);
         const isMine = row.dataset.mine === '1';
-        const canEdit = isMine && (nowTs - createdTs) < 300;
-        cpShowCtxAt(e, msgId, canEdit);
+        const canEdit = isMine && (nowTs - createdTs) < 86400;
+        const fakeBtn = { getBoundingClientRect: () => ({left:e.clientX, right:e.clientX+140, bottom:e.clientY, top:e.clientY}) };
+        cpShowCtxAt(fakeBtn, msgId, isMine, canEdit);
     });
 
     // Delegate clicks on context menu items
@@ -399,7 +405,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 document.addEventListener('click', function(e) {
-    if (!e.target.closest('#cp-ctx-menu') && !e.target.closest('.cp-dots-btn')) cpHideCtx();
+    if (!e.target.closest('#cp-ctx-menu') && !e.target.closest('.cp-action-btn')) cpHideCtx();
     if (!e.target.closest('#cp-conv-ctx') && !e.target.closest('.cp-conv-dots')) cpHideConvCtx();
 });
 document.addEventListener('keydown', function(e) { if(e.key==='Escape') { cpHideCtx(); cpHideConvCtx(); cpCancelEdit(); } });
@@ -519,13 +525,17 @@ function bubble(m) {
     const editedHtml = editedAt ? `<span style="font-size:9.5px;color:rgba(255,255,255,.3);margin-right:4px;font-style:italic;">edited</span>` : '';
     const content = renderContent(text, isMine);
 
+    const actions = msgId ? `<div class="cp-msg-actions">
+        <button class="cp-action-btn" onclick="cpLikeClick(event,this,${msgId})" title="Like">👍</button>
+        <button class="cp-action-btn" onclick="cpDotsClick(event,this,${msgId},${isMine?'true':'false'},${createdTs||0})" title="More">⋯</button>
+    </div>` : '';
+
     if (isMine) {
-        const dotsBtn = msgId ? `<button class="cp-dots-btn cp-dots-mine" onclick="cpDotsClick(event,${msgId},true,${createdTs||0})" title="More">⋯</button>` : '';
-        return `<div ${dataAttrs} style="display:flex;justify-content:flex-end;margin-bottom:2px;">
+        return `<div ${dataAttrs} class="cp-msg-outer" style="display:flex;justify-content:flex-end;align-items:center;gap:5px;margin-bottom:2px;">
+            ${actions}
             <div style="max-width:45%;">
                 <div class="cp-bubble-bg" style="background:rgba(200,240,210,.92);border-radius:14px 4px 14px 14px;padding:9px 13px 7px;cursor:default;">
-                    ${dotsBtn}
-                    <div data-msg-text data-raw="${esc(text)}" style="font-size:13.5px;color:#1a3025;line-height:1.5;padding-right:${dotsBtn?'18px':'0'};">${content}</div>
+                    <div data-msg-text data-raw="${esc(text)}" style="font-size:13.5px;color:#1a3025;line-height:1.5;">${content}</div>
                     <div style="display:flex;align-items:center;justify-content:flex-end;gap:4px;margin-top:3px;">
                         ${editedHtml}<span style="font-size:10.5px;color:rgba(0,0,0,.38);">${time}</span>
                         <i class="fas fa-check-double" style="font-size:9px;color:rgba(0,140,90,.6);"></i>
@@ -539,26 +549,36 @@ function bubble(m) {
         : `<div style="width:28px;height:28px;border-radius:50%;background:rgba(100,116,139,.3);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px;font-size:11px;color:#94a3b8;">${(name||'?')[0]}</div>`;
     const nm = showName ? `<span style="font-size:11.5px;color:#64748b;font-weight:600;display:block;margin-bottom:2px;">${esc(name)}</span>` : '';
     const editedHtmlOther = editedAt ? `<span style="font-size:9.5px;color:rgba(0,0,0,.3);margin-right:4px;font-style:italic;">edited</span>` : '';
-    const dotsBtnOther = msgId ? `<button class="cp-dots-btn cp-dots-other" onclick="cpDotsClick(event,${msgId},false,${createdTs||0})" title="More">⋯</button>` : '';
-    return `<div ${dataAttrs} style="display:flex;align-items:flex-start;gap:8px;margin-bottom:2px;${showName?'margin-top:6px':''}">
+    return `<div ${dataAttrs} class="cp-msg-outer" style="display:flex;align-items:center;gap:5px;margin-bottom:2px;${showName?'margin-top:6px':''}">
         ${av}
         <div style="max-width:45%;">
             ${nm}
             <div class="cp-bubble-bg" style="background:rgba(255,255,255,.92);border-radius:4px 14px 14px 14px;padding:9px 13px 7px;cursor:default;">
-                ${dotsBtnOther}
-                <div data-msg-text data-raw="${esc(text)}" style="font-size:13.5px;color:#1e293b;line-height:1.5;padding-left:${dotsBtnOther?'18px':'0'};">${content}</div>
+                <div data-msg-text data-raw="${esc(text)}" style="font-size:13.5px;color:#1e293b;line-height:1.5;">${content}</div>
                 <div style="display:flex;align-items:center;justify-content:flex-end;gap:2px;margin-top:3px;">
                     ${editedHtmlOther}<span style="font-size:10.5px;color:rgba(0,0,0,.35);">${time}</span>
                 </div>
             </div>
         </div>
+        ${actions}
     </div>`;
 }
 
-window.cpDotsClick = function(e, msgId, isMine, createdTs) {
+window.cpDotsClick = function(e, btn, msgId, isMine, createdTs) {
     e.stopPropagation();
     const canEdit = isMine && (Date.now()/1000 - createdTs) < 86400;
-    cpShowCtxAt(e, msgId, canEdit);
+    cpShowCtxAt(btn, msgId, isMine, canEdit);
+};
+window.cpLikeClick = async function(e, btn, msgId) {
+    e.stopPropagation();
+    if (!_cpActiveConvId) return;
+    btn.style.opacity = '0.5';
+    await fetch(`${API_BASE}/api/chat/convs/${_cpActiveConvId}/send`, {
+        method: 'POST',
+        headers: {'Content-Type':'application/json','X-CSRF-TOKEN':CSRF},
+        body: JSON.stringify({content:'👍',type:'text'})
+    });
+    btn.style.opacity = '';
 };
 
 /* ── Conversation avatar with online dot ── */
