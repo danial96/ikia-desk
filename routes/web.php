@@ -442,6 +442,8 @@ Route::middleware('auth')->group(function () {
             'createdTs' => $m->created_at->timestamp,
             'editedAt'  => $m->edited_at?->format('H:i'),
             'deletedFor'=> $m->deleted_for ?? [],
+            'reactions' => $m->reactions ?? [],
+            'myReactions'=> array_keys(array_filter($m->reactions ?? [], fn($ids) => in_array($user->id, (array)$ids))),
             'author'    => ['id'=>$m->user_id,'name'=>$m->user?->name??'','avatar'=>$m->user?->avatar_url??''],
         ];
 
@@ -522,6 +524,28 @@ Route::middleware('auth')->group(function () {
             $msg->update(['deleted_for'=>$for]);
         }
         return response()->json(['ok'=>true]);
+    });
+
+    // ── React to message (toggle emoji reaction) ──
+    Route::post('/api/chat/msgs/{id}/react', function (\Illuminate\Http\Request $request, $id) {
+        $request->validate(['emoji' => 'required|string|max:8']);
+        $user  = auth()->user();
+        $msg   = \App\Models\Message::findOrFail($id);
+        $emoji = $request->emoji;
+        $rxns  = $msg->reactions ?? [];
+        $ids   = array_values((array)($rxns[$emoji] ?? []));
+        if (in_array($user->id, $ids)) {
+            $ids = array_values(array_filter($ids, fn($v) => $v !== $user->id));
+        } else {
+            $ids[] = $user->id;
+        }
+        if (empty($ids)) {
+            unset($rxns[$emoji]);
+        } else {
+            $rxns[$emoji] = $ids;
+        }
+        $msg->update(['reactions' => empty($rxns) ? null : $rxns]);
+        return response()->json(['ok' => true, 'reactions' => $rxns]);
     });
 
     Route::post('/api/chat/convs/{id}/leave', function ($id) {

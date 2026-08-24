@@ -91,6 +91,17 @@ document.addEventListener('DOMContentLoaded', function() {
 
         {{-- Input --}}
         <div id="cp-input-area" style="display:none;padding:10px 16px 14px;border-top:1px solid #e2e8f0;background:#fff;flex-shrink:0;">
+            {{-- Reply preview bar --}}
+            <div id="cp-reply-bar" style="display:none;align-items:center;gap:10px;padding:7px 12px 6px;margin-bottom:6px;background:#f0f9ff;border-radius:8px;border-left:3px solid #0891b2;">
+                <i class="fas fa-reply" style="font-size:12px;color:#0891b2;flex-shrink:0;"></i>
+                <div style="flex:1;min-width:0;">
+                    <p id="cp-reply-name" style="margin:0 0 1px;font-size:11px;font-weight:700;color:#0891b2;"></p>
+                    <p id="cp-reply-text" style="margin:0;font-size:12px;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></p>
+                </div>
+                <button onclick="cpCancelReply()" style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:14px;padding:2px 6px;line-height:1;flex-shrink:0;transition:color .12s;" onmouseover="this.style.color='#1e293b'" onmouseout="this.style.color='#94a3b8'">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
             {{-- Normal input --}}
             <div id="cp-normal-input" style="display:flex;align-items:flex-end;gap:8px;">
                 <div style="flex:1;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;">
@@ -411,10 +422,14 @@ document.addEventListener('DOMContentLoaded', function() {
             const row = document.querySelector(`[data-msg-id="${msgId}"]`);
             if (!row) return;
             const textEl = row.querySelector('[data-msg-text]');
-            const raw = textEl ? (textEl.dataset.raw || '').replace(/\[img\].*?\[\/img\]/g,'[image]').substring(0,80) : '';
-            const ta = document.getElementById('cp-textarea');
-            ta.value = (raw ? `> ${raw}\n\n` : '') + ta.value;
-            ta.focus();
+            const raw = textEl ? textEl.dataset.raw || '' : '';
+            const senderName = row.dataset.mine === '1' ? 'You' : (row.dataset.sender || 'Someone');
+            const preview = raw.replace(/\[img\].*?\[\/img\]/g,'[image]').replace(/\[file name="[^"]*"\].*?\[\/file\]/g,'[file]').replace(/\[voice[^\]]*\].*?\[\/voice\]/g,'[voice]').substring(0, 120);
+            _cpReplyQuote = `> ${raw.replace(/\[img\].*?\[\/img\]/g,'[image]').substring(0,80)}`;
+            document.getElementById('cp-reply-name').textContent = senderName;
+            document.getElementById('cp-reply-text').textContent = preview;
+            document.getElementById('cp-reply-bar').style.display = 'flex';
+            document.getElementById('cp-textarea').focus();
         } else if (action === 'copy') {
             const row = document.querySelector(`[data-msg-id="${msgId}"]`);
             const textEl = row ? row.querySelector('[data-msg-text]') : null;
@@ -469,6 +484,13 @@ document.getElementById('cp-conv-ctx').addEventListener('click', async function(
         await cpLoad();
     }
 });
+
+/* ── Reply ── */
+let _cpReplyQuote = '';
+window.cpCancelReply = function() {
+    _cpReplyQuote = '';
+    document.getElementById('cp-reply-bar').style.display = 'none';
+};
 
 /* ── Edit ── */
 let _editingMsgId = null;
@@ -531,9 +553,19 @@ function renderContent(text, isMine) {
     return out;
 }
 
+function reactionBadge(reactions, myReactions, msgId) {
+    if (!reactions || !Object.keys(reactions).length) return `<div id="cp-rxn-${msgId}" style="min-height:0;"></div>`;
+    const badges = Object.entries(reactions).map(([emoji, ids]) => {
+        const count = ids.length;
+        const mine  = myReactions && myReactions.includes(emoji);
+        return `<span onclick="cpLikeClick(event,null,${msgId},'${emoji}')" style="display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:20px;background:${mine?'rgba(8,145,178,.18)':'rgba(0,0,0,.09)'};border:1px solid ${mine?'rgba(8,145,178,.4)':'rgba(0,0,0,.1)'};font-size:13px;cursor:pointer;user-select:none;transition:background .12s;" title="${mine?'Remove reaction':'React'}">${emoji}${count>1?`<span style="font-size:11px;color:#64748b;">${count}</span>`:''}</span>`;
+    }).join('');
+    return `<div id="cp-rxn-${msgId}" style="display:flex;flex-wrap:wrap;gap:3px;margin-top:3px;">${badges}</div>`;
+}
+
 function bubble(m) {
-    const {isMine, name, avatar, text, time, showName=true, msgId, editedAt, createdTs, isDeleted} = m;
-    const dataAttrs = msgId ? `data-msg-id="${msgId}" data-mine="${isMine?'1':'0'}" data-created-ts="${createdTs||0}"` : '';
+    const {isMine, name, avatar, text, time, showName=true, msgId, editedAt, createdTs, isDeleted, reactions, myReactions} = m;
+    const dataAttrs = msgId ? `data-msg-id="${msgId}" data-mine="${isMine?'1':'0'}" data-created-ts="${createdTs||0}" data-sender="${esc(name||'')}"` : '';
 
     if (isDeleted) {
         const align = isMine ? 'flex-end' : 'flex-start';
@@ -553,6 +585,7 @@ function bubble(m) {
     </div>` : '';
 
     if (isMine) {
+        const rxn = msgId ? reactionBadge(reactions, myReactions, msgId) : '';
         return `<div ${dataAttrs} class="cp-msg-outer" style="display:flex;justify-content:flex-end;align-items:center;gap:5px;margin-bottom:2px;">
             ${actions}
             <div style="max-width:45%;">
@@ -563,6 +596,7 @@ function bubble(m) {
                         <i class="fas fa-check-double" style="font-size:9px;color:rgba(0,140,90,.6);"></i>
                     </div>
                 </div>
+                ${rxn}
             </div>
         </div>`;
     }
@@ -571,6 +605,7 @@ function bubble(m) {
         : `<div style="width:28px;height:28px;border-radius:50%;background:rgba(100,116,139,.3);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px;font-size:11px;color:#94a3b8;">${(name||'?')[0]}</div>`;
     const nm = showName ? `<span style="font-size:11.5px;color:#64748b;font-weight:600;display:block;margin-bottom:2px;">${esc(name)}</span>` : '';
     const editedHtmlOther = editedAt ? `<span style="font-size:9.5px;color:rgba(0,0,0,.3);margin-right:4px;font-style:italic;">edited</span>` : '';
+    const rxnOther = msgId ? reactionBadge(reactions, myReactions, msgId) : '';
     return `<div ${dataAttrs} class="cp-msg-outer" style="display:flex;align-items:center;gap:5px;margin-bottom:2px;${showName?'margin-top:6px':''}">
         ${av}
         <div style="max-width:45%;">
@@ -581,6 +616,7 @@ function bubble(m) {
                     ${editedHtmlOther}<span style="font-size:10.5px;color:rgba(0,0,0,.35);">${time}</span>
                 </div>
             </div>
+            ${rxnOther}
         </div>
         ${actions}
     </div>`;
@@ -591,16 +627,36 @@ window.cpDotsClick = function(e, btn, msgId, isMine, createdTs) {
     const canEdit = isMine && (Date.now()/1000 - createdTs) < 86400;
     cpShowCtxAt(btn, msgId, isMine, canEdit);
 };
-window.cpLikeClick = async function(e, btn, msgId) {
-    e.stopPropagation();
-    if (!_cpActiveConvId) return;
-    btn.style.opacity = '0.5';
-    await fetch(`${API_BASE}/api/chat/convs/${_cpActiveConvId}/send`, {
-        method: 'POST',
-        headers: {'Content-Type':'application/json','X-CSRF-TOKEN':CSRF},
-        body: JSON.stringify({content:'👍',type:'text'})
-    });
-    btn.style.opacity = '';
+window.cpLikeClick = async function(e, btn, msgId, emoji) {
+    if (e) e.stopPropagation();
+    const em = emoji || '👍';
+    if (btn) btn.style.opacity = '0.5';
+    try {
+        const r = await fetch(`${API_BASE}/api/chat/msgs/${msgId}/react`, {
+            method: 'POST',
+            headers: {'Content-Type':'application/json','X-CSRF-TOKEN':CSRF},
+            body: JSON.stringify({emoji: em})
+        });
+        const d = await r.json();
+        /* update reaction badge on bubble in-place (no full re-render) */
+        const rxnEl = document.getElementById(`cp-rxn-${msgId}`);
+        const row   = document.querySelector(`[data-msg-id="${msgId}"]`);
+        const isMine = row?.dataset.mine === '1';
+        if (rxnEl) {
+            const rxns = d.reactions || {};
+            const myR  = Object.keys(rxns).filter(k => (rxns[k]||[]).includes({{ auth()->id() }}));
+            const badges = Object.entries(rxns).map(([emo, ids]) => {
+                const mine = myR.includes(emo);
+                return `<span onclick="cpLikeClick(event,null,${msgId},'${emo}')" style="display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:20px;background:${mine?'rgba(8,145,178,.18)':'rgba(0,0,0,.09)'};border:1px solid ${mine?'rgba(8,145,178,.4)':'rgba(0,0,0,.1)'};font-size:13px;cursor:pointer;user-select:none;transition:background .12s;">${emo}${ids.length>1?`<span style="font-size:11px;color:#64748b;">${ids.length}</span>`:''}</span>`;
+            }).join('');
+            rxnEl.style.display = badges ? 'flex' : 'none';
+            rxnEl.innerHTML = badges;
+            rxnEl.style.flexWrap = 'wrap';
+            rxnEl.style.gap = '3px';
+            rxnEl.style.marginTop = '3px';
+        }
+    } catch(err) {}
+    if (btn) btn.style.opacity = '';
 };
 
 /* ── Conversation avatar with online dot ── */
@@ -789,7 +845,8 @@ function cpRenderMsgs(msgs, scrollToBottom) {
         const showName = !m.isMine && prevAuthor !== m.author.id;
         html += bubble({isMine:m.isMine, name:m.author.name, avatar:m.author.avatar,
             text:m.text||'', time:m.time, showName, msgId:m.id,
-            editedAt:m.editedAt, createdTs:m.createdTs, isDeleted});
+            editedAt:m.editedAt, createdTs:m.createdTs, isDeleted,
+            reactions:m.reactions, myReactions:m.myReactions});
         prevAuthor = m.author.id;
     });
 
@@ -846,7 +903,9 @@ window.cpSend = async function() {
     ta.value = ''; ta.style.height = 'auto';
     if (window.clearAttachments) window.clearAttachments('cp-textarea', 'cp-attach-preview');
     if (typeof chatSendSound === 'function') chatSendSound();
-    const fullText = text + (attachTags ? (text ? '\n' : '') + attachTags : '');
+    const replyPrefix = _cpReplyQuote ? _cpReplyQuote + '\n\n' : '';
+    cpCancelReply();
+    const fullText = replyPrefix + text + (attachTags ? (text ? '\n' : '') + attachTags : '');
     const now = new Date();
     const timeStr = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
     const el = document.getElementById('cp-msg-area');
@@ -1004,6 +1063,7 @@ function cpAppendMsgs(msgs) {
             text: m.text || '', time: m.time, showName: !m.isMine,
             msgId: m.id, editedAt: m.editedAt, createdTs: m.createdTs,
             isDeleted: Array.isArray(m.deletedFor) && m.deletedFor.includes(ME_ID),
+            reactions: m.reactions, myReactions: m.myReactions,
         }));
     });
     _cpMsgCount += msgs.length;
@@ -1053,7 +1113,8 @@ async function cpLoadOlderMsgs() {
                 const showName = !m.isMine && prevAuthor !== m.author.id;
                 html += bubble({isMine:m.isMine, name:m.author.name, avatar:m.author.avatar,
                     text:m.text||'', time:m.time, showName, msgId:m.id,
-                    editedAt:m.editedAt, createdTs:m.createdTs, isDeleted});
+                    editedAt:m.editedAt, createdTs:m.createdTs, isDeleted,
+                    reactions:m.reactions, myReactions:m.myReactions});
                 prevAuthor = m.author.id;
             });
 

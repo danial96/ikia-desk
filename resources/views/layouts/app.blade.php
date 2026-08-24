@@ -676,6 +676,17 @@
 
         {{-- Input --}}
         <div id="chat-input-area" style="display:none;padding:8px 12px 10px;border-top:1px solid #e2e8f0;background:#fff;flex-shrink:0;">
+            {{-- Reply preview bar --}}
+            <div id="chat-reply-bar" style="display:none;align-items:center;gap:8px;padding:6px 10px 5px;margin-bottom:5px;background:#f0f9ff;border-radius:7px;border-left:3px solid #0891b2;">
+                <i class="fas fa-reply" style="font-size:11px;color:#0891b2;flex-shrink:0;"></i>
+                <div style="flex:1;min-width:0;">
+                    <p id="chat-reply-name" style="margin:0 0 1px;font-size:10.5px;font-weight:700;color:#0891b2;"></p>
+                    <p id="chat-reply-text" style="margin:0;font-size:11.5px;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></p>
+                </div>
+                <button onclick="chatCancelReply()" style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:13px;padding:2px 5px;line-height:1;flex-shrink:0;" onmouseover="this.style.color='#1e293b'" onmouseout="this.style.color='#94a3b8'">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
             {{-- Normal input --}}
             <div id="chat-normal-input" style="display:flex;align-items:flex-end;gap:8px;">
                 <div style="flex:1;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;overflow:hidden;">
@@ -1134,7 +1145,7 @@ function chatRenderMsgs(msgs) {
         }
 
         const showName = !m.isMine && prevAuthorId !== m.author.id;
-        html += chatBubble({isMine: m.isMine, name: m.author.name, avatar: m.author.avatar, text: m.text, time: m.time, showName, msgId: m.id, createdTs: m.createdTs||0});
+        html += chatBubble({isMine: m.isMine, name: m.author.name, avatar: m.author.avatar, text: m.text, time: m.time, showName, msgId: m.id, createdTs: m.createdTs||0, reactions: m.reactions, myReactions: m.myReactions});
         prevAuthorId = m.author.id;
     });
 
@@ -1197,15 +1208,25 @@ function renderMsgContent(text, isMine) {
     return out;
 }
 
-function chatBubble({isMine, name, avatar, text, time, showName=true, msgId=null, createdTs=0}) {
+function chatRxnBadge(reactions, myReactions, msgId) {
+    if (!reactions || !Object.keys(reactions).length) return `<div id="chat-rxn-${msgId}" style="min-height:0;"></div>`;
+    const badges = Object.entries(reactions).map(([emoji, ids]) => {
+        const mine = myReactions && myReactions.includes(emoji);
+        return `<span onclick="chatLikeClick(event,null,${msgId},'${emoji}')" style="display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:20px;background:${mine?'rgba(8,145,178,.18)':'rgba(0,0,0,.09)'};border:1px solid ${mine?'rgba(8,145,178,.4)':'rgba(0,0,0,.1)'};font-size:12px;cursor:pointer;user-select:none;">${emoji}${ids.length>1?`<span style="font-size:10px;color:#64748b;">${ids.length}</span>`:''}</span>`;
+    }).join('');
+    return `<div id="chat-rxn-${msgId}" style="display:flex;flex-wrap:wrap;gap:3px;margin-top:3px;">${badges}</div>`;
+}
+
+function chatBubble({isMine, name, avatar, text, time, showName=true, msgId=null, createdTs=0, reactions=null, myReactions=null}) {
     const content = renderMsgContent(text, isMine);
     if (isMine) {
         const rawEsc = text.replace(/&/g,'&amp;').replace(/"/g,'&quot;');
         const actions = msgId ? `<div class="chat-msg-actions">
-            <button class="chat-action-btn" onclick="chatLikeClick(event,this,${msgId})" title="Like">👍</button>
+            <button class="chat-action-btn" onclick="chatLikeClick(event,this,${msgId},'👍')" title="Like">👍</button>
             <button class="chat-action-btn" onclick="chatDotsClick(event,this,${msgId},true,${createdTs})" title="More">⋯</button>
         </div>` : '';
-        return `<div data-msg-id="${msgId||''}" data-mine="1" data-created-ts="${createdTs}" class="chat-msg-outer" style="display:flex;justify-content:flex-end;align-items:center;gap:4px;margin-bottom:2px;">
+        const rxn = msgId ? chatRxnBadge(reactions, myReactions, msgId) : '';
+        return `<div data-msg-id="${msgId||''}" data-mine="1" data-created-ts="${createdTs}" data-sender="You" class="chat-msg-outer" style="display:flex;justify-content:flex-end;align-items:center;gap:4px;margin-bottom:2px;">
             ${actions}
             <div style="max-width:45%;">
                 <div class="chat-bubble-bg" style="background:rgba(200,240,210,.92);border-radius:14px 4px 14px 14px;padding:8px 12px;">
@@ -1215,6 +1236,7 @@ function chatBubble({isMine, name, avatar, text, time, showName=true, msgId=null
                         <i class="fas fa-check-double" style="font-size:9px;color:rgba(0,120,80,.5);"></i>
                     </div>
                 </div>
+                ${rxn}
             </div>
         </div>`;
     } else {
@@ -1225,10 +1247,11 @@ function chatBubble({isMine, name, avatar, text, time, showName=true, msgId=null
             ? `<span style="font-size:11px;color:#64748b;font-weight:600;display:block;margin-bottom:2px;">${escH(name)}</span>`
             : '';
         const actionsOther = msgId ? `<div class="chat-msg-actions">
-            <button class="chat-action-btn" onclick="chatLikeClick(event,this,${msgId})" title="Like">👍</button>
+            <button class="chat-action-btn" onclick="chatLikeClick(event,this,${msgId},'👍')" title="Like">👍</button>
             <button class="chat-action-btn" onclick="chatDotsClick(event,this,${msgId},false,${createdTs})" title="More">⋯</button>
         </div>` : '';
-        return `<div data-msg-id="${msgId||''}" data-mine="0" data-created-ts="${createdTs}" class="chat-msg-outer" style="display:flex;align-items:center;gap:4px;margin-bottom:2px;${showName?'margin-top:6px':''}">
+        const rxnOther = msgId ? chatRxnBadge(reactions, myReactions, msgId) : '';
+        return `<div data-msg-id="${msgId||''}" data-mine="0" data-created-ts="${createdTs}" data-sender="${escH(name)}" class="chat-msg-outer" style="display:flex;align-items:center;gap:4px;margin-bottom:2px;${showName?'margin-top:6px':''}">
             ${avatarHtml}
             <div style="max-width:45%;">
                 ${nameHtml}
@@ -1236,6 +1259,7 @@ function chatBubble({isMine, name, avatar, text, time, showName=true, msgId=null
                     <div style="font-size:13px;color:#1e293b;line-height:1.5;">${content}</div>
                     <span style="font-size:10px;color:rgba(0,0,0,.35);display:block;margin-top:3px;text-align:right;">${time}</span>
                 </div>
+                ${rxnOther}
             </div>
             ${actionsOther}
         </div>`;
@@ -1283,23 +1307,51 @@ window.chatDotsClick = function(e, btn, msgId, isMine, createdTs) {
         menu.style.top  = y + 'px';
     }
 };
-window.chatLikeClick = async function(e, btn, msgId) {
-    e.stopPropagation();
-    if (!_activeConvId) return;
-    btn.style.opacity = '0.5';
-    await fetch(`${API_BASE}/api/chat/convs/${_activeConvId}/send`, {
-        method:'POST', headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF},
-        body: JSON.stringify({content:'👍',type:'text'})
-    });
-    btn.style.opacity = '';
+window.chatLikeClick = async function(e, btn, msgId, emoji) {
+    if (e) e.stopPropagation();
+    const em = emoji || '👍';
+    if (btn) btn.style.opacity = '0.5';
+    try {
+        const r = await fetch(`${API_BASE}/api/chat/msgs/${msgId}/react`, {
+            method:'POST', headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF},
+            body: JSON.stringify({emoji: em})
+        });
+        const d = await r.json();
+        const rxnEl = document.getElementById(`chat-rxn-${msgId}`);
+        if (rxnEl) {
+            const rxns = d.reactions || {};
+            const myId = {{ auth()->id() }};
+            const myR  = Object.keys(rxns).filter(k => (rxns[k]||[]).includes(myId));
+            const badges = Object.entries(rxns).map(([emo, ids]) => {
+                const mine = myR.includes(emo);
+                return `<span onclick="chatLikeClick(event,null,${msgId},'${emo}')" style="display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:20px;background:${mine?'rgba(8,145,178,.18)':'rgba(0,0,0,.09)'};border:1px solid ${mine?'rgba(8,145,178,.4)':'rgba(0,0,0,.1)'};font-size:12px;cursor:pointer;user-select:none;">${emo}${ids.length>1?`<span style="font-size:10px;color:#64748b;">${ids.length}</span>`:''}</span>`;
+            }).join('');
+            rxnEl.style.display = badges ? 'flex' : 'none';
+            rxnEl.innerHTML = badges;
+            rxnEl.style.flexWrap = 'wrap';
+            rxnEl.style.gap = '3px';
+            rxnEl.style.marginTop = '3px';
+        }
+    } catch(err) {}
+    if (btn) btn.style.opacity = '';
+};
+let _chatReplyQuote = '';
+window.chatCancelReply = function() {
+    _chatReplyQuote = '';
+    document.getElementById('chat-reply-bar').style.display = 'none';
 };
 window.chatCtxReply = function() {
     document.getElementById('chat-msg-ctx').style.display = 'none';
     if (!_chatCtxMsgId) return;
     const row = document.querySelector(`[data-msg-id="${_chatCtxMsgId}"]`);
     const raw = row ? (row.querySelector('[data-raw]')?.dataset.raw || '') : '';
+    const senderName = row?.dataset.mine === '1' ? 'You' : (row?.dataset.sender || 'Someone');
+    const preview = raw.replace(/\[img\].*?\[\/img\]/g,'[image]').replace(/\[file name="[^"]*"\].*?\[\/file\]/g,'[file]').replace(/\[voice[^\]]*\].*?\[\/voice\]/g,'[voice]').substring(0,100);
+    _chatReplyQuote = `> ${raw.replace(/\[img\].*?\[\/img\]/g,'[image]').substring(0,80)}`;
+    document.getElementById('chat-reply-name').textContent = senderName;
+    document.getElementById('chat-reply-text').textContent = preview;
+    document.getElementById('chat-reply-bar').style.display = 'flex';
     const ta = document.getElementById('chat-textarea');
-    ta.value = (raw ? `> ${raw.substring(0,80)}\n\n` : '') + ta.value;
     ta.focus();
 };
 window.chatCtxCopy = function() {
@@ -1365,7 +1417,9 @@ window.chatSend = async function() {
     if (window.clearAttachments) window.clearAttachments('chat-textarea', 'chat-attach-preview');
     chatSendSound();
 
-    const fullText = text + (attachTags ? (text ? '\n' : '') + attachTags : '');
+    const replyPrefix = _chatReplyQuote ? _chatReplyQuote + '\n\n' : '';
+    chatCancelReply();
+    const fullText = replyPrefix + text + (attachTags ? (text ? '\n' : '') + attachTags : '');
 
     // Optimistic render
     const now = new Date();
@@ -1481,6 +1535,7 @@ function chatAppendMsgs(msgs) {
         inner.insertAdjacentHTML('beforeend', chatBubble({
             isMine: m.isMine, name: m.author.name, avatar: m.author.avatar,
             text: m.text, time: m.time, showName: !m.isMine, msgId: m.id, createdTs: m.createdTs||0,
+            reactions: m.reactions, myReactions: m.myReactions,
         }));
     });
     el.scrollTop = el.scrollHeight + 9999;
