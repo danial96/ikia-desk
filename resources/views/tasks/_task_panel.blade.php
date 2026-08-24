@@ -554,12 +554,12 @@ document.addEventListener('keydown',e=>{
 });
 $('tp-overlay').addEventListener('click',function(e){ if(e.target===this) tpClose(); });
 
-// Move overlay to body so it's not constrained by parent stacking context
+// Move overlay + calendar popup to body so position:fixed is never inside a transformed/backdrop-filter parent
 document.addEventListener('DOMContentLoaded', function() {
-    const ov = document.getElementById('tp-overlay');
-    if (ov && ov.parentElement !== document.body) {
-        document.body.appendChild(ov);
-    }
+    ['tp-overlay','tp-cal-popup','tp-edit-modal'].forEach(function(id){
+        const el = document.getElementById(id);
+        if (el && el.parentElement !== document.body) document.body.appendChild(el);
+    });
 });
 
 (function(){
