@@ -261,12 +261,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const inputArea = document.getElementById('cp-input-area');
     inputArea.insertBefore(editBar, inputArea.firstChild);
 
-    // Also move ctx menu and del dlg inside cp-wrap (already there via blade)
-    const wrap = document.getElementById('cp-wrap');
-    const ctx  = document.getElementById('cp-ctx-menu');
-    const dlg  = document.getElementById('cp-del-dlg');
-    if (ctx && ctx.parentElement !== wrap) wrap.appendChild(ctx);
-    if (dlg && dlg.parentElement !== wrap) wrap.appendChild(dlg);
 });
 </script>
 
@@ -405,8 +399,8 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 document.addEventListener('click', function(e) {
-    cpHideCtx();
-    if (!e.target.closest('#cp-conv-ctx')) cpHideConvCtx();
+    if (!e.target.closest('#cp-ctx-menu') && !e.target.closest('.cp-dots-btn')) cpHideCtx();
+    if (!e.target.closest('#cp-conv-ctx') && !e.target.closest('.cp-conv-dots')) cpHideConvCtx();
 });
 document.addEventListener('keydown', function(e) { if(e.key==='Escape') { cpHideCtx(); cpHideConvCtx(); cpCancelEdit(); } });
 
