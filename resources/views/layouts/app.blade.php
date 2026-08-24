@@ -807,7 +807,7 @@
 .chat-msg-outer:hover .chat-msg-actions { display:flex; }
 .chat-action-btn { width:24px;height:24px;border-radius:50%;background:rgba(0,0,0,.13);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:11px;color:#374151;line-height:1;transition:background .12s;padding:0; }
 .chat-action-btn:hover { background:rgba(0,0,0,.22); }
-#chat-msg-ctx { display:none;position:absolute;z-index:999;background:#fff;border:1px solid #e2e8f0;border-radius:9px;padding:4px 0;min-width:130px;box-shadow:0 8px 28px rgba(0,0,0,.12); }
+#chat-msg-ctx { display:none;position:fixed;z-index:9999;background:#fff;border:1px solid #e2e8f0;border-radius:9px;padding:4px 0;min-width:130px;box-shadow:0 8px 28px rgba(0,0,0,.12); }
 .chat-ctx-item { display:flex;align-items:center;gap:8px;padding:8px 14px;color:#374151;font-size:13px;cursor:pointer;transition:background .1s; }
 .chat-ctx-item:hover { background:#f1f5f9; }
 .chat-ctx-del { color:#ef4444; }
@@ -1279,33 +1279,19 @@ window.chatDotsClick = function(e, btn, msgId, isMine, createdTs) {
         (canEdit ? `<div class="chat-ctx-item" onclick="chatCtxEdit()"><i class="fas fa-pen" style="font-size:11px;opacity:.7;width:14px;"></i>Edit</div>` : '') +
         (isMine ? `<div class="chat-ctx-item chat-ctx-del" onclick="chatCtxDelete()"><i class="fas fa-trash-alt" style="font-size:11px;opacity:.7;width:14px;"></i>Delete</div>` : '');
 
-    /* Move menu into the clicked message's outer div (position:relative), menu is position:absolute */
-    const outerDiv = btn.closest('.chat-msg-outer');
-    if (outerDiv) outerDiv.appendChild(menu);
+    /* position:fixed — menu stays in original DOM, never moved into message area */
     menu.style.display = 'block';
 
     const btnRect = btn.getBoundingClientRect();
     const mW = menu.offsetWidth || 130;
     const mH = menu.offsetHeight || 100;
-
-    if (outerDiv) {
-        const outerRect = outerDiv.getBoundingClientRect();
-        let x = btnRect.left - outerRect.left + btnRect.width / 2 - mW / 2;
-        let y = btnRect.bottom - outerRect.top + 4;
-
-        /* flip above if near bottom of chat msg area */
-        const msgArea = document.getElementById('chat-msg-area');
-        if (msgArea) {
-            const areaBottom = msgArea.getBoundingClientRect().bottom;
-            if (btnRect.bottom + mH + 4 > areaBottom - 8) {
-                y = btnRect.top - outerRect.top - mH - 4;
-            }
-        }
-
-        x = Math.max(0, Math.min(x, outerRect.width - mW));
-        menu.style.left = x + 'px';
-        menu.style.top  = y + 'px';
-    }
+    let x = btnRect.left + btnRect.width / 2 - mW / 2;
+    let y = btnRect.bottom + 6;
+    if (y + mH > window.innerHeight - 8) y = btnRect.top - mH - 6;
+    x = Math.max(8, Math.min(x, window.innerWidth - mW - 8));
+    y = Math.max(8, y);
+    menu.style.left = x + 'px';
+    menu.style.top  = y + 'px';
 };
 window.chatLikeClick = async function(e, btn, msgId, emoji) {
     if (e) e.stopPropagation();

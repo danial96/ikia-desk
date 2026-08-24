@@ -198,7 +198,7 @@ document.addEventListener('DOMContentLoaded', function() {
     </div>
 </div>
 
-{{-- Context menu (position:absolute, appended into clicked message div via JS) --}}
+{{-- Context menu (position:fixed via CSS, never moved into message DOM) --}}
 <div id="cp-ctx-menu" style="display:none;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:5px;min-width:140px;box-shadow:0 8px 28px rgba(0,0,0,.15);"></div>
 
 {{-- Conversation context menu --}}
@@ -251,7 +251,7 @@ document.addEventListener('DOMContentLoaded', function() {
 .cp-ctx-item i { width:15px;text-align:center;font-size:12px;opacity:.65; }
 .cp-ctx-del { color:#ef4444; }
 .cp-ctx-del:hover { background:rgba(239,68,68,.08) !important; }
-#cp-ctx-menu { animation:ctxFade .1s ease; position:absolute; z-index:999; }
+#cp-ctx-menu { animation:ctxFade .1s ease; position:fixed; z-index:9999; }
 @keyframes ctxFade { from{opacity:0;transform:scale(.95)} to{opacity:1;transform:scale(1)} }
 /* ── Message action buttons on hover ── */
 .cp-msg-outer { position:relative; }
@@ -334,52 +334,39 @@ function cpPreviewText(t) {
         .replace(/\[\/?(B|I|S|U|CODE)\]/gi, '');
 }
 
-/* ── Context menu ── */
+/* ── Context menu (position:fixed — stays in original DOM, never moved into message area) ── */
 let _ctxMsgId = null, _ctxIsMine = false;
 function cpHideCtx() {
     const menu = document.getElementById('cp-ctx-menu');
     if (menu) menu.style.display = 'none';
     _ctxMsgId = null;
 }
-/* outerDivOverride: pass the .cp-msg-outer element explicitly (used for right-click fake btn) */
-function cpShowCtxAt(btn, msgId, isMine, canEdit, outerDivOverride) {
+function cpShowCtxAt(btn, msgId, isMine, canEdit) {
     cpHideCtx();
     _ctxMsgId = msgId;
     _ctxIsMine = isMine;
 
-    const outerDiv = outerDivOverride || (btn.closest ? btn.closest('.cp-msg-outer') : null);
     const menu = document.getElementById('cp-ctx-menu');
+    if (!menu) return;
     menu.innerHTML =
         `<div class="cp-ctx-item" data-action="reply"><i class="fas fa-reply"></i>Reply</div>` +
         `<div class="cp-ctx-item" data-action="copy"><i class="fas fa-copy"></i>Copy</div>` +
         (canEdit ? `<div class="cp-ctx-item" data-action="edit"><i class="fas fa-pen"></i>Edit</div>` : '') +
         (isMine ? `<div class="cp-ctx-item cp-ctx-del" data-action="delete"><i class="fas fa-trash"></i>Delete</div>` : '');
 
-    if (outerDiv) outerDiv.appendChild(menu);
     menu.style.display = 'block';
 
+    /* position:fixed coords = viewport coords from getBoundingClientRect */
     const btnRect = btn.getBoundingClientRect();
     const mW = menu.offsetWidth || 140;
     const mH = menu.offsetHeight || 110;
-
-    if (outerDiv) {
-        const outerRect = outerDiv.getBoundingClientRect();
-        let x = btnRect.left - outerRect.left + btnRect.width / 2 - mW / 2;
-        let y = btnRect.bottom - outerRect.top + 4;
-
-        /* flip above button if menu would overflow the msg-area bottom */
-        const msgArea = document.getElementById('cp-msg-area');
-        if (msgArea) {
-            const areaBottom = msgArea.getBoundingClientRect().bottom;
-            if (btnRect.bottom + mH + 4 > areaBottom - 8) {
-                y = btnRect.top - outerRect.top - mH - 4;
-            }
-        }
-
-        x = Math.max(0, Math.min(x, outerRect.width - mW));
-        menu.style.left = x + 'px';
-        menu.style.top  = y + 'px';
-    }
+    let x = btnRect.left + btnRect.width / 2 - mW / 2;
+    let y = btnRect.bottom + 6;
+    if (y + mH > window.innerHeight - 8) y = btnRect.top - mH - 6;
+    x = Math.max(8, Math.min(x, window.innerWidth - mW - 8));
+    y = Math.max(8, y);
+    menu.style.left = x + 'px';
+    menu.style.top  = y + 'px';
 }
 
 // Delegate contextmenu from the message area
@@ -394,9 +381,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const createdTs = +(row.dataset.createdTs || 0);
         const isMine = row.dataset.mine === '1';
         const canEdit = isMine && (nowTs - createdTs) < 86400;
-        const outerDiv = row.classList.contains('cp-msg-outer') ? row : (row.closest('.cp-msg-outer') || row);
-        const fakeBtn = { getBoundingClientRect: () => ({left:e.clientX, right:e.clientX, bottom:e.clientY, top:e.clientY, width:0, height:0}), closest: ()=>null };
-        cpShowCtxAt(fakeBtn, msgId, isMine, canEdit, outerDiv);
+        const fakeBtn = { getBoundingClientRect: () => ({left:e.clientX, right:e.clientX, bottom:e.clientY, top:e.clientY, width:0, height:0}) };
+        cpShowCtxAt(fakeBtn, msgId, isMine, canEdit);
     });
 
     // Delegate clicks on context menu items
