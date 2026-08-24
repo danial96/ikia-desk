@@ -12,7 +12,7 @@
 .esf-pill.esf-on { background:rgba(0,212,232,.18);border-color:rgba(0,212,232,.55);color:#00D4E8; }
 </style>
 
-<div x-data="{ showModal: false }">
+<div>
 
     {{-- ── Filter bar ── --}}
     <div style="background:rgba(255,255,255,.12);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.18);border-radius:14px;padding:10px 16px;margin-bottom:16px;">
@@ -64,7 +64,7 @@
 
             {{-- Add button --}}
             @if(auth()->user()->isAdmin())
-            <button @click="showModal = true" class="ikia-btn" style="flex-shrink:0;">
+            <button onclick="empAddOpen()" class="ikia-btn" style="flex-shrink:0;">
                 <i class="fas fa-plus" style="font-size:12px;margin-right:4px;"></i>Add Employee
             </button>
             @endif
@@ -278,6 +278,25 @@
         }, { rootMargin: '300px' }).observe(sentinel);
     })();
 
+    // Move modals to body so position:fixed is never inside a transformed parent
+    document.addEventListener('DOMContentLoaded', function() {
+        ['emp-add-modal','emp-edit-modal'].forEach(function(id) {
+            var m = document.getElementById(id);
+            if (m && m.parentElement !== document.body) document.body.appendChild(m);
+        });
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') { empAddClose(); empEditClose(); }
+        });
+    });
+
+    window.empAddOpen = function() {
+        var m = document.getElementById('emp-add-modal');
+        m.style.display = 'flex';
+    };
+    window.empAddClose = function() {
+        document.getElementById('emp-add-modal').style.display = 'none';
+    };
+
     window.empEditOpen = function(emp) {
         var modal = document.getElementById('emp-edit-modal');
         var form  = document.getElementById('emp-edit-form');
@@ -300,28 +319,27 @@
     </script>
 
     {{-- Add Employee Modal --}}
-    <div x-show="showModal" x-cloak style="position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;overflow:hidden;" @keydown.escape.window="showModal = false">
-        <div style="position:fixed;inset:0;background:rgba(0,0,0,.5);" @click="showModal = false"></div>
-        <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-6" style="max-height:90vh;overflow-y:auto;z-index:1;" @click.stop>
-            <h2 class="text-lg font-semibold mb-5">Add New Employee</h2>
-            <form action="{{ route('employees.store') }}" method="POST" class="space-y-4">
+    <div id="emp-add-modal" onclick="if(event.target===this)empAddClose()" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;z-index:99999;background:rgba(0,0,0,.55);align-items:center;justify-content:center;padding:16px;box-sizing:border-box;">
+        <div onclick="event.stopPropagation()" style="background:#fff;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.3);width:100%;max-width:460px;max-height:90vh;overflow-y:auto;padding:24px;">
+            <h2 style="font-size:16px;font-weight:600;margin:0 0 20px;color:#111827;">Add New Employee</h2>
+            <form action="{{ route('employees.store') }}" method="POST">
                 @csrf
-                <div class="grid grid-cols-2 gap-4">
-                    <div class="col-span-2">
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Full Name *</label>
-                        <input type="text" name="name" required class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+                    <div style="grid-column:span 2;">
+                        <label style="display:block;font-size:12.5px;font-weight:500;color:#374151;margin-bottom:5px;">Full Name *</label>
+                        <input type="text" name="name" required style="width:100%;padding:9px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:13px;outline:none;box-sizing:border-box;">
                     </div>
-                    <div class="col-span-2">
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Email *</label>
-                        <input type="email" name="email" required class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Password *</label>
-                        <input type="password" name="password" required minlength="8" class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm">
+                    <div style="grid-column:span 2;">
+                        <label style="display:block;font-size:12.5px;font-weight:500;color:#374151;margin-bottom:5px;">Email *</label>
+                        <input type="email" name="email" required style="width:100%;padding:9px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:13px;outline:none;box-sizing:border-box;">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Role *</label>
-                        <select name="role" class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm">
+                        <label style="display:block;font-size:12.5px;font-weight:500;color:#374151;margin-bottom:5px;">Password *</label>
+                        <input type="password" name="password" required minlength="8" style="width:100%;padding:9px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:13px;outline:none;box-sizing:border-box;">
+                    </div>
+                    <div>
+                        <label style="display:block;font-size:12.5px;font-weight:500;color:#374151;margin-bottom:5px;">Role *</label>
+                        <select name="role" style="width:100%;padding:9px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:13px;outline:none;box-sizing:border-box;background:#fff;">
                             <option value="employee">Employee</option>
                             <option value="admin">Admin</option>
                             @if(auth()->user()->isSuperAdmin())
@@ -330,21 +348,21 @@
                         </select>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Phone</label>
-                        <input type="text" name="phone" class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm">
+                        <label style="display:block;font-size:12.5px;font-weight:500;color:#374151;margin-bottom:5px;">Phone</label>
+                        <input type="text" name="phone" style="width:100%;padding:9px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:13px;outline:none;box-sizing:border-box;">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Department</label>
-                        <input type="text" name="department" class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm">
+                        <label style="display:block;font-size:12.5px;font-weight:500;color:#374151;margin-bottom:5px;">Department</label>
+                        <input type="text" name="department" style="width:100%;padding:9px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:13px;outline:none;box-sizing:border-box;">
                     </div>
-                    <div class="col-span-2">
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Position</label>
-                        <input type="text" name="position" class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm">
+                    <div style="grid-column:span 2;">
+                        <label style="display:block;font-size:12.5px;font-weight:500;color:#374151;margin-bottom:5px;">Position</label>
+                        <input type="text" name="position" style="width:100%;padding:9px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:13px;outline:none;box-sizing:border-box;">
                     </div>
                 </div>
-                <div class="flex gap-3 pt-2">
-                    <button type="button" @click="showModal = false" class="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg text-sm hover:bg-gray-50 transition">Cancel</button>
-                    <button type="submit" class="flex-1 px-4 py-2.5 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition">Add Employee</button>
+                <div style="display:flex;gap:10px;margin-top:20px;">
+                    <button type="button" onclick="empAddClose()" style="flex:1;padding:10px;border:1px solid #d1d5db;background:#fff;color:#374151;border-radius:8px;font-size:13px;cursor:pointer;">Cancel</button>
+                    <button type="submit" style="flex:1;padding:10px;border:none;background:#4f46e5;color:#fff;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;">Add Employee</button>
                 </div>
             </form>
         </div>
