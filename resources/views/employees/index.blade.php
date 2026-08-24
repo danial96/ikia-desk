@@ -353,11 +353,42 @@
                     </div>
                     <div>
                         <label style="display:block;font-size:12.5px;font-weight:500;color:#374151;margin-bottom:5px;">Department</label>
-                        <input type="text" name="department" style="width:100%;padding:9px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:13px;outline:none;box-sizing:border-box;">
+                        <select name="department" style="width:100%;padding:9px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:13px;outline:none;box-sizing:border-box;background:#fff;">
+                            <option value="">— Select —</option>
+                            <option>HR Department</option>
+                            <option>IKIA TECH</option>
+                            <option>Production Department</option>
+                            <option>Sales Department</option>
+                        </select>
                     </div>
                     <div style="grid-column:span 2;">
                         <label style="display:block;font-size:12.5px;font-weight:500;color:#374151;margin-bottom:5px;">Position</label>
-                        <input type="text" name="position" style="width:100%;padding:9px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:13px;outline:none;box-sizing:border-box;">
+                        <select name="position" style="width:100%;padding:9px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:13px;outline:none;box-sizing:border-box;background:#fff;">
+                            <option value="">— Select —</option>
+                            <option>Associate Executive Developer</option>
+                            <option>Associate Project Manager</option>
+                            <option>CMS Manager</option>
+                            <option>Content Writer</option>
+                            <option>Design Team Lead</option>
+                            <option>Development Team Lead</option>
+                            <option>Executive Developer</option>
+                            <option>Front Sales Team Lead</option>
+                            <option>Head of Sales</option>
+                            <option>HR Manager</option>
+                            <option>IT</option>
+                            <option>Product Developer</option>
+                            <option>Production Head</option>
+                            <option>Sales Executive</option>
+                            <option>SEO Executive</option>
+                            <option>SEO Manager</option>
+                            <option>SEO Specialist</option>
+                            <option>Sr Sales Executive</option>
+                            <option>Sr. Designer</option>
+                            <option>Sr. Digital marketing Executive</option>
+                            <option>Sr. Executive Developer</option>
+                            <option>Web Designer</option>
+                            <option>WordPress Intern</option>
+                        </select>
                     </div>
                 </div>
                 <div style="display:flex;gap:10px;margin-top:20px;">
@@ -403,11 +434,42 @@
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Department</label>
-                        <input type="text" name="department" class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm">
+                        <select name="department" class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm">
+                            <option value="">— Select —</option>
+                            <option>HR Department</option>
+                            <option>IKIA TECH</option>
+                            <option>Production Department</option>
+                            <option>Sales Department</option>
+                        </select>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Position</label>
-                        <input type="text" name="position" class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm">
+                        <select name="position" class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm">
+                            <option value="">— Select —</option>
+                            <option>Associate Executive Developer</option>
+                            <option>Associate Project Manager</option>
+                            <option>CMS Manager</option>
+                            <option>Content Writer</option>
+                            <option>Design Team Lead</option>
+                            <option>Development Team Lead</option>
+                            <option>Executive Developer</option>
+                            <option>Front Sales Team Lead</option>
+                            <option>Head of Sales</option>
+                            <option>HR Manager</option>
+                            <option>IT</option>
+                            <option>Product Developer</option>
+                            <option>Production Head</option>
+                            <option>Sales Executive</option>
+                            <option>SEO Executive</option>
+                            <option>SEO Manager</option>
+                            <option>SEO Specialist</option>
+                            <option>Sr Sales Executive</option>
+                            <option>Sr. Designer</option>
+                            <option>Sr. Digital marketing Executive</option>
+                            <option>Sr. Executive Developer</option>
+                            <option>Web Designer</option>
+                            <option>WordPress Intern</option>
+                        </select>
                     </div>
                 </div>
                 <div class="flex gap-3 pt-2">
