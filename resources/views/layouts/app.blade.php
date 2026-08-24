@@ -1205,11 +1205,12 @@ function chatBubble({isMine, name, avatar, text, time, showName=true, msgId=null
     const content = renderMsgContent(text, isMine);
     if (isMine) {
         const dotsBtn = msgId ? `<button class="chat-dots-btn chat-dots-mine" onclick="chatDotsClick(event,${msgId},true,${createdTs})" title="More">⋯</button>` : '';
+        const rawEsc = text.replace(/&/g,'&amp;').replace(/"/g,'&quot;');
         return `<div data-msg-id="${msgId||''}" data-mine="1" data-created-ts="${createdTs}" style="display:flex;justify-content:flex-end;margin-bottom:2px;">
             <div style="max-width:45%;">
                 <div class="chat-bubble-bg" style="background:rgba(200,240,210,.92);border-radius:14px 4px 14px 14px;padding:8px 12px;">
                     ${dotsBtn}
-                    <div style="font-size:13px;color:#1a3025;line-height:1.5;${dotsBtn?'padding-right:20px;':''}">${content}</div>
+                    <div data-raw="${rawEsc}" style="font-size:13px;color:#1a3025;line-height:1.5;${dotsBtn?'padding-right:20px;':''}">${content}</div>
                     <div style="display:flex;align-items:center;justify-content:flex-end;gap:4px;margin-top:3px;">
                         <span style="font-size:10px;color:rgba(0,0,0,.35);">${time}</span>
                         <i class="fas fa-check-double" style="font-size:9px;color:rgba(0,120,80,.5);"></i>
@@ -1251,13 +1252,31 @@ window.chatDotsClick = function(e, msgId, isMine, createdTs) {
     menu.style.left = x + 'px';
     menu.style.top  = y + 'px';
 };
-window.chatCtxEdit = async function() {
+window.chatCtxEdit = function() {
     document.getElementById('chat-msg-ctx').style.display = 'none';
     if (!_chatCtxMsgId || !_chatCtxIsMine) return;
     const row = document.querySelector(`[data-msg-id="${_chatCtxMsgId}"]`);
-    const raw = row ? (row.querySelector('[data-raw]')?.dataset.raw || '') : '';
-    const newText = prompt('Edit message:', raw);
-    if (!newText || newText === raw) return;
+    if (!row) return;
+    const bubble = row.querySelector('.chat-bubble-bg');
+    const textDiv = row.querySelector('[data-raw]');
+    const raw = textDiv ? textDiv.dataset.raw : '';
+    bubble.innerHTML = `
+        <div style="display:flex;flex-direction:column;gap:6px;">
+            <textarea id="chat-edit-ta" style="width:100%;min-width:180px;padding:6px 8px;border:1px solid #0891b2;border-radius:8px;font-size:13px;color:#1e293b;background:#fff;resize:none;outline:none;line-height:1.5;" rows="3">${raw.replace(/</g,'&lt;')}</textarea>
+            <div style="display:flex;gap:6px;justify-content:flex-end;">
+                <button onclick="chatCancelEdit()" style="padding:4px 12px;border-radius:6px;border:1px solid #cbd5e1;background:#fff;color:#64748b;font-size:12px;cursor:pointer;">Cancel</button>
+                <button onclick="chatSaveEdit()" style="padding:4px 12px;border-radius:6px;border:none;background:#0891b2;color:#fff;font-size:12px;cursor:pointer;">Save</button>
+            </div>
+        </div>`;
+    const ta = document.getElementById('chat-edit-ta');
+    ta.focus();
+    ta.selectionStart = ta.selectionEnd = ta.value.length;
+};
+window.chatCancelEdit = function() { chatLoadConvs(); };
+window.chatSaveEdit = async function() {
+    const ta = document.getElementById('chat-edit-ta');
+    const newText = ta ? ta.value.trim() : '';
+    if (!newText) return;
     await fetch(API_BASE + '/api/chat/msgs/' + _chatCtxMsgId, {
         method:'PATCH', headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF},
         body: JSON.stringify({content: newText})

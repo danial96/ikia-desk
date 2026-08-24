@@ -561,11 +561,11 @@ function bubble(m) {
     </div>`;
 }
 
-function cpDotsClick(e, msgId, isMine, createdTs) {
+window.cpDotsClick = function(e, msgId, isMine, createdTs) {
     e.stopPropagation();
     const canEdit = isMine && (Date.now()/1000 - createdTs) < 86400;
     cpShowCtxAt(e, msgId, canEdit);
-}
+};
 
 /* ── Conversation avatar with online dot ── */
 function convAvatar(c, size) {
