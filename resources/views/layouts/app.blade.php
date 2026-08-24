@@ -1493,9 +1493,11 @@ function chatUpdateBadge(count) {
     setInterval(pollOnlineStatus, 30000);
     // Expose for background polling outside this IIFE
     window.chatPoll = chatPoll;
+    window.chatLoadConvs = chatLoadConvs;
+    window.chatSelectConv = chatSelectConv;
+    window.chatBubble = chatBubble;
 })();
 
-// Expose for task panel optimistic comment render
 window.tpChatBubble = chatBubble;
 
 /* ── Utility ── */
