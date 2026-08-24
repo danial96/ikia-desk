@@ -290,6 +290,8 @@
         var roleSelect = form.querySelector('[name=role]');
         if (roleSelect) roleSelect.value = emp.role || 'employee';
         modal.style.display = 'flex';
+        modal.style.alignItems = 'center';
+        modal.style.justifyContent = 'center';
     };
 
     window.empEditClose = function() {
@@ -298,9 +300,9 @@
     </script>
 
     {{-- Add Employee Modal --}}
-    <div x-show="showModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4" @keydown.escape.window="showModal = false">
-        <div class="fixed inset-0 bg-black/50" @click="showModal = false"></div>
-        <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-6" @click.stop>
+    <div x-show="showModal" x-cloak style="position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;overflow:hidden;" @keydown.escape.window="showModal = false">
+        <div style="position:fixed;inset:0;background:rgba(0,0,0,.5);" @click="showModal = false"></div>
+        <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-6" style="max-height:90vh;overflow-y:auto;z-index:1;" @click.stop>
             <h2 class="text-lg font-semibold mb-5">Add New Employee</h2>
             <form action="{{ route('employees.store') }}" method="POST" class="space-y-4">
                 @csrf
@@ -349,8 +351,8 @@
     </div>
 
     {{-- Edit Employee Modal (plain JS, works for dynamically loaded cards) --}}
-    <div id="emp-edit-modal" class="fixed inset-0 z-50 items-center justify-center p-4" style="display:none;background:rgba(0,0,0,.5);" onclick="if(event.target===this)empEditClose()">
-        <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-6" onclick="event.stopPropagation()">
+    <div id="emp-edit-modal" style="display:none;position:fixed;inset:0;z-index:9999;align-items:center;justify-content:center;padding:16px;background:rgba(0,0,0,.5);overflow:hidden;" onclick="if(event.target===this)empEditClose()">
+        <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-6" style="max-height:90vh;overflow-y:auto;" onclick="event.stopPropagation()">
             <h2 class="text-lg font-semibold mb-5">Edit Employee</h2>
             <form id="emp-edit-form" method="POST" class="space-y-4">
                 @csrf @method('PUT')
