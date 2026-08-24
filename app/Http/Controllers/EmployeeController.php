@@ -57,6 +57,7 @@ class EmployeeController extends Controller
             'role'       => 'required|in:super_admin,admin,employee',
             'phone'      => 'nullable|string|max:20',
             'department' => 'nullable|string|max:100',
+            'position'   => 'nullable|string|max:100',
         ]);
 
         if ($request->role === 'super_admin' && !Auth::user()->isSuperAdmin()) {
@@ -70,6 +71,7 @@ class EmployeeController extends Controller
             'role'       => $request->role,
             'phone'      => $request->phone,
             'department' => $request->department,
+            'position'   => $request->position,
             'is_active'  => true,
         ]);
 
@@ -86,10 +88,11 @@ class EmployeeController extends Controller
             'role'       => 'required|in:super_admin,admin,employee',
             'phone'      => 'nullable|string|max:20',
             'department' => 'nullable|string|max:100',
+            'position'   => 'nullable|string|max:100',
             'is_active'  => 'boolean',
         ]);
 
-        $data = $request->only('name', 'email', 'role', 'phone', 'department', 'is_active');
+        $data = $request->only('name', 'email', 'role', 'phone', 'department', 'position', 'is_active');
         if ($request->password) {
             $data['password'] = Hash::make($request->password);
         }
