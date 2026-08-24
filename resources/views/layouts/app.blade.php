@@ -741,9 +741,6 @@
     </div>
 </div>
 
-{{-- Message context menu --}}
-<div id="chat-msg-ctx"></div>
-
 {{-- New Direct Chat overlay (inside panel) --}}
 <div id="chat-new-direct-modal" style="display:none;position:fixed;top:0;right:52px;bottom:0;width:calc(90% - 52px);z-index:251;background:rgba(8,12,45,.97);backdrop-filter:blur(28px);flex-direction:column;">
     <div style="padding:16px 18px;border-bottom:1px solid rgba(255,255,255,.1);display:flex;align-items:center;gap:10px;">
@@ -786,6 +783,9 @@
         </button>
     </div>
 </div>
+
+{{-- Context menu lives OUTSIDE #chat-panel so panel's transform doesn't break position:fixed --}}
+<div id="chat-msg-ctx"></div>
 
 <style>
 #chat-panel { display:none; }
@@ -1367,16 +1367,17 @@ window.chatCtxEdit = function() {
     ta.focus();
     ta.selectionStart = ta.selectionEnd = ta.value.length;
 };
-window.chatCancelEdit = function() { chatLoadConvs(); };
+window.chatCancelEdit = function() { if (_activeConvId) chatSelectConv(_activeConvId); };
 window.chatSaveEdit = async function() {
     const ta = document.getElementById('chat-edit-ta');
     const newText = ta ? ta.value.trim() : '';
     if (!newText) return;
-    await fetch(API_BASE + '/api/chat/msgs/' + _chatCtxMsgId, {
+    const r = await fetch(API_BASE + '/api/chat/msgs/' + _chatCtxMsgId, {
         method:'PATCH', headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF},
         body: JSON.stringify({content: newText})
     });
-    chatLoadConvs();
+    if (!r.ok) { const e = await r.json().catch(()=>({})); alert((e&&e.error)||'Edit failed'); return; }
+    if (_activeConvId) chatSelectConv(_activeConvId);
 };
 window.chatCtxDelete = async function() {
     document.getElementById('chat-msg-ctx').style.display = 'none';

@@ -505,7 +505,7 @@ Route::middleware('auth')->group(function () {
         $user = auth()->user();
         $msg  = \App\Models\Message::findOrFail($id);
         if ((int)$msg->user_id !== (int)$user->id) return response()->json(['error'=>'Forbidden'],403);
-        if ($msg->created_at->diffInMinutes(now()) > 5) return response()->json(['error'=>'Too late to edit'],403);
+        if ($msg->created_at->diffInHours(now()) > 24) return response()->json(['error'=>'Too late to edit'],403);
         $msg->update(['content'=>$request->content,'edited_at'=>now()]);
         return response()->json(['ok'=>true,'editedAt'=>$msg->edited_at->format('H:i')]);
     });
