@@ -791,11 +791,12 @@
 .chat-conv-unread { background:#f0fdf4;border-left:2px solid #22c55e !important; }
 .chat-conv-unread:hover { background:#dcfce7 !important; }
 @keyframes chatFlash { 0%{background:rgba(34,197,94,.2)} 100%{background:#f0fdf4} }
+.chat-msg-outer { position:relative; }
 .chat-msg-actions { display:none;align-items:center;gap:3px;flex-shrink:0; }
 .chat-msg-outer:hover .chat-msg-actions { display:flex; }
 .chat-action-btn { width:24px;height:24px;border-radius:50%;background:rgba(0,0,0,.13);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:11px;color:#374151;line-height:1;transition:background .12s;padding:0; }
 .chat-action-btn:hover { background:rgba(0,0,0,.22); }
-#chat-msg-ctx { display:none;position:fixed;z-index:9999;background:#fff;border:1px solid #e2e8f0;border-radius:9px;padding:4px 0;min-width:130px;box-shadow:0 8px 28px rgba(0,0,0,.12); }
+#chat-msg-ctx { display:none;position:absolute;z-index:999;background:#fff;border:1px solid #e2e8f0;border-radius:9px;padding:4px 0;min-width:130px;box-shadow:0 8px 28px rgba(0,0,0,.12); }
 .chat-ctx-item { display:flex;align-items:center;gap:8px;padding:8px 14px;color:#374151;font-size:13px;cursor:pointer;transition:background .1s; }
 .chat-ctx-item:hover { background:#f1f5f9; }
 .chat-ctx-del { color:#ef4444; }
@@ -1253,16 +1254,34 @@ window.chatDotsClick = function(e, btn, msgId, isMine, createdTs) {
         `<div class="chat-ctx-item" onclick="chatCtxCopy()"><i class="fas fa-copy" style="font-size:11px;opacity:.7;width:14px;"></i>Copy</div>` +
         (canEdit ? `<div class="chat-ctx-item" onclick="chatCtxEdit()"><i class="fas fa-pen" style="font-size:11px;opacity:.7;width:14px;"></i>Edit</div>` : '') +
         (isMine ? `<div class="chat-ctx-item chat-ctx-del" onclick="chatCtxDelete()"><i class="fas fa-trash-alt" style="font-size:11px;opacity:.7;width:14px;"></i>Delete</div>` : '');
+
+    /* Move menu into the clicked message's outer div (position:relative), menu is position:absolute */
+    const outerDiv = btn.closest('.chat-msg-outer');
+    if (outerDiv) outerDiv.appendChild(menu);
     menu.style.display = 'block';
-    const rect = btn.getBoundingClientRect();
+
+    const btnRect = btn.getBoundingClientRect();
     const mW = menu.offsetWidth || 130;
     const mH = menu.offsetHeight || 100;
-    let x = rect.left + rect.width / 2 - mW / 2;
-    let y = rect.bottom + 6;
-    x = Math.max(8, Math.min(x, window.innerWidth - mW - 8));
-    y = Math.max(8, Math.min(y, window.innerHeight - mH - 8));
-    menu.style.left = x + 'px';
-    menu.style.top  = y + 'px';
+
+    if (outerDiv) {
+        const outerRect = outerDiv.getBoundingClientRect();
+        let x = btnRect.left - outerRect.left + btnRect.width / 2 - mW / 2;
+        let y = btnRect.bottom - outerRect.top + 4;
+
+        /* flip above if near bottom of chat msg area */
+        const msgArea = document.getElementById('chat-msg-area');
+        if (msgArea) {
+            const areaBottom = msgArea.getBoundingClientRect().bottom;
+            if (btnRect.bottom + mH + 4 > areaBottom - 8) {
+                y = btnRect.top - outerRect.top - mH - 4;
+            }
+        }
+
+        x = Math.max(0, Math.min(x, outerRect.width - mW));
+        menu.style.left = x + 'px';
+        menu.style.top  = y + 'px';
+    }
 };
 window.chatLikeClick = async function(e, btn, msgId) {
     e.stopPropagation();
