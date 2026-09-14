@@ -403,8 +403,11 @@ const parseMsg = txt => {
     }).join('');
 };
 
-const fmtDate  = iso => iso ? new Date(iso).toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric'}) : '—';
-const fmtTime  = iso => { if(!iso) return ''; const d=new Date(iso); const h=d.getHours(),m=d.getMinutes(); return (h%12||12)+':'+String(m).padStart(2,'0')+' '+(h>=12?'PM':'AM'); };
+// Deadlines are stored/reported in Asia/Karachi — always render in that zone so the
+// date can't shift a day for viewers in another timezone.
+const APP_TZ = 'Asia/Karachi';
+const fmtDate  = iso => iso ? new Date(iso).toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric',timeZone:APP_TZ}) : '—';
+const fmtTime  = iso => iso ? new Date(iso).toLocaleTimeString('en-GB',{hour:'numeric',minute:'2-digit',hour12:true,timeZone:APP_TZ}) : '';
 const fmtShort = iso => iso ? new Date(iso).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) : '';
 const fmtTimeOnly = iso => { if(!iso) return ''; const d=new Date(iso); return (''+d.getHours()).padStart(2,'0')+':'+(''+d.getMinutes()).padStart(2,'0'); };
 const chatDayKey  = iso => { if(!iso) return ''; const d=new Date(iso); return d.getFullYear()+'-'+d.getMonth()+'-'+d.getDate(); };
@@ -777,7 +780,9 @@ window._tpCalQuick=_tpCalQuick; // alias used internally
 function _tpCalLocalToISO(){
     const h=_tpCal.selH!==null?_tpCal.selH:9;
     const m=_tpCal.selM!==null?_tpCal.selM:0;
-    return new Date(_tpCal.selDate+'T'+String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':00').toISOString();
+    // Send a naive local datetime (no UTC conversion): the server interprets it in the
+    // app timezone, so the saved date matches what the user picked (no day shift).
+    return _tpCal.selDate+'T'+String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':00';
 }
 function _tpCalSaveSilent(){
     if(!_tpCal.selDate) return;
