@@ -16,6 +16,8 @@
 # /public/build — tracked in git for shared hosting deploy
 /public/hot
 /public/storage
+# Uploads live in storage/app/private/uploads and are served by an authenticated route
+/public/uploads
 /storage/*.key
 /storage/pail
 /vendor

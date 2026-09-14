@@ -17,7 +17,7 @@ class ImportTaskAttachments extends BitrixCommand
 
     public function handle(): int
     {
-        $this->dir = public_path('uploads/bitrix');
+        $this->dir = \App\Support\Uploads::path('bitrix');
         if (!is_dir($this->dir)) {
             mkdir($this->dir, 0755, true);
         }

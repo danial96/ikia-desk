@@ -22,7 +22,7 @@ class DownloadChatFiles extends BitrixCommand
     {
         $this->buildUserMap();
 
-        $this->dir = public_path('uploads/bitrix/chat');
+        $this->dir = \App\Support\Uploads::path('bitrix/chat');
         if (!is_dir($this->dir)) {
             mkdir($this->dir, 0755, true);
         }

@@ -149,6 +149,13 @@ Route::middleware('auth')->group(function () {
         ]);
     })->name('api.local.task');
 
+    // ── Serve uploaded/imported files (private storage, auth required) ──
+    Route::get('/uploads/{path}', function ($path) {
+        $full = \App\Support\Uploads::resolve($path);
+        if (!$full) abort(404);
+        return response()->file($full);
+    })->where('path', '.*')->name('uploads.show');
+
     // ── Bitrix Disk file proxy (download on-demand, cache locally) ──
     Route::get('/api/disk-file/{id}', function ($id) {
         $id = (int)$id;
@@ -167,12 +174,11 @@ Route::middleware('auth')->group(function () {
         }
 
         // Serve from filesystem cache if already downloaded
-        $cacheDir = public_path('uploads/bitrix');
+        $cacheDir = \App\Support\Uploads::path('bitrix');
         $pattern  = $cacheDir . '/disk_' . $id . '_*';
         $existing = glob($pattern);
         if ($existing) {
-            $rel = 'uploads/bitrix/' . basename($existing[0]);
-            return redirect(asset($rel));
+            return redirect(asset('uploads/bitrix/' . basename($existing[0])));
         }
 
         $webhook = rtrim(env('BITRIX_WEBHOOK', ''), '/') . '/';
@@ -198,7 +204,7 @@ Route::middleware('auth')->group(function () {
         @mkdir($cacheDir, 0755, true);
         $safeName = preg_replace('/[^a-zA-Z0-9._-]/', '_', $name);
         $diskPath = 'uploads/bitrix/disk_' . $id . '_' . substr($safeName, 0, 80);
-        $savePath = public_path($diskPath);
+        $savePath = \App\Support\Uploads::path('bitrix/disk_' . $id . '_' . substr($safeName, 0, 80));
 
         $fp = fopen($savePath, 'wb');
         if (!$fp) abort(500);
@@ -240,7 +246,8 @@ Route::middleware('auth')->group(function () {
         if (!in_array($ext, $allowed)) abort(422, 'File type not allowed.');
         $fileSize = $file->getSize() ?: 0;
         $filename = 'up_' . uniqid() . '.' . $ext;
-        $file->move(public_path('uploads'), $filename);
+        @mkdir(\App\Support\Uploads::path(), 0755, true);
+        $file->move(\App\Support\Uploads::path(), $filename);
         $tf = $task->files()->create([
             'uploaded_by' => $user->id,
             'name'        => $origName,
@@ -373,9 +380,9 @@ Route::middleware('auth')->group(function () {
             if (!in_array($ext, $allowed)) return response()->json(['error'=>'File type not allowed.'],422);
             $filename = 'up_' . uniqid() . '.' . $ext;
 
-            $uploadPath = public_path('uploads');
+            $uploadPath = \App\Support\Uploads::path();
             if (!is_dir($uploadPath)) {
-                mkdir($uploadPath, 0777, true);
+                mkdir($uploadPath, 0755, true);
             }
 
             $file->move($uploadPath, $filename);
@@ -387,7 +394,8 @@ Route::middleware('auth')->group(function () {
                 'ext'  => $ext,
             ]);
         } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage(), 'path' => public_path('uploads')], 500);
+            report($e);
+            return response()->json(['error' => 'Upload failed. Please try again.'], 500);
         }
     });
 

@@ -31,7 +31,7 @@ class DownloadFiles extends Command
         $total = count($ids);
         $this->info("Files to download: $total");
 
-        $dir = public_path('uploads/bitrix');
+        $dir = \App\Support\Uploads::path('bitrix');
         if (!is_dir($dir)) {
             mkdir($dir, 0755, true);
         }

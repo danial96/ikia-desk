@@ -51,6 +51,14 @@ jobs:
             php artisan down --retry=15 || true
             trap 'php artisan up' EXIT
 
+            # Uploads used to live in public/uploads (publicly downloadable, partly tracked in git).
+            # Move them out of the web root BEFORE git reset, which would delete the tracked copies.
+            if [ -d public/uploads ]; then
+              mkdir -p storage/app/private/uploads
+              cp -an public/uploads/. storage/app/private/uploads/
+              rm -rf public/uploads
+            fi
+
             git fetch origin main
             git reset --hard origin/main
 
