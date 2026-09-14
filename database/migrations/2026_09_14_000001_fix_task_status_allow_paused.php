@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 /**
@@ -17,6 +18,10 @@ return new class extends Migration
         Schema::table('tasks', function (Blueprint $table) {
             $table->string('status', 32)->default('new')->change();
         });
+
+        // Rows whose status is empty are failed "paused" writes: MySQL rejected the
+        // enum value and blanked the column. Restore their intended status.
+        DB::table('tasks')->where('status', '')->update(['status' => 'paused']);
     }
 
     public function down(): void
