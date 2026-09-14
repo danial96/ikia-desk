@@ -1422,6 +1422,7 @@ window.chatSend = async function() {
     if (!_activeConvId) return;
     const ta = document.getElementById('chat-textarea');
     const text = ta.value.trim();
+    const mentions = window._mentionCollect ? window._mentionCollect('chat-textarea') : [];
     const attachTags = window.getAttachmentTags ? window.getAttachmentTags('chat-textarea') : '';
     if (!text && !attachTags) return;
 
@@ -1446,7 +1447,7 @@ window.chatSend = async function() {
         const r = await fetch(API_BASE + '/api/chat/convs/' + _activeConvId + '/send', {
             method: 'POST',
             headers: {'Content-Type':'application/json','X-CSRF-TOKEN':CSRF},
-            body: JSON.stringify({content: fullText}),
+            body: JSON.stringify({content: fullText, mentions}),
         });
         const d = await r.json();
         // Advance _lastMsgId so the next poll skips this just-sent message
@@ -1490,6 +1491,105 @@ window.chatSend = async function() {
     }
     document.addEventListener('DOMContentLoaded', wire);
     window._chatWireDrop = wire;
+})();
+
+/* ── @mention autocomplete (chat + comments) ───────────────────────────────── */
+(function() {
+    let _users = null, _box = null, _items = [], _active = -1, _ta = null, _tok = null;
+    window._mentionIds = {}; // textareaId -> { name: id } picked in this box
+
+    function loadUsers() {
+        if (_users) return Promise.resolve(_users);
+        return fetch(API_BASE + '/api/employees-list', { headers: { 'Accept': 'application/json' } })
+            .then(r => r.json()).then(u => (_users = Array.isArray(u) ? u : [])).catch(() => (_users = []));
+    }
+    function box() {
+        if (_box) return _box;
+        _box = document.createElement('div');
+        _box.id = 'mention-dropdown';
+        _box.style.cssText = 'position:fixed;z-index:100000;min-width:190px;max-width:280px;max-height:210px;overflow-y:auto;background:#fff;border:1px solid #e2e8f0;border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.2);display:none;padding:4px;';
+        document.body.appendChild(_box);
+        return _box;
+    }
+    function hide() { if (_box) _box.style.display = 'none'; _items = []; _active = -1; _tok = null; }
+    function tokenAt(ta) {
+        const pos = ta.selectionStart;
+        const m = ta.value.slice(0, pos).match(/(^|\s)@([\p{L}0-9_]*)$/u);
+        if (!m) return null;
+        return { query: m[2], start: pos - m[2].length - 1, end: pos };
+    }
+    function render(ta, list) {
+        const b = box();
+        b.innerHTML = list.map((u, i) =>
+            `<div class="mention-opt" data-i="${i}" style="display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:7px;cursor:pointer;${i === _active ? 'background:#e0f7fa;' : ''}">
+                <img src="${escH(u.avatar || '')}" style="width:24px;height:24px;border-radius:50%;object-fit:cover;flex-shrink:0;background:#e2e8f0;">
+                <span style="font-size:13px;color:#1e293b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escH(u.name)}</span>
+            </div>`).join('');
+        _items = list;
+        b.querySelectorAll('.mention-opt').forEach(el => {
+            el.addEventListener('mousedown', e => { e.preventDefault(); pick(+el.dataset.i); });
+            el.addEventListener('mouseenter', () => { _active = +el.dataset.i; highlight(); });
+        });
+        const r = ta.getBoundingClientRect();
+        b.style.left = Math.min(r.left, window.innerWidth - 290) + 'px';
+        b.style.bottom = (window.innerHeight - r.top + 6) + 'px';
+        b.style.top = 'auto';
+        b.style.display = 'block';
+    }
+    function highlight() {
+        if (!_box) return;
+        _box.querySelectorAll('.mention-opt').forEach((el, i) => el.style.background = i === _active ? '#e0f7fa' : '');
+    }
+    function pick(i) {
+        const u = _items[i]; if (!u || !_ta || !_tok) return;
+        const before = _ta.value.slice(0, _tok.start);
+        const after  = _ta.value.slice(_tok.end);
+        _ta.value = before + '@' + u.name + ' ' + after;
+        const caret = (before + '@' + u.name + ' ').length;
+        _ta.setSelectionRange(caret, caret);
+        (_mentionIds[_ta.id] = _mentionIds[_ta.id] || {})[u.name] = u.id;
+        hide(); _ta.focus();
+        _ta.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+    async function onInput(e) {
+        const ta = e.target; _ta = ta;
+        const tok = tokenAt(ta);
+        if (!tok) { hide(); return; }
+        _tok = tok;
+        const users = await loadUsers();
+        const q = tok.query.toLowerCase();
+        const list = users.filter(u => (u.name || '').toLowerCase().includes(q)).slice(0, 8);
+        if (!list.length) { hide(); return; }
+        _active = 0; render(ta, list);
+    }
+    function onKey(e) {
+        if (!_box || _box.style.display === 'none') return;
+        if (e.key === 'ArrowDown') { e.preventDefault(); _active = (_active + 1) % _items.length; highlight(); }
+        else if (e.key === 'ArrowUp') { e.preventDefault(); _active = (_active - 1 + _items.length) % _items.length; highlight(); }
+        else if (e.key === 'Enter') { if (_active >= 0) { e.preventDefault(); e.stopPropagation(); pick(_active); } }
+        else if (e.key === 'Escape') { hide(); }
+    }
+    // Collect picked mention IDs still present in the text, then clear (called on send)
+    window._mentionCollect = function(taId) {
+        const map = _mentionIds[taId] || {};
+        const ta = document.getElementById(taId);
+        const text = ta ? ta.value : '';
+        const ids = Object.entries(map).filter(([name]) => text.includes('@' + name)).map(([, id]) => id);
+        _mentionIds[taId] = {};
+        return [...new Set(ids)];
+    };
+    window.mentionAttach = function(taId) {
+        const ta = document.getElementById(taId);
+        if (!ta || ta._mentionWired) return;
+        ta._mentionWired = true;
+        ta.addEventListener('input', onInput);
+        ta.addEventListener('keydown', onKey, true);
+        ta.addEventListener('blur', () => setTimeout(hide, 150));
+    };
+    document.addEventListener('DOMContentLoaded', function() {
+        window.mentionAttach('chat-textarea');
+        window.mentionAttach('tp-comment-text');
+    });
 })();
 
 /* ── New Direct ── */

@@ -342,13 +342,18 @@ Route::middleware('auth')->group(function () {
 
     // Post comment via AJAX
     Route::post('/api/local-task/{id}/comment', function ($id, \Illuminate\Http\Request $request) {
-        $request->validate(['content'=>'required|string|max:5000']);
+        $request->validate([
+            'content'    => 'required|string|max:5000',
+            'mentions'   => 'nullable|array',
+            'mentions.*' => 'integer',
+        ]);
         $task    = \App\Models\Task::findOrFail($id);
         $authUser = auth()->user();
         if (!$authUser->isSuperAdmin() && !$task->isMember($authUser) && $task->created_by !== $authUser->id && $task->assigned_to !== $authUser->id) {
             abort(403);
         }
-        $comment = $task->comments()->create(['user_id'=>auth()->id(),'content'=>$request->content,'mentions'=>[]]);
+        $mentions = array_values(array_unique(array_map('intval', (array) $request->mentions)));
+        $comment = $task->comments()->create(['user_id'=>auth()->id(),'content'=>$request->content,'mentions'=>$mentions]);
         $task->logActivity(auth()->user(),'commented',null,null,$request->content);
 
         // Notify creator + assignee + members + observers about new comment
@@ -361,6 +366,12 @@ Route::middleware('auth')->group(function () {
             ->filter()->unique()->values()->toArray();
         \App\Models\Notification::notify($recipientIds, auth()->user(), 'task_comment', $task,
             auth()->user()->name . ' commented on "' . $task->title . '"');
+
+        // Extra "mentioned you" notification for anyone @mentioned (even if not a member)
+        if ($mentions) {
+            \App\Models\Notification::mention($mentions, auth()->user(),
+                auth()->user()->name . ' mentioned you in a comment on "' . $task->title . '"', $task);
+        }
 
         return response()->json([
             'ok'      => true,
@@ -577,17 +588,33 @@ Route::middleware('auth')->group(function () {
     });
 
     Route::post('/api/chat/convs/{id}/send', function (\Illuminate\Http\Request $request, $id) {
-        $request->validate(['content'=>'required|string|max:5000']);
+        $request->validate([
+            'content'     => 'required|string|max:5000',
+            'mentions'    => 'nullable|array',
+            'mentions.*'  => 'integer',
+        ]);
         $user = auth()->user();
         $conv = \App\Models\Conversation::with('members')->findOrFail($id);
         if ($conv->type !== 'general' && !$conv->members->contains('id',$user->id))
             return response()->json(['error'=>'Forbidden'],403);
 
-        preg_match_all('/@(\w+)/', $request->content, $mMatches);
-        $mentions = !empty($mMatches[1]) ? \App\Models\User::whereIn('name', $mMatches[1])->pluck('id')->toArray() : [];
+        // Mentions come as explicit user IDs picked from the @dropdown; only notify people
+        // who can actually see this conversation.
+        $memberIds = $conv->type === 'general'
+            ? \App\Models\User::where('is_active', true)->pluck('id')->toArray()
+            : $conv->members->pluck('id')->toArray();
+        $mentions = array_values(array_intersect(array_map('intval', (array) $request->mentions), $memberIds));
+
         $msg = $conv->messages()->create(['user_id'=>$user->id,'content'=>$request->content,'mentions'=>$mentions]);
         \App\Models\ConversationMember::where('conversation_id',$conv->id)->where('user_id',$user->id)
             ->update(['last_read_at'=>now()]);
+
+        if ($mentions) {
+            $convName = $conv->type === 'general' ? 'General Chat'
+                : ($conv->type === 'group' ? ($conv->name ?? 'a group') : 'a chat');
+            \App\Models\Notification::mention($mentions, $user,
+                $user->name . ' mentioned you in ' . $convName);
+        }
 
         return response()->json(['ok'=>true,'message'=>[
             'id'=>$msg->id,'text'=>$msg->content,'isMine'=>true,

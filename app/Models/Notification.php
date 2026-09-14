@@ -36,4 +36,22 @@ class Notification extends Model
             ]);
         }
     }
+
+    /**
+     * Notify mentioned users. Works for chat (no task) and comments (optional task context).
+     */
+    public static function mention(array $userIds, User $actor, string $message, ?Task $task = null): void
+    {
+        foreach (array_unique($userIds) as $uid) {
+            if ((int)$uid === (int)$actor->id) continue;
+            static::create([
+                'user_id'    => $uid,
+                'actor_id'   => $actor->id,
+                'type'       => 'mention',
+                'task_id'    => $task?->id,
+                'task_title' => $task?->title,
+                'message'    => $message,
+            ]);
+        }
+    }
 }

@@ -1686,13 +1686,14 @@ window.tpSubmitComment=function(taskId){
     const txt=(ta.value||'').trim();
     const attachTags=window.getAttachmentTags?window.getAttachmentTags('tp-comment-text'):'';
     if(!txt&&!attachTags){ ta.focus(); return; }
+    const mentions=window._mentionCollect?window._mentionCollect('tp-comment-text'):[];
     const fullContent=txt+(attachTags?(txt?'\n':'')+attachTags:'');
     const btn=$('tp-comment-footer').querySelector('button[onclick*="tpSubmitComment"]');
     if(btn){btn.disabled=true;btn.style.opacity='.5';}
     fetch(TP_LOCAL_URL+'/'+taskId+'/comment',{
         method:'POST',
         headers:{'Content-Type':'application/json','X-CSRF-TOKEN':TP_CSRF,'Accept':'application/json'},
-        body:JSON.stringify({content:fullContent}),
+        body:JSON.stringify({content:fullContent, mentions}),
     }).then(r=>r.json()).then(resp=>{
         ta.value='';
         if(window.clearAttachments) window.clearAttachments('tp-comment-text','tp-attach-preview');
