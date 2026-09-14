@@ -1451,6 +1451,43 @@ window.chatSend = async function() {
     } catch(e) {}
 };
 
+/* Drag-drop + paste file upload for the popup chat input */
+(function() {
+    function wire() {
+        const zone = document.getElementById('chat-input-area');
+        const ta   = document.getElementById('chat-textarea');
+        if (!zone || zone._dropWired) return;
+        zone._dropWired = true;
+        zone.addEventListener('dragover', function(e) {
+            if (e.dataTransfer && Array.from(e.dataTransfer.types).includes('Files')) {
+                e.preventDefault(); e.dataTransfer.dropEffect = 'copy';
+                zone.style.background = '#eef7ff';
+            }
+        });
+        zone.addEventListener('dragleave', function(e) {
+            if (!e.relatedTarget || !zone.contains(e.relatedTarget)) zone.style.background = '';
+        });
+        zone.addEventListener('drop', async function(e) {
+            if (!e.dataTransfer || !e.dataTransfer.files.length) return;
+            e.preventDefault(); zone.style.background = '';
+            if (!_activeConvId) { alert('Open a chat first to attach files.'); return; }
+            for (const f of Array.from(e.dataTransfer.files)) {
+                await window.uploadFileDirect(f, 'chat-textarea', 'chat-attach-preview');
+            }
+        });
+        if (ta) ta.addEventListener('paste', function(e) {
+            const items = Array.from((e.clipboardData || {}).items || []);
+            const files = items.filter(i => i.kind === 'file').map(i => i.getAsFile()).filter(Boolean);
+            if (files.length) {
+                e.preventDefault();
+                files.forEach(f => window.uploadFileDirect(f, 'chat-textarea', 'chat-attach-preview'));
+            }
+        });
+    }
+    document.addEventListener('DOMContentLoaded', wire);
+    window._chatWireDrop = wire;
+})();
+
 /* ── New Direct ── */
 window.chatNewDirect = async function() {
     document.getElementById('chat-new-direct-modal').classList.add('chat-open');
