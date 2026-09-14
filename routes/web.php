@@ -22,7 +22,7 @@ Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 
 // Password Reset
 Route::get('/forgot-password', [ForgotPasswordController::class, 'showForm'])->name('password.request');
-Route::post('/forgot-password', [ForgotPasswordController::class, 'sendLink'])->name('password.email');
+Route::post('/forgot-password', [ForgotPasswordController::class, 'sendLink'])->middleware('throttle:5,1')->name('password.email');
 Route::get('/reset-password/{token}', [ResetPasswordController::class, 'showForm'])->name('password.reset');
 Route::post('/reset-password', [ResetPasswordController::class, 'reset'])->name('password.update');
 
@@ -78,13 +78,8 @@ Route::middleware('auth')->group(function () {
         ])->findOrFail($id);
 
         $user = auth()->user();
-        if (!$user->isSuperAdmin()) {
-            $uid = $user->id;
-            $ok = $task->created_by === $uid
-               || $task->assigned_to === $uid
-               || $task->members->contains('id', $uid)
-               || $task->observers->contains('id', $uid);
-            if (!$ok) return response()->json(['error'=>'Forbidden'],403);
+        if (!\App\Models\Task::visibleTo($user)->whereKey($task->id)->exists()) {
+            return response()->json(['error'=>'Forbidden'],403);
         }
 
         // Collect all file IDs that belong to comments (to exclude from task-level file list)
@@ -157,6 +152,19 @@ Route::middleware('auth')->group(function () {
     // ── Bitrix Disk file proxy (download on-demand, cache locally) ──
     Route::get('/api/disk-file/{id}', function ($id) {
         $id = (int)$id;
+
+        // Only serve Bitrix files referenced by a task the user can see (description, comment or attachment)
+        $user = auth()->user();
+        if (!$user->canViewAllTasks()) {
+            $refs = ["%id=n{$id}]%", "%id=n{$id} %"];
+            $refMatch = fn($q, string $col) => $q->where(fn($w) => $w->where($col, 'like', $refs[0])->orWhere($col, 'like', $refs[1]));
+            $ok = \App\Models\Task::visibleTo($user)->where(function ($q) use ($id, $refMatch) {
+                $refMatch($q, 'description');
+                $q->orWhereHas('comments', fn($c) => $refMatch($c, 'content'))
+                  ->orWhereHas('files', fn($f) => $f->where('bitrix_file_id', $id));
+            })->exists();
+            if (!$ok) abort(403);
+        }
 
         // Serve from filesystem cache if already downloaded
         $cacheDir = public_path('uploads/bitrix');
@@ -530,7 +538,10 @@ Route::middleware('auth')->group(function () {
     Route::post('/api/chat/msgs/{id}/react', function (\Illuminate\Http\Request $request, $id) {
         $request->validate(['emoji' => 'required|string|max:8']);
         $user  = auth()->user();
-        $msg   = \App\Models\Message::findOrFail($id);
+        $msg   = \App\Models\Message::with('conversation.members')->findOrFail($id);
+        $conv  = $msg->conversation;
+        if (!$conv || ($conv->type !== 'general' && !$conv->members->contains('id', $user->id)))
+            return response()->json(['error'=>'Forbidden'],403);
         $emoji = $request->emoji;
         $rxns  = $msg->reactions ?? [];
         $ids   = array_values((array)($rxns[$emoji] ?? []));
@@ -652,6 +663,8 @@ Route::middleware('auth')->group(function () {
 
     // Bitrix24 live tasks proxy
     Route::get('/api/bitrix-tasks', function () {
+        // Live Bitrix24 proxy exposes any Bitrix task — admins only
+        if (!auth()->user()->isAdmin()) abort(403);
         $wh = env('BITRIX_WEBHOOK');
         $params = http_build_query([
             'order'  => ['DEADLINE' => 'ASC'],
@@ -705,6 +718,8 @@ Route::middleware('auth')->group(function () {
 
     // Bitrix24 single task full detail
     Route::get('/api/bitrix-task/{id}', function ($id) {
+        // Live Bitrix24 proxy exposes any Bitrix task and its chat — admins only
+        if (!auth()->user()->isAdmin()) abort(403);
         $wh = env('BITRIX_WEBHOOK');
 
         // Full task fields including CHAT_ID for IM chat

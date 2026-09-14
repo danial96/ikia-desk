@@ -35,7 +35,7 @@ class TaskController extends Controller
         }
 
         $query = Task::with(['project', 'assignee', 'creator']);
-        if (!$user->isSuperAdmin()) {
+        if (!$user->canViewAllTasks()) {
             $query->where(function ($q) use ($user) {
                 $q->where('created_by', $user->id)
                   ->orWhere('assigned_to', $user->id)
@@ -157,7 +157,7 @@ class TaskController extends Controller
     public function show(Task $task)
     {
         $user = Auth::user();
-        if (!$user->isSuperAdmin() && !$task->isMember($user) && $task->created_by !== $user->id && $task->assigned_to !== $user->id) {
+        if (!Task::visibleTo($user)->whereKey($task->id)->exists()) {
             abort(403);
         }
         $task->load(['project', 'creator', 'assignee', 'members', 'observers', 'comments.user', 'activities.user']);
@@ -497,7 +497,7 @@ class TaskController extends Controller
                     })->oldest(),
             ]);
 
-            if (!$user->isSuperAdmin()) {
+            if (!$user->canViewAllTasks()) {
                 $query->where(function ($q) use ($user) {
                     $q->where('created_by', $user->id)
                       ->orWhere('assigned_to', $user->id)

@@ -39,6 +39,22 @@ class Task extends Model
     public function files()      { return $this->hasMany(TaskFile::class)->orderBy('created_at'); }
     public function coverFile()  { return $this->hasMany(TaskFile::class)->where('is_task_attachment', true)->orderBy('created_at'); }
 
+    /**
+     * Tasks the user may view: everything for Super Admin / view_all_tasks,
+     * otherwise tasks they created, are assigned to, participate in or observe.
+     */
+    public function scopeVisibleTo($query, User $user)
+    {
+        if ($user->canViewAllTasks()) return $query;
+
+        return $query->where(function ($q) use ($user) {
+            $q->where('created_by', $user->id)
+              ->orWhere('assigned_to', $user->id)
+              ->orWhereHas('members', fn($m) => $m->where('user_id', $user->id))
+              ->orWhereHas('observers', fn($o) => $o->where('user_id', $user->id));
+        });
+    }
+
     public function isMember(User $user): bool
     {
         return $this->members()->where('user_id', $user->id)->exists()

@@ -28,6 +28,10 @@ class ProjectController extends Controller
 
     public function store(Request $request)
     {
+        if (!Auth::user()->canCreateProjects()) {
+            abort(403, 'You do not have permission to create projects.');
+        }
+
         $request->validate([
             'name'        => 'required|string|max:255',
             'description' => 'nullable|string',
@@ -46,8 +50,9 @@ class ProjectController extends Controller
 
     public function show(Project $project)
     {
-        $project->load(['creator', 'tasks.assignee', 'tasks.creator']);
-        $tasks = $project->tasks()->with(['assignee', 'creator'])->latest()->get();
+        $project->load('creator');
+        // Only list tasks this user is allowed to see
+        $tasks = $project->tasks()->visibleTo(Auth::user())->with(['assignee', 'creator'])->latest()->get();
         return view('projects.show', compact('project', 'tasks'));
     }
 

@@ -12,6 +12,11 @@ class TaskCommentController extends Controller
 {
     public function store(Request $request, Task $task)
     {
+        $user = Auth::user();
+        if (!$user->isSuperAdmin() && !$task->isMember($user)) {
+            abort(403);
+        }
+
         $request->validate(['content' => 'required|string|max:5000']);
 
         $content = $request->content;

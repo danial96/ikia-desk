@@ -19,9 +19,6 @@ $permLabels = [
     'create_tasks'     => ['label' => 'Create Tasks',     'desc' => 'Can create and assign tasks to others'],
     'view_all_tasks'   => ['label' => 'View All Tasks',   'desc' => 'Can see all tasks, not just assigned ones'],
     'create_projects'  => ['label' => 'Create Projects',  'desc' => 'Can create new projects'],
-    'manage_employees' => ['label' => 'Manage Employees', 'desc' => 'Can add and edit employee accounts'],
-    'view_reports'     => ['label' => 'View Reports',     'desc' => 'Can access reports and analytics'],
-    'export_data'      => ['label' => 'Export Data',      'desc' => 'Can export data to CSV/Excel'],
 ];
 @endphp
 

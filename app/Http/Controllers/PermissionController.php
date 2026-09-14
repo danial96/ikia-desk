@@ -8,6 +8,9 @@ use Illuminate\Support\Facades\Auth;
 
 class PermissionController extends Controller
 {
+    // Only permissions the app actually enforces
+    public const PERMISSIONS = ['create_tasks', 'view_all_tasks', 'create_projects'];
+
     public function index(Request $request)
     {
         if (!Auth::user()->isAdmin()) abort(403);
@@ -28,7 +31,7 @@ class PermissionController extends Controller
                   ->orWhere('department', 'like', $q);
             });
         }
-        if ($request->filled('perm')) {
+        if ($request->filled('perm') && in_array($request->perm, self::PERMISSIONS, true)) {
             $query->whereJsonContains('permissions->' . $request->perm, true);
         }
         $employees = $query->orderBy('name')->get();
@@ -39,17 +42,8 @@ class PermissionController extends Controller
     {
         if (!Auth::user()->isAdmin()) abort(403);
 
-        $allowedPermissions = [
-            'create_tasks',
-            'view_all_tasks',
-            'create_projects',
-            'manage_employees',
-            'view_reports',
-            'export_data',
-        ];
-
         $permissions = [];
-        foreach ($allowedPermissions as $perm) {
+        foreach (self::PERMISSIONS as $perm) {
             $permissions[$perm] = $request->boolean($perm);
         }
 
