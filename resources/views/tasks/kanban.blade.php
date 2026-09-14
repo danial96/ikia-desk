@@ -105,6 +105,35 @@
     @include('tasks._task_panel')
 
     <script>
+    /* Load more completed tasks — appends the next page into the Completed column */
+    window.kbLoadMoreCompleted = async function(btn) {
+        const offset = +btn.dataset.offset || 0;
+        btn.disabled = true;
+        const prev = btn.textContent;
+        btn.textContent = 'Loading…';
+        try {
+            // Match the currently applied filters (chips + search), same as kbAjaxFilter
+            const params = new URLSearchParams();
+            document.querySelectorAll('#tsf-chips input[type="hidden"]').forEach(inp => { if (inp.value) params.set(inp.name, inp.value); });
+            const sv = (document.getElementById('tsf-input') || {}).value;
+            if (sv && sv.trim()) params.set('search', sv.trim());
+            params.set('offset', offset);
+            const r = await fetch(@json(route('tasks.kanban.completed')) + '?' + params.toString(), { headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' } });
+            const d = await r.json();
+            btn.insertAdjacentHTML('beforebegin', d.html);
+            btn.dataset.offset = d.offset;
+            if (d.hasMore) {
+                btn.disabled = false;
+                btn.textContent = 'Load more (' + (d.total - d.offset).toLocaleString() + ' remaining)';
+            } else {
+                btn.remove();
+            }
+        } catch (e) {
+            btn.disabled = false;
+            btn.textContent = prev;
+        }
+    };
+
     /* Legacy b24RenderPanel — kept for potential direct calls */
     function b24RenderPanel(data) {
         const t     = data.task;
@@ -484,12 +513,9 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
-        @if(!request()->hasAny(['status', 'priority', 'project_id', 'assignee_id', 'search']))
-        _kbInitializing = true;
-        tsfToggleFilter('status', 'in_progress', 'In Progress');
-        _kbInitializing = false;
-        kbAjaxFilter();
-        @endif
+        // No default status filter: the server already rendered all active tasks + the
+        // first page of completed with a working "Load more" button. Re-fetching here would
+        // narrow the board and wipe that button, so we leave the server render in place.
     });
 })();
 
@@ -537,8 +563,8 @@ function kbRenderCol(tasks, key, completedTotal) {
     if (!tasks || tasks.length === 0)
         return '<div class="kb-empty-msg" style="padding:20px 0;text-align:center;"><span style="font-size:11.5px;color:rgba(255,255,255,.2);">No tasks</span></div>';
     let html = tasks.map(t => kbRenderCard(t)).join('');
-    if (key === 'completed' && completedTotal > 50)
-        html += `<div style="padding:10px 6px 4px;text-align:center;"><span style="font-size:10.5px;color:rgba(255,255,255,.3);">Showing latest 50 of ${Number(completedTotal).toLocaleString()}</span></div>`;
+    if (key === 'completed' && completedTotal > tasks.length)
+        html += `<button type="button" id="kb-load-more-completed" data-offset="${tasks.length}" data-total="${completedTotal}" onclick="kbLoadMoreCompleted(this)" style="margin:8px 4px 4px;padding:9px;border-radius:8px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.08);color:#fff;font-size:11.5px;font-weight:600;cursor:pointer;width:calc(100% - 8px);">Load more (${Number(completedTotal - tasks.length).toLocaleString()} remaining)</button>`;
     return html;
 }
 

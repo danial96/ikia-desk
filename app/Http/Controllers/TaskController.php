@@ -12,6 +12,58 @@ use Illuminate\Support\Facades\Cache;
 
 class TaskController extends Controller
 {
+    /** How many completed tasks the kanban loads per page (initial + each "Load more"). */
+    private const KANBAN_COMPLETED_PAGE = 50;
+
+    /**
+     * Base query for kanban cards: eager loads + visibility + the shared filters.
+     * Used by kanban() and loadCompleted() so both stay in sync.
+     */
+    private function kanbanBaseQuery(Request $request)
+    {
+        $user   = Auth::user();
+        $imgExts = ['jpg','jpeg','png','gif','webp','svg'];
+        $query = Task::with(['project', 'assignee', 'creator',
+            'coverFile' => fn($q) => $q->whereNotNull('disk_path')
+                ->where('is_task_attachment', true)
+                ->where(function ($q2) use ($imgExts) {
+                    $q2->whereIn('mime_type', ['image/jpeg','image/jpg','image/png','image/gif','image/webp','image/svg+xml'])
+                       ->orWhere(function ($q3) use ($imgExts) {
+                           foreach ($imgExts as $ext) { $q3->orWhere('name', 'like', "%.$ext"); }
+                       });
+                })->oldest(),
+        ]);
+        $query->visibleTo($user);
+        if ($request->project_id)        $query->where('project_id', $request->project_id);
+        if ($request->filled('search'))  $query->where('title', 'like', '%' . $request->search . '%');
+        if ($request->filled('priority'))$query->where('priority', $request->priority);
+        if ($request->filled('assignee_id')) $query->where('assigned_to', $request->assignee_id);
+        return $query;
+    }
+
+    /** AJAX: next page of completed tasks for the kanban "Load more" button. */
+    public function loadCompleted(Request $request)
+    {
+        $offset = max(0, (int) $request->query('offset', 0));
+        $tasks  = $this->kanbanBaseQuery($request)
+            ->where('status', 'completed')
+            ->latest()
+            ->offset($offset)
+            ->limit(self::KANBAN_COMPLETED_PAGE)
+            ->get();
+        $total   = $this->kanbanBaseQuery($request)->where('status', 'completed')->count();
+        $nextOff = $offset + $tasks->count();
+        $html = view('tasks._kanban_col_body', [
+            'tasks' => $tasks, 'colKey' => 'completed_more', 'completedTotal' => $total,
+        ])->render();
+        return response()->json([
+            'html'    => $html,
+            'hasMore' => $nextOff < $total,
+            'offset'  => $nextOff,
+            'total'   => $total,
+        ]);
+    }
+
     public function index(Request $request)
     {
         $user = Auth::user();
@@ -455,14 +507,8 @@ class TaskController extends Controller
     {
         session(['task_view' => 'kanban']);
 
-        // Default to in_progress when visiting with no filters (non-AJAX only)
-        if (!$request->ajax()) {
-            $hasFilters = $request->hasAny(['status', 'search', 'project_id', 'priority', 'assignee_id']);
-            if (!$hasFilters) {
-                return redirect()->route('tasks.kanban', ['status' => 'in_progress']);
-            }
-        }
-
+        // No status filter now shows ALL active (non-completed) tasks, not just in_progress,
+        // so nothing gets hidden by a default filter.
         $user = Auth::user();
 
         // Task IDs with unseen notifications for this user (AJAX only — not stored in cache)
@@ -531,9 +577,9 @@ class TaskController extends Controller
                     ? $all->count()
                     : (clone $baseQuery)->where('status', 'completed')->count();
             } else {
-                $all = (clone $baseQuery)->where('status', '!=', 'completed')->latest()->limit(200)->get();
+                $all = (clone $baseQuery)->where('status', '!=', 'completed')->latest()->limit(500)->get();
                 $completedTotal = (clone $baseQuery)->where('status', 'completed')->count();
-                $all = $all->merge((clone $baseQuery)->where('status', 'completed')->latest()->limit(50)->get());
+                $all = $all->merge((clone $baseQuery)->where('status', 'completed')->latest()->limit(self::KANBAN_COMPLETED_PAGE)->get());
             }
 
             // Always include tasks with unseen notifications regardless of status/filter

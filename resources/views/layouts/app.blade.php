@@ -693,7 +693,7 @@
                     <textarea id="chat-textarea" rows="1" placeholder="Type a message..."
                               style="display:block;width:100%;background:none;border:none;color:#1e293b;font-size:13px;padding:9px 12px 6px;outline:none;resize:none;font-family:inherit;line-height:1.45;max-height:120px;overflow-y:auto;box-sizing:border-box;"
                               onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();chatSend();}"
-                              oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,120)+'px'"></textarea>
+                              oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,120)+'px';if(window.chatDraftSave)chatDraftSave();"></textarea>
                     <div style="display:flex;align-items:center;gap:2px;padding:4px 8px;border-top:1px solid #e2e8f0;">
                         <button type="button" onclick="emojiToggle('chat-textarea',this)"
                                 title="Emoji" style="background:none;border:none;color:#94a3b8;cursor:pointer;padding:3px 5px;border-radius:6px;font-size:15px;line-height:1;transition:color .12s;"
@@ -1061,6 +1061,11 @@ window.chatFilterConvs = function(q) {
 
 /* ── Select conversation ── */
 window.chatSelectConv = async function(id) {
+    // Per-chat draft: save the draft of the conversation we're leaving before switching
+    const _prevTa = document.getElementById('chat-textarea');
+    if (_activeConvId && _prevTa) {
+        try { const v = _prevTa.value; if (v.trim()) localStorage.setItem('chat_draft_' + _activeConvId, v); else localStorage.removeItem('chat_draft_' + _activeConvId); } catch(e) {}
+    }
     _activeConvId = id;
     _lastMsgId = 0;
     // Mark active in list
@@ -1086,6 +1091,14 @@ window.chatSelectConv = async function(id) {
         const msgs = d.messages || [];
         chatRenderMsgs(msgs);
         if (msgs.length) _lastMsgId = Math.max(...msgs.map(m => m.id));
+        // Restore this conversation's saved draft and focus the box so typing works on click
+        const _ta = document.getElementById('chat-textarea');
+        if (_ta) {
+            try { _ta.value = localStorage.getItem('chat_draft_' + id) || ''; } catch(e) { _ta.value = ''; }
+            _ta.style.height = 'auto';
+            if (_ta.value) _ta.style.height = Math.min(_ta.scrollHeight, 120) + 'px';
+            _ta.focus();
+        }
     } catch(e) {
         msgArea.innerHTML = '<div style="padding:20px;text-align:center;color:rgba(255,82,82,.7);font-size:12px;">Failed to load messages</div>';
     }
@@ -1394,6 +1407,13 @@ document.addEventListener('click', function(e) {
 });
 
 /* ── Send message ── */
+window.chatDraftSave = function() {
+    if (!_activeConvId) return;
+    const ta = document.getElementById('chat-textarea');
+    if (!ta) return;
+    try { const v = ta.value; if (v.trim()) localStorage.setItem('chat_draft_' + _activeConvId, v); else localStorage.removeItem('chat_draft_' + _activeConvId); } catch(e) {}
+};
+
 window.chatSend = async function() {
     if (!_activeConvId) return;
     const ta = document.getElementById('chat-textarea');
@@ -1402,6 +1422,7 @@ window.chatSend = async function() {
     if (!text && !attachTags) return;
 
     ta.value = '';
+    try { localStorage.removeItem('chat_draft_' + _activeConvId); } catch(e) {}
     ta.style.height = 'auto';
     if (window.clearAttachments) window.clearAttachments('chat-textarea', 'chat-attach-preview');
     chatSendSound();

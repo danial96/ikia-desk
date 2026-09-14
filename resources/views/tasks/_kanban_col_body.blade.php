@@ -61,8 +61,13 @@
 </div>
 @endforelse
 
-@if($colKey === 'completed' && $completedTotal > 50 && count($tasks) > 0)
-<div style="padding:10px 6px 4px;text-align:center;">
-    <span style="font-size:10.5px;color:rgba(255,255,255,.3);">Showing latest 50 of {{ number_format($completedTotal) }}</span>
-</div>
+@if($colKey === 'completed' && $completedTotal > count($tasks) && count($tasks) > 0)
+<button type="button" id="kb-load-more-completed"
+        data-offset="{{ count($tasks) }}" data-total="{{ $completedTotal }}"
+        onclick="kbLoadMoreCompleted(this)"
+        style="margin:8px 4px 4px;padding:9px;border-radius:8px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.08);color:#fff;font-size:11.5px;font-weight:600;cursor:pointer;transition:background .15s;"
+        onmouseover="this.style.background='rgba(255,255,255,.16)'"
+        onmouseout="this.style.background='rgba(255,255,255,.08)'">
+    Load more ({{ number_format($completedTotal - count($tasks)) }} remaining)
+</button>
 @endif

@@ -35,6 +35,7 @@ Route::middleware('auth')->group(function () {
 
     // Tasks
     Route::get('/tasks/kanban', [TaskController::class, 'kanban'])->name('tasks.kanban');
+    Route::get('/tasks/kanban/load-completed', [TaskController::class, 'loadCompleted'])->name('tasks.kanban.completed');
     Route::resource('tasks', TaskController::class)->except(['create', 'edit']);
 
     // Task inline AJAX updates
