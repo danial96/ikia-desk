@@ -14,12 +14,16 @@ class DashboardController extends Controller
     {
         $user = Auth::user();
 
+        // Bind the app's current time (Asia/Karachi) rather than the DB's now(),
+        // which is both non-portable (no now() on SQLite) and in the wrong timezone.
+        $now = now();
+
         if ($user->isSuperAdmin()) {
             $counts = Task::selectRaw("
                 count(*) as total,
                 sum(status != 'completed') as active,
-                sum(status != 'completed' and deadline < now()) as overdue
-            ")->first();
+                sum(status != 'completed' and deadline < ?) as overdue
+            ", [$now])->first();
 
             $stats = [
                 'total_tasks'    => $counts->total ?? 0,
@@ -43,8 +47,8 @@ class DashboardController extends Controller
             $counts = Task::selectRaw("
                 count(*) as total,
                 sum(assigned_to = ? and status != 'completed') as active,
-                sum(assigned_to = ? and status != 'completed' and deadline < now()) as overdue
-            ", [$uid, $uid])
+                sum(assigned_to = ? and status != 'completed' and deadline < ?) as overdue
+            ", [$uid, $uid, $now])
                 ->where(function ($q) use ($uid, $memberTaskIds) {
                     $q->where('created_by', $uid)
                       ->orWhere('assigned_to', $uid)
