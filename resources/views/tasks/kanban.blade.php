@@ -53,6 +53,14 @@
     <div id="kb-scroll" style="display:flex;gap:12px;overflow-x:auto;padding:0 8px 8px;align-items:flex-start;scrollbar-width:none;" onscroll="kbUpdateArrows()">
         <style>
         #kb-scroll::-webkit-scrollbar{display:none}
+        /* Mobile/tablet: the desktop-anchored arrows + custom scrollbar overlap content — hide them and use touch scroll */
+        @media (max-width:1024px){
+            #kb-left,#kb-right,#kb-track{display:none !important;}
+            #kb-scroll{padding-bottom:14px;-webkit-overflow-scrolling:touch;}
+        }
+        @media (max-width:640px){
+            #kb-scroll > div[style*="width:260px"]{width:82vw !important;}
+        }
         .kb-drag-ghost { opacity:.4; background:#e0f7ff !important; border:2px dashed #00D4E8 !important; border-radius:10px; }
         .kb-drag-chosen { box-shadow:0 8px 24px rgba(0,212,232,.35) !important; transform:rotate(1.5deg) scale(1.02) !important; }
         .kb-drag-active { opacity:.85; cursor:grabbing !important; }

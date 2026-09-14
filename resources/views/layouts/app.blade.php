@@ -279,6 +279,20 @@
         }
         #main-content.sidebar-collapsed { margin-left: 0; }
 
+        /* ─── Responsive: tablets & phones ─── */
+        @media (max-width: 1024px) {
+            /* Sidebar becomes a slide-over; content uses the full width */
+            #main-content { margin-left: 0 !important; margin-right: 0 !important; }
+            #sidebar { z-index: 260; box-shadow: 6px 0 30px rgba(0,0,0,.35); }
+            /* Online-users rail hidden — chat is reachable from the topbar button */
+            #right-panel { display: none !important; }
+            /* Dim backdrop when the sidebar is open on mobile */
+            #sidebar:not(.hidden-sidebar)::after {
+                content:''; position:fixed; top:0; left:220px; right:0; bottom:0;
+                background:rgba(0,0,0,.4); z-index:-1;
+            }
+        }
+
         /* ─── TOPBAR ─── */
         #topbar {
             position: sticky;
@@ -2230,7 +2244,8 @@ window.vnSend = function(panel) {
 <script>
 function appShell() {
     return {
-        sidebarOpen: localStorage.getItem('sb') !== 'false',
+        // On phones/tablets the sidebar starts closed (slide-over); desktop remembers the choice
+        sidebarOpen: window.innerWidth > 1024 ? (localStorage.getItem('sb') !== 'false') : false,
         init() { this.$watch('sidebarOpen', v => localStorage.setItem('sb', v)); }
     }
 }

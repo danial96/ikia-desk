@@ -45,6 +45,13 @@
 }
 .tp-people-dropdown .opt:hover { background:#f1f5f9; }
 .tp-people-dropdown .opt.selected { color:#0ea5e9; }
+/* Phones/tablets: stack the two columns so the 660px detail column fits */
+@media (max-width:768px){
+    #tp-panel{ left:0 !important; top:46px !important; flex-direction:column !important; overflow-y:auto !important; border-radius:0 !important; }
+    #tp-left{ flex:none !important; width:100% !important; height:auto !important; border-right:none !important; border-bottom:1px solid #e5e5e5; }
+    #tp-left-body{ overflow:visible !important; }
+    #tp-right{ flex:none !important; width:100% !important; min-height:65vh; }
+}
 </style>
 
 {{-- Full-screen overlay --}}
