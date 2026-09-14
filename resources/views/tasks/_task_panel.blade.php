@@ -64,11 +64,11 @@
 
         {{-- ===== LEFT COLUMN ===== --}}
         <div id="tp-left"
-             style="flex:0 0 660px;width:660px;display:flex;flex-direction:column;border-right:1px solid #e9ecef;overflow:hidden;background:#eef2f4;">
+             style="flex:0 0 660px;width:660px;display:flex;flex-direction:column;border-right:1px solid #e9ecef;overflow:hidden;background:#f4f4f5;">
 
             {{-- Left header --}}
             <div id="tp-left-header"
-                 style="flex-shrink:0;padding:16px 24px;border-bottom:1px solid #dde3e7;display:flex;align-items:flex-start;gap:12px;background:#eef2f4;">
+                 style="flex-shrink:0;padding:16px 24px;border-bottom:1px solid #e5e5e5;display:flex;align-items:flex-start;gap:12px;background:#f4f4f5;">
                 <div style="flex:1;min-width:0;">
                     <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
                         <div id="tp-source-badge"></div>
@@ -81,12 +81,12 @@
 
             {{-- Left scrollable body --}}
             <div id="tp-left-body"
-                 style="flex:1;overflow-y:auto;padding:0 24px;scrollbar-width:thin;scrollbar-color:#dee2e6 transparent;background:#eef2f4;">
+                 style="flex:1;overflow-y:auto;padding:0 24px;scrollbar-width:thin;scrollbar-color:#dee2e6 transparent;background:#f4f4f5;">
             </div>
 
             {{-- Bottom action bar --}}
             <div id="tp-left-footer"
-                 style="flex-shrink:0;padding:10px 20px;border-top:1px solid #dde3e7;background:#eef2f4;display:flex;align-items:center;justify-content:space-between;gap:10px;">
+                 style="flex-shrink:0;padding:10px 20px;border-top:1px solid #e5e5e5;background:#f4f4f5;display:flex;align-items:center;justify-content:space-between;gap:10px;">
             </div>
         </div>
 
