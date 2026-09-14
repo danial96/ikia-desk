@@ -1186,10 +1186,12 @@ function renderMsgContent(text, isMine) {
         const urlM   = part.match(/^\[URL\](.*?)\[\/URL\]$/i);
         if (imgM) {
             const ci = imgIdx++;
-            const fn = galKey !== null ? `imgLightbox(${galKey},${ci})` : `imgLightbox('${escH(imgM[1])}',0)`;
+            // JSON.stringify keeps quotes inside a JS string; escH keeps it inside the onclick attribute
+            const fn = galKey !== null ? `imgLightbox(${galKey},${ci})` : `imgLightbox(${escH(JSON.stringify(imgM[1]))},0)`;
             out += `<img src="${escH(imgM[1])}" style="max-width:280px;max-height:220px;object-fit:cover;border-radius:8px;display:block;margin:4px 0;cursor:zoom-in;transition:opacity .15s;" loading="lazy" onmouseover="this.style.opacity='.88'" onmouseout="this.style.opacity='1'" onclick="${fn}">`;
         } else if (fileM) {
-            out += `<a href="${escH(fileM[2])}" target="_blank" rel="noopener"
+            const _fu = /^(https?:\/\/|\/)/i.test(fileM[2]) ? fileM[2] : '#';
+            out += `<a href="${escH(_fu)}" target="_blank" rel="noopener"
                 style="display:inline-flex;align-items:center;gap:6px;background:rgba(0,0,0,.12);border-radius:7px;padding:5px 10px;color:inherit;text-decoration:none;font-size:11.5px;margin:3px 0;">
                 <i class="fas fa-file" style="opacity:.7;"></i>${escH(fileM[1])}
             </a>`;

@@ -245,7 +245,12 @@ const ME_B24_ID         = {{ (int) env('BITRIX_USER_ID', 155) }};
 
 /* ─── helpers ──────────────────────────────────────────── */
 const $  = id => document.getElementById(id);
-const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+// Only http(s) and same-site links; anything else (javascript:, data:) becomes '#'
+const safeUrl = u => /^(https?:\/\/|\/(?!\/))/i.test(String(u||'').trim()) ? String(u).trim() : '#';
+// [url] BBCode → link; href/label arrive already HTML-escaped from the text pipeline
+const bbLink = (href, label) => safeUrl(href) === '#' ? label
+    : `<a href="${href}" target="_blank" rel="noopener" style="color:#0ea5e9;text-decoration:underline;">${label}</a>`;
 
 const uAvatar = (u, size=34) => {
     if (!u) return '';
@@ -271,14 +276,14 @@ const parseDescText = raw => {
             .replace(/&amp;/gi,'&').replace(/&lt;/gi,'<').replace(/&gt;/gi,'>').replace(/&nbsp;/gi,' ').replace(/&quot;/gi,'"')
             .replace(/<br\s*\/?>/gi,'\n')
             .replace(/<[^>]+>/g,'')
-            .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+            .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')
             .replace(/\[USER=\d+\]([^\[]*)\[\/USER\]/g,'<span style="color:#0ea5e9;font-weight:600;">$1</span>')
             .replace(/\[TIMESTAMP=(\d+)\s+FORMAT=[^\]]*\]/g,(_,ts)=>{
                 const d=new Date(parseInt(ts)*1000);
                 return '<span style="color:#f59e0b;">'+d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})+'</span>';
             })
-            .replace(/\[url=([^\]]+)\]([^\[]*)\[\/url\]/gi,'<a href="$1" target="_blank" rel="noopener" style="color:#0ea5e9;text-decoration:underline;">$2</a>')
-            .replace(/\[url\](.*?)\[\/url\]/gi,'<a href="$1" target="_blank" rel="noopener" style="color:#0ea5e9;text-decoration:underline;">$1</a>')
+            .replace(/\[url=([^\]]+)\]([^\[]*)\[\/url\]/gi,(_,href,label)=>bbLink(href,label))
+            .replace(/\[url\](.*?)\[\/url\]/gi,(_,href)=>bbLink(href,href))
             .replace(/\[\/?\w[^\]]*\]/g,'')
             .replace(/(?<!href=")(https?:\/\/[^\s<>"'[\]]+)/g,'<a href="$1" target="_blank" rel="noopener noreferrer" style="color:#0ea5e9;text-decoration:underline;word-break:break-all;">$1</a>')
             .replace(/\n/g,'<br>');
@@ -367,7 +372,8 @@ const parseMsg = txt => {
         if (imgM) {
             const ci = imgIdx++;
             const url = imgM[1].replace(/"/g,'&quot;');
-            const fn = galKey !== null ? `imgLightbox(${galKey},${ci})` : `imgLightbox('${imgM[1].replace(/'/g,"\\'")}',0)`;
+            // JSON.stringify keeps quotes inside a JS string; esc keeps it inside the onclick attribute
+            const fn = galKey !== null ? `imgLightbox(${galKey},${ci})` : `imgLightbox(${esc(JSON.stringify(imgM[1]))},0)`;
             return `<img src="${url}" style="max-width:280px;max-height:220px;object-fit:cover;border-radius:8px;display:block;margin:4px 0;cursor:zoom-in;transition:opacity .15s;" loading="lazy" onmouseover="this.style.opacity='.88'" onmouseout="this.style.opacity='1'" onclick="${fn}">`;
         }
         if (fileM) {
@@ -376,21 +382,21 @@ const parseMsg = txt => {
             const _ic = {pdf:['fa-file-pdf','#ef4444'],doc:['fa-file-word','#2563eb'],docx:['fa-file-word','#2563eb'],xls:['fa-file-excel','#16a34a'],xlsx:['fa-file-excel','#16a34a'],ppt:['fa-file-powerpoint','#ea580c'],pptx:['fa-file-powerpoint','#ea580c'],zip:['fa-file-archive','#ca8a04'],rar:['fa-file-archive','#ca8a04'],txt:['fa-file-alt','#64748b']};
             const [_ico, _bg] = _ic[_ext] || ['fa-file','#0ea5e9'];
             const _safe = _fn.replace(/</g,'&lt;').replace(/>/g,'&gt;');
-            return `<a href="${_url.replace(/"/g,'&quot;')}" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:10px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px 14px;text-decoration:none;margin:4px 0;min-width:190px;max-width:280px;">
+            return `<a href="${esc(safeUrl(_url))}" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:10px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px 14px;text-decoration:none;margin:4px 0;min-width:190px;max-width:280px;">
                 <div style="width:40px;height:40px;border-radius:8px;background:${_bg};display:flex;align-items:center;justify-content:center;flex-shrink:0;"><i class="fas ${_ico}" style="color:#fff;font-size:18px;"></i></div>
                 <div style="min-width:0;flex:1;overflow:hidden;"><p style="font-size:12.5px;font-weight:600;color:#1e293b;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${_safe}</p><p style="font-size:10.5px;color:#94a3b8;margin:2px 0 0;letter-spacing:.4px;">${_ext.toUpperCase()}</p></div>
                 <i class="fas fa-download" style="color:#94a3b8;font-size:11px;flex-shrink:0;"></i>
             </a>`;
         }
         return part
-            .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+            .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')
             .replace(/\[USER=\d+\]([^\[]*)\[\/USER\]/g,'<span style="color:#0ea5e9;font-weight:600;">$1</span>')
             .replace(/\[TIMESTAMP=(\d+)\s+FORMAT=[^\]]*\]/g,(_,ts)=>{
                 const d=new Date(parseInt(ts)*1000);
                 return '<span style="color:#f59e0b;">'+d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})+'</span>';
             })
-            .replace(/\[url=([^\]]+)\]([^\[]*)\[\/url\]/gi,'<a href="$1" target="_blank" rel="noopener" style="color:#0ea5e9;text-decoration:underline;">$2</a>')
-            .replace(/\[url\](.*?)\[\/url\]/gi,'<a href="$1" target="_blank" rel="noopener" style="color:#0ea5e9;text-decoration:underline;">$1</a>')
+            .replace(/\[url=([^\]]+)\]([^\[]*)\[\/url\]/gi,(_,href,label)=>bbLink(href,label))
+            .replace(/\[url\](.*?)\[\/url\]/gi,(_,href)=>bbLink(href,href))
             .replace(/\[\/?\w[^\]]*\]/g,'')
             .replace(/(?<!href=")(https?:\/\/[^\s<>"'[\]]+)/g,'<a href="$1" target="_blank" rel="noopener noreferrer" style="color:#0ea5e9;text-decoration:underline;word-break:break-all;">$1</a>')
             .replace(/\n/g,'<br>');
@@ -550,6 +556,8 @@ document.addEventListener('keydown',e=>{
     if(lb&&lb.style.display!=='none'){ if(window.lbClose) lbClose(); return; }
     const em=document.getElementById('tp-edit-modal');
     if(em&&em.style.display!=='none'){ tpEditClose(); return; }
+    const ntOv=document.getElementById('nt-overlay');
+    if(ntOv&&ntOv.style.display!=='none') return; // full edit form handles ESC itself
     tpClose();
 });
 $('tp-overlay').addEventListener('click',function(e){ if(e.target===this) tpClose(); });
@@ -880,9 +888,9 @@ function tpRenderB24(data, bxId) {
     const desc=(t.description||'')
         .replace(/&amp;/gi,'&').replace(/&lt;/gi,'<').replace(/&gt;/gi,'>').replace(/&nbsp;/gi,' ').replace(/&quot;/gi,'"')
         .replace(/<br\s*\/?>/gi,'\n').replace(/<[^>]+>/g,'')
-        .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-        .replace(/\[url=([^\]]+)\]([^\[]*)\[\/url\]/gi,'<a href="$1" target="_blank" rel="noopener" style="color:#0ea5e9;text-decoration:underline;">$2</a>')
-        .replace(/\[url\](.*?)\[\/url\]/gi,'<a href="$1" target="_blank" rel="noopener" style="color:#0ea5e9;text-decoration:underline;">$1</a>')
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')
+        .replace(/\[url=([^\]]+)\]([^\[]*)\[\/url\]/gi,(_,href,label)=>bbLink(href,label))
+        .replace(/\[url\](.*?)\[\/url\]/gi,(_,href)=>bbLink(href,href))
         .replace(/\[.*?\]/g,'')
         .replace(/(?<!href=")(https?:\/\/[^\s<>"'[\]]+)/g,'<a href="$1" target="_blank" rel="noopener noreferrer" style="color:#0ea5e9;text-decoration:underline;word-break:break-all;">$1</a>')
         .replace(/\n/g,'<br>');
@@ -1521,18 +1529,32 @@ window.tpDeleteTask = function(taskId) {
 
 /* ─── edit task — opens the full create-task panel ────── */
 window.tpEditOpenFull = function(taskId, data) {
-    const t          = data.task        || {};
-    const assignee   = data.assignee    || null;
-    const parts      = data.participants|| [];
-    const obs        = data.observers   || [];
+    if (!window.openTaskModal) { tpEditOpen(taskId, data); return; }
 
-    // Pre-fill title + description
+    const t       = data.task         || {};
+    const assignee= data.assignee     || null;
+    const parts   = data.participants || [];
+    const obs     = data.observers    || [];
+
+    // Plain text extractor for textarea (parseDescText returns display HTML)
+    const descToPlain = raw => {
+        if (!raw) return '';
+        return raw
+            .replace(/\[img\][\s\S]*?\[\/img\]/g,'')
+            .replace(/\[file name="[^"]*"\][\s\S]*?\[\/file\]/g,'')
+            .replace(/&amp;/gi,'&').replace(/&lt;/gi,'<').replace(/&gt;/gi,'>').replace(/&nbsp;/gi,' ').replace(/&quot;/gi,'"')
+            .replace(/<br\s*\/?>/gi,'\n')
+            .replace(/<[^>]+>/g,'')
+            .replace(/\[\/?\w[^\]]*\]/g,'')
+            .trim();
+    };
+
+    // Pre-fill form fields
     const titleEl = document.getElementById('nt-title-input');
     const descEl  = document.getElementById('nt-desc-ta');
-    if (titleEl) titleEl.value = t.title                         || '';
-    if (descEl)  descEl.value  = parseDescText(t.description || '');
+    if (titleEl) titleEl.value = t.title || '';
+    if (descEl)  descEl.value  = descToPlain(t.description || '');
 
-    // Pre-fill existing attachments
     if (window.ntSetAttachments) {
         const re = /\[img\]([\s\S]*?)\[\/img\]|\[file name="([^"]*)"\]([\s\S]*?)\[\/file\]/g;
         const attList = []; let m;
@@ -1543,18 +1565,14 @@ window.tpEditOpenFull = function(taskId, data) {
         ntSetAttachments(attList);
     }
 
-    // Pre-fill status pill
     const sPill = document.querySelector(`.nt-pill[data-group="status"][data-val="${t.status}"]`);
     if (sPill && window.ntSetPill) ntSetPill(sPill, 'status');
 
-    // Pre-fill priority pill
     const pPill = document.querySelector(`.nt-pill[data-group="priority"][data-val="${t.priority}"]`);
     if (pPill && window.ntSetPill) ntSetPill(pPill, 'priority');
 
-    // Pre-fill deadline
     if (window.ntSetDeadline) ntSetDeadline(t.deadline || null);
 
-    // Pre-fill assignee
     if (window.ntPickAssignee) {
         if (assignee) {
             const colors=['#6366f1','#0ea5e9','#10b981','#f59e0b','#ef4444','#8b5cf6','#ec4899'];
@@ -1565,34 +1583,41 @@ window.tpEditOpenFull = function(taskId, data) {
         }
     }
 
-    // Pre-fill participants checkboxes
     document.querySelectorAll('#nt-participants-opts input[type="checkbox"]').forEach(cb => {
         cb.checked = parts.some(p => String(p.id) === cb.value);
     });
     if (window.ntUpdateParticipantsTrigger) ntUpdateParticipantsTrigger();
 
-    // Pre-fill observers checkboxes
     document.querySelectorAll('#nt-observers-opts input[type="checkbox"]').forEach(cb => {
         cb.checked = obs.some(o => String(o.id) === cb.value);
     });
     if (window.ntUpdateObserversTrigger) ntUpdateObserversTrigger();
 
-    // Pre-fill project
     const projSel = document.querySelector('#nt-form select[name="project_id"]');
     if (projSel) projSel.value = t.project ? t.project.id : '';
 
-    // Enter edit mode (changes badge, button, form action)
+    // After save: the form calls closeTaskModal() (wrapped below), which re-opens the panel with fresh data
     if (window.ntEnterEditMode) {
         ntEnterEditMode(taskId, TP_TASKS_URL + '/' + taskId, function() {
-            fetch(TP_LOCAL_URL + '/' + taskId, {headers:{'X-CSRF-TOKEN':TP_CSRF,'Accept':'application/json'}})
-                .then(r => r.json()).then(d => { tpRenderLocal(d); tpStartChatPoll(taskId); kbUpdateCard(taskId); });
+            kbUpdateCard(taskId);
         });
     }
 
-    // Suppress draft restore for this open
+    // Close task panel so edit modal is unobstructed
+    tpClose(false);
+
+    // On cancel (closeTaskModal called without save): re-open task panel
+    const origClose = window.closeTaskModal;
+    window.closeTaskModal = function() {
+        window.closeTaskModal = origClose;
+        if (origClose) origClose();
+        tpOpen('local', taskId);
+    };
+
+    // Suppress draft restore + open modal
     const origRestore = window.ntRestoreDraft;
     window.ntRestoreDraft = function() {};
-    if (window.openTaskModal) openTaskModal();
+    openTaskModal();
     setTimeout(function(){ window.ntRestoreDraft = origRestore; }, 200);
 };
 

@@ -33,6 +33,11 @@ class ProfileController extends Controller
             abort(403);
         }
 
+        // Admins can edit other profiles, but only a Super Admin may change a Super Admin's email/password
+        if (Auth::id() != $user->id && $user->isSuperAdmin() && !Auth::user()->isSuperAdmin()) {
+            abort(403);
+        }
+
         $request->validate([
             'name'           => 'required|string|max:255',
             'email'          => 'required|email|unique:users,email,'.$user->id,
