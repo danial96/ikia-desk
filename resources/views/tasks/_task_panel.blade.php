@@ -125,7 +125,7 @@
 
             {{-- Messages --}}
             <div id="tp-messages"
-                 style="flex:1;overflow-y:auto;padding:14px 18px;display:flex;flex-direction:column;gap:8px;scrollbar-width:thin;scrollbar-color:#dee2e6 transparent;background-image:url('{{ asset('pattern-chat.svg') }}');background-size:cover;background-position:center;background-repeat:no-repeat;background-attachment:local;">
+                 style="flex:1;overflow-y:auto;padding:14px 18px;display:flex;flex-direction:column;gap:8px;scrollbar-width:thin;scrollbar-color:#dee2e6 transparent;background:#f1f5f9;">
             </div>
 
             {{-- Comment footer --}}
