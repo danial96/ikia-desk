@@ -790,6 +790,10 @@
 <style>
 #chat-panel { display:none; }
 #chat-panel.chat-open { display:flex !important; }
+/* Phones: chat popup goes full-screen so it isn't a cramped sliver */
+@media (max-width: 640px) {
+    #chat-panel { right:0 !important; width:100% !important; }
+}
 #chat-new-direct-modal.chat-open { display:flex !important; }
 #chat-new-group-modal.chat-open  { display:flex !important; }
 @keyframes chatSlideIn { from{transform:translateX(100%);opacity:0} to{transform:translateX(0);opacity:1} }
