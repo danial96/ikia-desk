@@ -703,7 +703,7 @@
             <div id="chat-normal-input" style="display:flex;align-items:flex-end;gap:8px;">
                 <div style="flex:1;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;overflow:hidden;">
                     <textarea id="chat-textarea" rows="1" placeholder="Type a message..."
-                              style="display:block;width:100%;background:none;border:none;color:#1e293b;font-size:13px;padding:9px 12px 6px;outline:none;resize:none;font-family:inherit;line-height:1.45;max-height:120px;overflow-y:auto;box-sizing:border-box;"
+                              style="display:block;width:100%;background:none;border:none;color:#1e293b;font-size:14px;padding:9px 12px 6px;outline:none;resize:none;font-family:inherit;line-height:1.45;max-height:120px;overflow-y:auto;box-sizing:border-box;"
                               onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();chatSend();}"
                               oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,120)+'px';if(window.chatDraftSave)chatDraftSave();"></textarea>
                     <div style="display:flex;align-items:center;gap:2px;padding:4px 8px;border-top:1px solid #e2e8f0;">
@@ -868,6 +868,8 @@ window.chatOpenDirect = async function(userId) {
 
 window.chatOpen = function() {
     if (_chatOpen) return;
+    // Ask for desktop-notification permission on this user gesture (like Bitrix)
+    try { if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission(); } catch(e) {}
     _chatOpen = true;
     const p       = document.getElementById('chat-panel');
     const btn     = document.getElementById('chat-close-btn');
@@ -914,6 +916,7 @@ async function chatLoadConvs() {
             if ((c.unread || 0) > (prevUnread[c.id] || 0)) {
                 chatPlaySound();
                 chatShowMsgPopup(c);
+                chatDesktopNotify(c);
                 if (_chatOpen) {
                     const row = document.querySelector(`.chat-conv-item[data-id="${c.id}"]`);
                     if (row) { row.style.animation='none'; void row.offsetWidth; row.style.animation='chatFlash .6s ease-out forwards'; }
@@ -942,6 +945,28 @@ function chatUpdateUserBadges() {
             }
         }
     });
+}
+
+/* ── Desktop (browser) notification for new chat messages — like Bitrix ── */
+function chatDesktopNotify(conv) {
+    try {
+        if (!('Notification' in window) || Notification.permission !== 'granted') return;
+        // Skip only when actively looking at this exact conversation
+        if (!document.hidden && _chatOpen && _activeConvId === conv.id) return;
+        const body = conv.lastMsg ? previewText(conv.lastMsg.text || '') : 'New message';
+        const n = new Notification(conv.name || 'New message', {
+            body: (body || 'New message').substring(0, 120),
+            icon: conv.avatar || '{{ asset('logo-dark.png') }}',
+            tag: 'ikia-chat-' + conv.id,
+            renotify: true,
+        });
+        n.onclick = function() {
+            window.focus();
+            if (conv.type === 'direct' && conv.other_user_id) chatOpenDirect(conv.other_user_id);
+            else if (!_chatOpen) chatOpen();
+            n.close();
+        };
+    } catch(e) {}
 }
 
 /* ── Floating popup notification for new messages ── */
@@ -1261,7 +1286,7 @@ function chatBubble({isMine, name, avatar, text, time, showName=true, msgId=null
             ${actions}
             <div style="max-width:45%;">
                 <div class="chat-bubble-bg" style="background:rgba(200,240,210,.92);border-radius:14px 4px 14px 14px;padding:8px 12px;">
-                    <div data-raw="${rawEsc}" style="font-size:13px;color:#1a3025;line-height:1.5;">${content}</div>
+                    <div data-raw="${rawEsc}" style="font-size:14px;color:#1a3025;line-height:1.5;">${content}</div>
                     <div style="display:flex;align-items:center;justify-content:flex-end;gap:4px;margin-top:3px;">
                         <span style="font-size:10px;color:rgba(0,0,0,.35);">${time}</span>
                         <i class="fas fa-check-double" style="font-size:9px;color:rgba(0,120,80,.5);"></i>
@@ -1287,7 +1312,7 @@ function chatBubble({isMine, name, avatar, text, time, showName=true, msgId=null
             <div style="max-width:45%;">
                 ${nameHtml}
                 <div class="chat-bubble-bg" style="background:rgba(255,255,255,.92);border-radius:4px 14px 14px 14px;padding:8px 12px;">
-                    <div style="font-size:13px;color:#1e293b;line-height:1.5;">${content}</div>
+                    <div style="font-size:14px;color:#1e293b;line-height:1.5;">${content}</div>
                     <span style="font-size:10px;color:rgba(0,0,0,.35);display:block;margin-top:3px;text-align:right;">${time}</span>
                 </div>
                 ${rxnOther}
