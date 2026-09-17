@@ -533,18 +533,16 @@ function kbH(s) {
 }
 
 function kbRenderCard(t) {
-    const pc = { low:['#e2e8f0','#475569'], medium:['#dbeafe','#1d4ed8'], high:['#ffedd5','#c2410c'], urgent:['#fee2e2','#b91c1c'] }[t.priority] || ['#e2e8f0','#475569'];
-    const sc = { new:['#f1f5f9','#334155','#cbd5e1'], in_progress:['#dbeafe','#1d4ed8','#bfdbfe'], paused:['#fef3c7','#b45309','#fde68a'], completed:['#dcfce7','#166534','#bbf7d0'] }[t.status] || ['#f1f5f9','#334155','#cbd5e1'];
-    const statusLabel = (t.status||'').replace('_',' ').replace(/\b\w/g, c => c.toUpperCase());
+    const dot = { low:'#cbd5e1', medium:'#3b82f6', high:'#f59e0b', urgent:'#ef4444' }[t.priority] || '#cbd5e1';
 
     let thumb = '';
     if (t.cover_image) {
-        thumb = `<div style="margin:-4px -12px 8px;overflow:hidden;border-radius:6px 6px 0 0;"><img src="${kbH(t.cover_image)}" loading="lazy" style="width:100%;max-height:180px;object-fit:cover;display:block;" onerror="this.parentElement.style.display='none'"></div>`;
+        thumb = `<div style="margin:-12px -12px 10px;overflow:hidden;border-radius:10px 10px 0 0;"><img src="${kbH(t.cover_image)}" loading="lazy" style="width:100%;max-height:170px;object-fit:cover;display:block;" onerror="this.parentElement.style.display='none'"></div>`;
     }
 
-    const proj  = t.project  ? `<p style="font-size:10.5px;color:#64748b;margin:0 0 7px;display:flex;align-items:center;gap:4px;"><i class="fas fa-folder" style="font-size:9px;color:#94a3b8;"></i>${kbH(t.project)}</p>` : '';
-    const dl    = t.deadline ? `<span style="font-size:10.5px;color:${t.dl_past?'#ef4444':'#94a3b8'};display:flex;align-items:center;gap:3px;"><i class="fas fa-calendar-alt" style="font-size:9px;"></i>${kbH(t.deadline)}</span>` : `<span style="font-size:10.5px;color:#cbd5e1;">—</span>`;
-    const asgn  = t.assignee ? `<div style="display:flex;align-items:center;gap:5px;"><span style="font-size:10px;color:#64748b;">${kbH(t.assignee.name.split(' ')[0])}</span><img src="${kbH(t.assignee.avatar)}" style="width:22px;height:22px;border-radius:50%;border:2px solid #e2e8f0;object-fit:cover;" title="${kbH(t.assignee.name)}" alt=""></div>` : '';
+    const proj  = t.project  ? `<p style="font-size:11px;color:#8a94a6;margin:0 0 8px;display:flex;align-items:center;gap:5px;"><i class="fas fa-folder" style="font-size:9px;color:#b4bcc8;"></i>${kbH(t.project)}</p>` : '';
+    const dl    = t.deadline ? `<span style="font-size:11.5px;color:${t.dl_past?'#ef4444':'#8a94a6'};display:flex;align-items:center;gap:4px;"><i class="far fa-clock" style="font-size:10px;"></i>${kbH(t.deadline)}</span>` : `<span style="font-size:11.5px;color:#c4ccd6;">No deadline</span>`;
+    const asgn  = t.assignee ? `<div style="display:flex;align-items:center;gap:7px;margin-bottom:9px;"><img src="${kbH(t.assignee.avatar)}" style="width:24px;height:24px;border-radius:50%;object-fit:cover;flex-shrink:0;" title="${kbH(t.assignee.name)}" alt=""><span style="font-size:12px;color:#555e6d;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${kbH(t.assignee.name)}</span></div>` : '';
 
     const hasUnseen = window._kbUnseenIds && window._kbUnseenIds.has(String(t.id));
     const unseenBadge = hasUnseen
@@ -552,18 +550,15 @@ function kbRenderCard(t) {
         : '';
 
     return `<div id="kb-task-${t.id}" data-task-id="${t.id}" onclick="tpOpen('local',${t.id})"
-        style="position:relative;background:#fff;border-radius:10px;padding:12px;cursor:pointer;transition:box-shadow .15s,transform .15s;box-shadow:0 1px 4px rgba(0,0,0,.12)${hasUnseen ? ';border-left:3px solid #ef4444' : ''};"
-        onmouseover="this.style.boxShadow='0 4px 16px rgba(0,0,0,.18)';this.style.transform='translateY(-1px)'"
-        onmouseout="this.style.boxShadow='0 1px 4px rgba(0,0,0,.12)';this.style.transform=''">
+        style="position:relative;background:#fff;border:1px solid #eef0f2;border-radius:10px;padding:12px;cursor:pointer;transition:box-shadow .15s,transform .15s;box-shadow:0 1px 3px rgba(0,0,0,.07)${hasUnseen ? ';border-left:3px solid #ef4444' : ''};"
+        onmouseover="this.style.boxShadow='0 4px 14px rgba(0,0,0,.13)';this.style.transform='translateY(-1px)'"
+        onmouseout="this.style.boxShadow='0 1px 3px rgba(0,0,0,.07)';this.style.transform=''">
         ${unseenBadge}
-        <p style="font-size:12.5px;font-weight:600;color:#1a1a2e;margin:0 0 7px;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${kbH(t.title)}</p>
         ${thumb}
-        <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-bottom:8px;">
-            <span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:5px;text-transform:uppercase;background:${pc[0]};color:${pc[1]};">${kbH((t.priority||'').toUpperCase())}</span>
-            <span style="font-size:10px;font-weight:600;padding:2px 8px;border-radius:5px;background:${sc[0]};color:${sc[1]};border:1px solid ${sc[2]};">${kbH(statusLabel)}</span>
-        </div>
+        <p style="font-size:14px;font-weight:600;color:#333;margin:0 0 8px;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${dot};margin-right:7px;vertical-align:middle;" title="${kbH(t.priority||'')}"></span>${kbH(t.title)}</p>
         ${proj}
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:4px;">${dl}${asgn}</div>
+        ${asgn}
+        <div style="display:flex;align-items:center;justify-content:space-between;border-top:1px solid #f1f3f5;padding-top:8px;">${dl}</div>
     </div>`;
 }
 

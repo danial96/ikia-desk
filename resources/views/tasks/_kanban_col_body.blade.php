@@ -1,57 +1,49 @@
 @forelse($tasks as $task)
+@php
+    $dotColor = ['low'=>'#cbd5e1','medium'=>'#3b82f6','high'=>'#f59e0b','urgent'=>'#ef4444'][$task->priority] ?? '#cbd5e1';
+    $coverFile = $task->coverFile->first();
+    $thumbUrl  = $coverFile ? asset($coverFile->disk_path) : null;
+    $dlPast = $task->deadline
+        && $task->deadline->copy()->setTimezone('Asia/Karachi')->toDateString() < now('Asia/Karachi')->toDateString()
+        && $task->status !== 'completed';
+@endphp
 <div id="kb-task-{{ $task->id }}" data-task-id="{{ $task->id }}" onclick="tpOpen('local', {{ $task->id }})"
-   style="background:#fff;border-radius:10px;padding:12px;cursor:pointer;transition:box-shadow .15s,transform .15s;box-shadow:0 1px 4px rgba(0,0,0,.12);"
-   onmouseover="this.style.boxShadow='0 4px 16px rgba(0,0,0,.18)';this.style.transform='translateY(-1px)'"
-   onmouseout="this.style.boxShadow='0 1px 4px rgba(0,0,0,.12)';this.style.transform=''">
+   style="position:relative;background:#fff;border:1px solid #eef0f2;border-radius:10px;padding:12px;cursor:pointer;transition:box-shadow .15s,transform .15s;box-shadow:0 1px 3px rgba(0,0,0,.07);"
+   onmouseover="this.style.boxShadow='0 4px 14px rgba(0,0,0,.13)';this.style.transform='translateY(-1px)'"
+   onmouseout="this.style.boxShadow='0 1px 3px rgba(0,0,0,.07)';this.style.transform=''">
 
-    <p style="font-size:12.5px;font-weight:600;color:#1a1a2e;margin:0 0 7px;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">{{ $task->title }}</p>
-
-    @php
-        $coverFile = $task->coverFile->first();
-        $thumbUrl = $coverFile ? asset($coverFile->disk_path) : null;
-    @endphp
     @if($thumbUrl)
-    <div style="margin:-4px -12px 8px;overflow:hidden;border-radius:0;">
+    <div style="margin:-12px -12px 10px;overflow:hidden;border-radius:10px 10px 0 0;">
         <img src="{{ $thumbUrl }}" alt="" loading="lazy"
-             style="width:100%;max-height:180px;object-fit:cover;display:block;border-radius:6px 6px 0 0;"
+             style="width:100%;max-height:170px;object-fit:cover;display:block;"
              onerror="this.parentElement.style.display='none'">
     </div>
     @endif
 
-    <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-bottom:8px;">
-        <span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:5px;text-transform:uppercase;
-             background:{{ ['low'=>'#e2e8f0','medium'=>'#dbeafe','high'=>'#ffedd5','urgent'=>'#fee2e2'][$task->priority] ?? '#e2e8f0' }};
-             color:{{ ['low'=>'#475569','medium'=>'#1d4ed8','high'=>'#c2410c','urgent'=>'#b91c1c'][$task->priority] ?? '#475569' }};">
-            {{ strtoupper($task->priority) }}
-        </span>
-        <span style="font-size:10px;font-weight:600;padding:2px 8px;border-radius:5px;
-             background:{{ ['new'=>'#f1f5f9','in_progress'=>'#dbeafe','paused'=>'#fef3c7','completed'=>'#dcfce7'][$task->status] ?? '#f1f5f9' }};
-             color:{{ ['new'=>'#334155','in_progress'=>'#1d4ed8','paused'=>'#b45309','completed'=>'#166534'][$task->status] ?? '#334155' }};
-             border:1px solid {{ ['new'=>'#cbd5e1','in_progress'=>'#bfdbfe','paused'=>'#fde68a','completed'=>'#bbf7d0'][$task->status] ?? '#cbd5e1' }};">
-            {{ str_replace('_',' ',ucfirst($task->status)) }}
-        </span>
-    </div>
+    <p style="font-size:14px;font-weight:600;color:#333;margin:0 0 8px;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">
+        <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:{{ $dotColor }};margin-right:7px;vertical-align:middle;" title="{{ $task->priority }}"></span>{{ $task->title }}
+    </p>
 
     @if($task->project)
-    <p style="font-size:10.5px;color:#64748b;margin:0 0 7px;display:flex;align-items:center;gap:4px;">
-        <i class="fas fa-folder" style="font-size:9px;color:#94a3b8;"></i>{{ $task->project->name }}
+    <p style="font-size:11px;color:#8a94a6;margin:0 0 8px;display:flex;align-items:center;gap:5px;">
+        <i class="fas fa-folder" style="font-size:9px;color:#b4bcc8;"></i>{{ $task->project->name }}
     </p>
     @endif
 
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-top:4px;">
+    @if($task->assignee)
+    <div style="display:flex;align-items:center;gap:7px;margin-bottom:9px;">
+        <img src="{{ $task->assignee->avatar_url }}" style="width:24px;height:24px;border-radius:50%;object-fit:cover;flex-shrink:0;" title="{{ $task->assignee->name }}" alt="">
+        <span style="font-size:12px;color:#555e6d;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ $task->assignee->name }}</span>
+    </div>
+    @endif
+
+    <div style="display:flex;align-items:center;justify-content:space-between;border-top:1px solid #f1f3f5;padding-top:8px;">
         @if($task->deadline)
-        <span style="font-size:10.5px;color:{{ $task->deadline->copy()->setTimezone('Asia/Karachi')->toDateString() < now('Asia/Karachi')->toDateString() && $task->status !== 'completed' ? '#ef4444' : '#94a3b8' }};display:flex;align-items:center;gap:3px;">
-            <i class="fas fa-calendar-alt" style="font-size:9px;"></i>
-            {{ $task->deadline->copy()->setTimezone('Asia/Karachi')->format('M d, Y') }}
+        <span style="font-size:11.5px;color:{{ $dlPast ? '#ef4444' : '#8a94a6' }};display:flex;align-items:center;gap:4px;">
+            <i class="far fa-clock" style="font-size:10px;"></i>{{ $task->deadline->copy()->setTimezone('Asia/Karachi')->format('M d, Y') }}
         </span>
         @else
-        <span style="font-size:10.5px;color:#cbd5e1;">—</span>
-        @endif
-        @if($task->assignee)
-        <div style="display:flex;align-items:center;gap:5px;">
-            <span style="font-size:10px;color:#64748b;">{{ explode(' ',$task->assignee->name)[0] }}</span>
-            <img src="{{ $task->assignee->avatar_url }}" style="width:22px;height:22px;border-radius:50%;border:2px solid #e2e8f0;object-fit:cover;" title="{{ $task->assignee->name }}" alt="">
-        </div>
+        <span style="font-size:11.5px;color:#c4ccd6;">No deadline</span>
         @endif
     </div>
 </div>
