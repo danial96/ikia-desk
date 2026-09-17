@@ -10,9 +10,6 @@
     <link rel="apple-touch-icon" href="{{ asset('logo-dark.png') }}">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;500;600;700&display=swap">
     <style>
         * { box-sizing: border-box; }
         [x-cloak] { display: none !important; }
@@ -20,7 +17,8 @@
         /* ─── Full-screen background ─── */
         body {
             margin: 0;
-            font-family: 'Open Sans', 'Segoe UI', ui-sans-serif, system-ui, sans-serif;
+            /* Match Bitrix24's system font stack */
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Ubuntu, 'Helvetica Neue', Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol';
             background: #0b0f35;
             min-height: 100vh;
             overflow-x: hidden;
@@ -1932,18 +1930,28 @@ window.removeAttachment = function(textareaId, attId, previewId) {
 window.uploadFileDirect = async function(file, textareaId, previewId) {
     const ta = document.getElementById(textareaId);
     if (!ta || !file) return;
+    // Pasted/blob files often have no filename+extension; give them one from the MIME type
+    // so the server accepts the upload and we can render pasted images inline (not as a link).
+    const mime = file.type || '';
+    const mimeExt = {'image/png':'png','image/jpeg':'jpg','image/jpg':'jpg','image/gif':'gif','image/webp':'webp','image/bmp':'bmp','image/svg+xml':'svg'};
+    const hasExt = (file.name || '').includes('.');
+    let uploadFile = file;
+    if (!hasExt && mimeExt[mime]) {
+        uploadFile = new File([file], 'pasted-' + Date.now() + '.' + mimeExt[mime], { type: mime });
+    }
+    const isImageMime = mime.startsWith('image/');
     const origPH = ta.placeholder;
     ta.placeholder = 'Uploading...';
     ta.disabled = true;
     try {
         const fd = new FormData();
-        fd.append('file', file);
+        fd.append('file', uploadFile);
         fd.append('_token', CSRF);
         const r = await fetch(API_BASE + '/api/upload', { method: 'POST', body: fd, headers: { 'Accept': 'application/json' } });
         const d = await r.json();
         if (d.url) {
             const imgExts = ['jpg','jpeg','png','gif','webp','bmp','svg'];
-            const isImg = imgExts.includes((d.ext||'').toLowerCase());
+            const isImg = isImageMime || imgExts.includes((d.ext||'').toLowerCase());
             const tag = isImg ? `[img]${d.url}[/img]` : `[file name="${d.name}"]${d.url}[/file]`;
             const attId = 'att-' + Date.now() + '-' + Math.random().toString(36).slice(2,7);
             if (!_pendingAtts[textareaId]) _pendingAtts[textareaId] = [];
