@@ -1285,8 +1285,8 @@ function chatBubble({isMine, name, avatar, text, time, showName=true, msgId=null
         return `<div data-msg-id="${msgId||''}" data-mine="1" data-created-ts="${createdTs}" data-sender="You" class="chat-msg-outer" style="display:flex;justify-content:flex-end;align-items:center;gap:4px;margin-bottom:2px;">
             ${actions}
             <div style="max-width:45%;">
-                <div class="chat-bubble-bg" style="background:#daf1fd;border-radius:14px 4px 14px 14px;padding:8px 12px;">
-                    <div data-raw="${rawEsc}" style="font-size:14px;color:#14303a;line-height:1.5;">${content}</div>
+                <div class="chat-bubble-bg" style="background:#d7f5c9;border-radius:14px 4px 14px 14px;padding:8px 12px;">
+                    <div data-raw="${rawEsc}" style="font-size:14px;color:#173a20;line-height:1.5;">${content}</div>
                     <div style="display:flex;align-items:center;justify-content:flex-end;gap:4px;margin-top:3px;">
                         <span style="font-size:10px;color:rgba(0,0,0,.35);">${time}</span>
                         <i class="fas fa-check-double" style="font-size:9px;color:rgba(0,120,80,.5);"></i>

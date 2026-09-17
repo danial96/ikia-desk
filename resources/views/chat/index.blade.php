@@ -575,8 +575,8 @@ function bubble(m) {
         return `<div ${dataAttrs} class="cp-msg-outer" style="display:flex;justify-content:flex-end;align-items:center;gap:5px;margin-bottom:2px;">
             ${actions}
             <div style="max-width:45%;">
-                <div class="cp-bubble-bg" style="background:#daf1fd;border-radius:14px 4px 14px 14px;padding:9px 13px 7px;cursor:default;">
-                    <div data-msg-text data-raw="${esc(text)}" style="font-size:14px;color:#14303a;line-height:1.5;">${content}</div>
+                <div class="cp-bubble-bg" style="background:#d7f5c9;border-radius:14px 4px 14px 14px;padding:9px 13px 7px;cursor:default;">
+                    <div data-msg-text data-raw="${esc(text)}" style="font-size:14px;color:#173a20;line-height:1.5;">${content}</div>
                     <div style="display:flex;align-items:center;justify-content:flex-end;gap:4px;margin-top:3px;">
                         ${editedHtml}<span style="font-size:10.5px;color:rgba(0,0,0,.38);">${time}</span>
                         <i class="fas fa-check-double" style="font-size:9px;color:rgba(0,140,90,.6);"></i>

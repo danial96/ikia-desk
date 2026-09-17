@@ -118,14 +118,14 @@
                  style="flex-shrink:0;padding:14px 20px;border-bottom:1px solid rgba(255,255,255,0.4);display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,0.55);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);">
                 <div style="display:flex;align-items:center;gap:7px;">
                     <i class="fas fa-comment-dots" style="color:#0ea5e9;font-size:12px;"></i>
-                    <span id="tp-chat-title" style="color:#374151;font-size:13px;font-weight:700;">Comments</span>
+                    <span id="tp-chat-title" style="color:#374151;font-size:14px;font-weight:700;">Task chat</span>
                 </div>
                 <span id="tp-chat-count" style="font-size:11px;color:#9ca3af;font-weight:600;"></span>
             </div>
 
             {{-- Messages --}}
             <div id="tp-messages"
-                 style="flex:1;overflow-y:auto;padding:14px 18px;display:flex;flex-direction:column;gap:8px;scrollbar-width:thin;scrollbar-color:#dee2e6 transparent;background:linear-gradient(rgba(255,255,255,.38),rgba(255,255,255,.38)),url('{{ asset('pattern-chat.svg') }}');background-size:cover;background-position:center;background-repeat:no-repeat;background-attachment:local;">
+                 style="flex:1;overflow-y:auto;padding:14px 18px;display:flex;flex-direction:column;gap:8px;scrollbar-width:thin;scrollbar-color:#dee2e6 transparent;background:linear-gradient(rgba(244,247,249,.9),rgba(244,247,249,.9)),url('{{ asset('pattern-chat.svg') }}');background-size:340px;background-position:center;background-repeat:repeat;background-attachment:local;">
             </div>
 
             {{-- Comment footer --}}
@@ -987,23 +987,23 @@ function tpRenderLocal(data) {
         const curPriority = priorities.find(p=>p.v===t.priority)|| priorities[0];
 
         const infoRow = (label, val, last=false) =>
-            `<div style="display:flex;align-items:center;min-height:42px;padding:8px 14px;${last?'':'border-bottom:1px solid #f1f3f5;'}">
-                <span style="flex-shrink:0;width:120px;font-size:11.5px;color:#9ca3af;font-weight:500;">${label}</span>
+            `<div style="display:flex;align-items:center;min-height:44px;padding:9px 16px;${last?'':'border-bottom:1px solid #f1f3f5;'}">
+                <span style="flex-shrink:0;width:128px;font-size:13px;color:#8a94a6;font-weight:400;">${label}</span>
                 <div style="flex:1;min-width:0;">${val}</div>
             </div>`;
 
         /* Creator */
         const creatorVal = creator
-            ? `<div style="display:flex;align-items:center;gap:8px;">${uAvatar(creator,26)}<span style="font-size:13px;color:#111827;">${esc(creator.name)}</span></div>`
-            : `<span style="color:#9ca3af;font-size:13px;">—</span>`;
+            ? `<div style="display:flex;align-items:center;gap:8px;">${uAvatar(creator,26)}<span style="font-size:14px;color:#111827;">${esc(creator.name)}</span></div>`
+            : `<span style="color:#9ca3af;font-size:14px;">—</span>`;
 
         /* Assignee */
         const assigneeVal = assignee
             ? `<div onclick="tpToggleDropdown('tp-drop-assignee')" style="display:inline-flex;align-items:center;gap:8px;cursor:pointer;padding:3px 6px;border-radius:8px;transition:background .15s;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='transparent'">
-                ${uAvatar(assignee,26)}<span style="font-size:13px;color:#111827;">${esc(assignee.name)}</span>
+                ${uAvatar(assignee,26)}<span style="font-size:14px;color:#111827;">${esc(assignee.name)}</span>
                 <i class="fas fa-chevron-down" style="font-size:9px;color:#9ca3af;"></i></div>`
             : `<div onclick="tpToggleDropdown('tp-drop-assignee')" style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;padding:3px 6px;border-radius:8px;transition:background .15s;color:#9ca3af;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='transparent'">
-                <i class="fas fa-user-plus" style="font-size:11px;"></i><span style="font-size:13px;">Unassigned</span>
+                <i class="fas fa-user-plus" style="font-size:11px;"></i><span style="font-size:14px;">Unassigned</span>
                 <i class="fas fa-chevron-down" style="font-size:9px;"></i></div>`;
         const assigneeDrop = `<div id="tp-drop-assignee" class="tp-people-dropdown" style="display:none;top:100%;left:0;min-width:240px;z-index:200;">
             <input type="text" placeholder="Search employee..." oninput="tpFilterDrop('tp-drop-assignee',this.value)">
@@ -1029,9 +1029,9 @@ function tpRenderLocal(data) {
         const _dlTimeStr=fmtTime(t.deadline);
         const deadlineVal=_dl
             ?`<div onclick="tpCalOpen(${taskId},this,'${t.deadline||''}')" style="display:inline-flex;align-items:center;cursor:pointer;padding:3px 6px;border-radius:8px;transition:background .15s;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='transparent'">
-                <div><div style="display:flex;align-items:center;gap:0;"><span style="font-size:13px;color:${_isOvr?'#b91c1c':'#111827'};">${fmtDate(t.deadline)}</span>${dlBadge}</div>${_dlTimeStr?`<div style="color:#9ca3af;font-size:11px;margin-top:1px;">${_dlTimeStr}</div>`:''}</div></div>`
+                <div><div style="display:flex;align-items:center;gap:0;"><span style="font-size:14px;color:${_isOvr?'#b91c1c':'#111827'};">${fmtDate(t.deadline)}</span>${dlBadge}</div>${_dlTimeStr?`<div style="color:#9ca3af;font-size:11px;margin-top:1px;">${_dlTimeStr}</div>`:''}</div></div>`
             :`<div onclick="tpCalOpen(${taskId},this,'')" style="display:inline-flex;align-items:center;gap:5px;cursor:pointer;padding:3px 6px;border-radius:8px;transition:background .15s;color:#9ca3af;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='transparent'">
-                <i class="fas fa-calendar-plus" style="font-size:11px;"></i><span style="font-size:13px;">Set deadline</span></div>`;
+                <i class="fas fa-calendar-plus" style="font-size:11px;"></i><span style="font-size:14px;">Set deadline</span></div>`;
 
         /* Status */
         const statusVal=`<div style="position:relative;display:inline-flex;">
@@ -1062,7 +1062,7 @@ function tpRenderLocal(data) {
         /* Created */
         const createdStr=t.createdAt||t.created_at||'';
         const createdVal=`<div style="display:flex;align-items:center;gap:8px;">
-            <span style="font-size:13px;color:#374151;">${fmtShort(createdStr)}</span>
+            <span style="font-size:14px;color:#374151;">${fmtShort(createdStr)}</span>
             <span style="font-size:11px;color:#9ca3af;background:#f1f5f9;padding:1px 7px;border-radius:8px;">#${taskId}</span>
             <button onclick="tpCopyTaskId(${taskId},this)" title="Copy ID" style="background:none;border:none;color:#9ca3af;cursor:pointer;padding:2px 5px;border-radius:5px;font-size:11px;line-height:1;transition:color .12s;" onmouseover="this.style.color='#0ea5e9'" onmouseout="this.style.color='#9ca3af'"><i class="fas fa-copy"></i></button>
         </div>`;
@@ -1183,7 +1183,7 @@ function tpRenderLocal(data) {
     const isInProgress = t.status === 'in_progress';
 
     const startBtn = (!isCompleted && !isInProgress)
-        ? `<button onclick="tpSetStatusQuick(${taskId},'in_progress',this)" style="padding:7px 18px;border-radius:8px;background:#0ea5e9;border:none;color:#fff;font-size:13px;font-weight:600;cursor:pointer;transition:opacity .15s;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'"><i class="fas fa-play" style="margin-right:5px;font-size:11px;"></i>Start</button>`
+        ? `<button onclick="tpSetStatusQuick(${taskId},'in_progress',this)" style="padding:8px 20px;border-radius:8px;background:#22a35a;border:none;color:#fff;font-size:13px;font-weight:600;cursor:pointer;transition:opacity .15s;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'"><i class="fas fa-play" style="margin-right:5px;font-size:11px;"></i>Start</button>`
         : '';
     const completeBtn = !isCompleted
         ? `<button onclick="tpSetStatusQuick(${taskId},'completed',this)" style="padding:7px 18px;border-radius:8px;background:#fff;border:1.5px solid #e2e8f0;color:#374151;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;" onmouseover="this.style.borderColor='#15803d';this.style.color='#15803d'" onmouseout="this.style.borderColor='#e2e8f0';this.style.color='#374151'"><i class="fas fa-check" style="margin-right:5px;font-size:11px;"></i>Complete</button>`
@@ -1222,8 +1222,8 @@ function tpRenderLocal(data) {
     $('tp-comment-footer').innerHTML=`
         <div style="display:flex;gap:8px;align-items:flex-end;">
             <div style="flex:1;background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:9px;overflow:hidden;transition:border-color .15s;" id="tp-comment-box">
-                <textarea id="tp-comment-text" rows="2" placeholder="Write a comment..."
-                    style="display:block;width:100%;background:none;border:none;padding:9px 12px 6px;color:#111827;font-size:12.5px;resize:none;outline:none;line-height:1.5;font-family:inherit;box-sizing:border-box;"
+                <textarea id="tp-comment-text" rows="2" placeholder="Type @ to mention someone…"
+                    style="display:block;width:100%;background:none;border:none;padding:9px 12px 6px;color:#111827;font-size:14px;resize:none;outline:none;line-height:1.5;font-family:inherit;box-sizing:border-box;"
                     onfocus="document.getElementById('tp-comment-box').style.borderColor='#0ea5e9'"
                     onblur="document.getElementById('tp-comment-box').style.borderColor='#e2e8f0'"
                     onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();tpSubmitComment(${taskId});}"></textarea>
@@ -1404,7 +1404,7 @@ window.tpStopChatPoll = function() {
 window.tpRenderLocalFeed = function(data, taskId) {
     const feed = data.feed || [];
     const comments = feed.filter(f => f.type === 'comment');
-    $('tp-chat-title').textContent = 'Comments';
+    $('tp-chat-title').textContent = 'Task chat';
     $('tp-chat-count').textContent = comments.length ? comments.length + ' comments' : '';
 
     // spacer pushes messages to the bottom when few messages exist
