@@ -2047,9 +2047,16 @@ window.clearAttachments = function(textareaId, previewId) {
     {{-- Counter --}}
     <div id="lb-counter" style="display:none;position:absolute;bottom:22px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.55);color:rgba(255,255,255,.8);font-size:12px;font-weight:600;padding:5px 16px;border-radius:20px;letter-spacing:.5px;white-space:nowrap;"></div>
 
+    {{-- Download --}}
+    <button onclick="lbDownload()"
+            style="position:absolute;top:18px;right:70px;background:rgba(255,255,255,.12);border:none;color:#fff;width:38px;height:38px;border-radius:50%;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(8px);z-index:3;"
+            onmouseover="this.style.background='rgba(255,255,255,.24)'" onmouseout="this.style.background='rgba(255,255,255,.12)'"
+            title="Download"><i class="fas fa-download"></i></button>
+
     {{-- Close --}}
     <button onclick="lbClose()"
             style="position:absolute;top:18px;right:22px;background:rgba(255,255,255,.12);border:none;color:#fff;width:38px;height:38px;border-radius:50%;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(8px);z-index:3;"
+            onmouseover="this.style.background='rgba(255,255,255,.24)'" onmouseout="this.style.background='rgba(255,255,255,.12)'"
             title="Close"><i class="fas fa-times"></i></button>
 </div>
 <style>
@@ -2108,6 +2115,26 @@ window.lbNav = function(dir) {
 
 window.lbClose = function() {
     document.getElementById('img-lightbox').style.display = 'none';
+};
+
+window.lbDownload = async function() {
+    const url = _lbUrls()[_igCurIdx];
+    if (!url) return;
+    const name = ((url.split('/').pop() || 'image').split('?')[0]) || 'image';
+    try {
+        // Fetch as a blob so it downloads (with the file name) instead of just opening
+        const res = await fetch(url, { credentials: 'same-origin' });
+        if (!res.ok) throw new Error('fetch failed');
+        const blob = await res.blob();
+        const obj = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = obj; a.download = name;
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(obj), 4000);
+    } catch (e) {
+        // Fallback: open in a new tab if the blob download isn't possible
+        window.open(url, '_blank', 'noopener');
+    }
 };
 
 document.addEventListener('keydown', function(e) {
