@@ -87,7 +87,7 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
 
         {{-- Messages --}}
-        <div id="cp-msg-area" style="display:none;flex:1;overflow-y:auto;padding:20px 200px;background-image:url('{{ asset('pattern-chat.svg') }}');background-size:cover;background-position:center;background-color:#e8f4f8;flex-direction:column;"></div>
+        <div id="cp-msg-area" style="display:none;flex:1;overflow-y:auto;padding:20px 200px;background:linear-gradient(rgba(255,255,255,.6),rgba(255,255,255,.6)),url('{{ asset('pattern-chat.svg') }}');background-size:cover;background-position:center;background-color:#eef2f5;flex-direction:column;"></div>
 
         {{-- Input --}}
         <div id="cp-input-area" style="display:none;padding:10px 16px 14px;border-top:1px solid #e2e8f0;background:#fff;flex-shrink:0;">
@@ -130,7 +130,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         onmouseover="this.style.background='#cbd5e1';this.style.color='#334155'" onmouseout="this.style.background='#e2e8f0';this.style.color='#64748b'">
                     <i class="fas fa-microphone" style="font-size:14px;"></i>
                 </button>
-                <button onclick="cpSend()" style="width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,#00C4D8,#1B72E8);border:none;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                <button onclick="cpSend()" style="width:42px;height:42px;border-radius:50%;background:#2f70d6;border:none;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
                     <i class="fas fa-paper-plane" style="font-size:14px;"></i>
                 </button>
             </div>
@@ -230,11 +230,11 @@ document.addEventListener('DOMContentLoaded', function() {
 <style>
 #cp-wrap { position:relative; }
 #cp-direct-modal.cp-show, #cp-group-modal.cp-show { display:flex !important; }
-.cp-conv-item { display:flex;align-items:center;gap:11px;padding:11px 16px;cursor:pointer;border-bottom:1px solid #e2e8f0;transition:background .12s;position:relative; }
-.cp-conv-item:hover { background:#e8f4f8; }
-.cp-conv-item.active { background:#e0f7fa;border-left:3px solid #0891b2;padding-left:13px; }
-.cp-conv-item.unread { background:#e0f7fa;border-left:3px solid #22c55e;padding-left:13px; }
-.cp-conv-item.unread:hover { background:#b2ebf2; }
+.cp-conv-item { display:flex;align-items:center;gap:12px;padding:10px 16px;cursor:pointer;transition:background .12s;position:relative; }
+.cp-conv-item:hover { background:#f4f6f8; }
+.cp-conv-item.active { background:#e9f2fb; }
+.cp-conv-item.unread { background:#f0f7ff; }
+.cp-conv-item.unread:hover { background:#e4eefb; }
 @keyframes cp-flash { 0%{background:rgba(37,211,102,.22)} 100%{background:rgba(0,212,232,.06)} }
 .cp-conv-item.flash { animation:cp-flash .6s ease-out forwards; }
 #cp-conv-ctx { position:fixed;z-index:500;background:#fff;border:1px solid #e2e8f0;border-radius:9px;padding:4px 0;min-width:150px;box-shadow:0 8px 28px rgba(0,0,0,.12);display:none; }
@@ -575,8 +575,8 @@ function bubble(m) {
         return `<div ${dataAttrs} class="cp-msg-outer" style="display:flex;justify-content:flex-end;align-items:center;gap:5px;margin-bottom:2px;">
             ${actions}
             <div style="max-width:45%;">
-                <div class="cp-bubble-bg" style="background:rgba(200,240,210,.92);border-radius:14px 4px 14px 14px;padding:9px 13px 7px;cursor:default;">
-                    <div data-msg-text data-raw="${esc(text)}" style="font-size:13.5px;color:#1a3025;line-height:1.5;">${content}</div>
+                <div class="cp-bubble-bg" style="background:#daf1fd;border-radius:14px 4px 14px 14px;padding:9px 13px 7px;cursor:default;">
+                    <div data-msg-text data-raw="${esc(text)}" style="font-size:14px;color:#14303a;line-height:1.5;">${content}</div>
                     <div style="display:flex;align-items:center;justify-content:flex-end;gap:4px;margin-top:3px;">
                         ${editedHtml}<span style="font-size:10.5px;color:rgba(0,0,0,.38);">${time}</span>
                         <i class="fas fa-check-double" style="font-size:9px;color:rgba(0,140,90,.6);"></i>
@@ -596,8 +596,8 @@ function bubble(m) {
         ${av}
         <div style="max-width:45%;">
             ${nm}
-            <div class="cp-bubble-bg" style="background:rgba(255,255,255,.92);border-radius:4px 14px 14px 14px;padding:9px 13px 7px;cursor:default;">
-                <div data-msg-text data-raw="${esc(text)}" style="font-size:13.5px;color:#1e293b;line-height:1.5;">${content}</div>
+            <div class="cp-bubble-bg" style="background:#ffffff;border-radius:4px 14px 14px 14px;padding:9px 13px 7px;cursor:default;">
+                <div data-msg-text data-raw="${esc(text)}" style="font-size:14px;color:#1e293b;line-height:1.5;">${content}</div>
                 <div style="display:flex;align-items:center;justify-content:flex-end;gap:2px;margin-top:3px;">
                     ${editedHtmlOther}<span style="font-size:10.5px;color:rgba(0,0,0,.35);">${time}</span>
                 </div>
