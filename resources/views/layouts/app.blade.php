@@ -674,11 +674,11 @@
 
         {{-- Header (hidden until conv selected) --}}
         <div id="chat-right-head" style="display:none;padding:12px 16px;border-bottom:1px solid #e2e8f0;display:none;align-items:center;gap:10px;background:#fff;flex-shrink:0;">
-            <div id="chat-rh-avatar" style="width:34px;height:34px;border-radius:50%;overflow:hidden;flex-shrink:0;background:#e0f7fa;display:flex;align-items:center;justify-content:center;">
+            <div id="chat-rh-avatar" style="width:40px;height:40px;border-radius:50%;overflow:hidden;flex-shrink:0;background:#e0f7fa;display:flex;align-items:center;justify-content:center;">
                 <i class="fas fa-user" style="font-size:14px;color:#0891b2;"></i>
             </div>
             <div style="flex:1;min-width:0;">
-                <p id="chat-rh-name" style="margin:0;color:#1e293b;font-size:13.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></p>
+                <p id="chat-rh-name" style="margin:0;color:#111827;font-size:14.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></p>
                 <p id="chat-rh-sub" style="margin:0;color:#94a3b8;font-size:11px;"></p>
             </div>
         </div>
@@ -723,11 +723,11 @@
                     <div id="chat-attach-preview" style="display:none;padding:6px 8px 4px;gap:8px;flex-wrap:wrap;border-top:1px solid #e2e8f0;"></div>
                 </div>
                 <button onclick="vnStart('chat')" title="Voice note"
-                        style="width:38px;height:38px;border-radius:10px;background:#e2e8f0;border:1px solid #cbd5e1;color:#64748b;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s;"
+                        style="width:40px;height:40px;border-radius:50%;background:#eef1f5;border:1px solid #dfe4ea;color:#64748b;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s;"
                         onmouseover="this.style.background='#cbd5e1';this.style.color='#334155'" onmouseout="this.style.background='#e2e8f0';this.style.color='#64748b'">
                     <i class="fas fa-microphone" style="font-size:14px;"></i>
                 </button>
-                <button onclick="chatSend()" style="width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,#00C4D8,#1B72E8);border:none;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                <button onclick="chatSend()" style="width:40px;height:40px;border-radius:50%;background:#2f70d6;border:none;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
                     <i class="fas fa-paper-plane" style="font-size:13px;"></i>
                 </button>
             </div>
@@ -812,9 +812,9 @@
 @keyframes chatPopupIn  { from{transform:translateX(24px);opacity:0} to{transform:translateX(0);opacity:1} }
 @keyframes chatPopupOut { from{opacity:1;transform:translateX(0)} to{opacity:0;transform:translateX(24px)} }
 @keyframes vnPulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(.7)} }
-.chat-conv-item { display:flex;align-items:center;gap:10px;padding:10px 12px;cursor:pointer;border-bottom:1px solid #e2e8f0;transition:background .12s; }
-.chat-conv-item:hover { background:#e8f4f8; }
-.chat-conv-item.active { background:#e0f7fa;border-left:2px solid #0891b2; }
+.chat-conv-item { display:flex;align-items:center;gap:11px;padding:9px 14px;cursor:pointer;transition:background .12s; }
+.chat-conv-item:hover { background:#f4f6f8; }
+.chat-conv-item.active { background:#e9f2fb; }
 .chat-conv-unread { background:#f0fdf4;border-left:2px solid #22c55e !important; }
 .chat-conv-unread:hover { background:#dcfce7 !important; }
 @keyframes chatFlash { 0%{background:rgba(34,197,94,.2)} 100%{background:#f0fdf4} }
@@ -1054,21 +1054,21 @@ function chatRenderConvs(list) {
         return;
     }
     el.innerHTML = list.map(c => {
-        const avatar  = convAvatar(c, 32);
+        const avatar  = convAvatar(c, 44);
         const unread  = (c.unread && _activeConvId !== c.id) ? c.unread : 0;
         const lastLine = c.lastMsg
-            ? `<span style="color:${unread?'#0f172a':'#64748b'};font-size:11px;font-weight:${unread?'600':'400'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
-                 ${c.lastMsg.byMe ? 'You: ' : (c.type!=='direct'?escH(c.lastMsg.senderName||'')+': ':'')}${escH(previewText(c.lastMsg.text).substring(0,40))}
+            ? `<span style="color:${unread?'#111827':'#8a94a6'};font-size:13px;font-weight:${unread?'500':'400'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                 ${c.lastMsg.byMe ? 'You: ' : (c.type!=='direct'?escH(c.lastMsg.senderName||'')+': ':'')}${escH(previewText(c.lastMsg.text).substring(0,38))}
                </span>`
-            : `<span style="color:#94a3b8;font-size:11px;">No messages yet</span>`;
-        const timeStr = c.lastMsg ? `<span style="color:${unread?'#0891b2':'#94a3b8'};font-size:10.5px;flex-shrink:0;">${c.lastMsg.time}</span>` : '';
-        const badge   = unread ? `<div style="min-width:18px;height:18px;border-radius:9px;background:#0891b2;color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0 4px;flex-shrink:0;">${unread>99?'99+':unread}</div>` : '';
+            : `<span style="color:#a3adba;font-size:13px;">No messages yet</span>`;
+        const timeStr = c.lastMsg ? `<span style="color:${unread?'#2f70d6':'#a3adba'};font-size:11.5px;flex-shrink:0;">${c.lastMsg.time}</span>` : '';
+        const badge   = unread ? `<div style="min-width:18px;height:18px;border-radius:9px;background:#2f70d6;color:#fff;font-size:10.5px;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0 5px;flex-shrink:0;">${unread>99?'99+':unread}</div>` : '';
         const isActive = _activeConvId === c.id;
         return `<div class="chat-conv-item${isActive?' active':''}${unread?' chat-conv-unread':''}" onclick="chatSelectConv(${c.id})" data-id="${c.id}">
             ${avatar}
             <div style="flex:1;min-width:0;">
                 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px;">
-                    <span style="color:#1e293b;font-size:12.5px;font-weight:${unread?'700':'600'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:110px;">${escH(c.name)}</span>
+                    <span style="color:#111827;font-size:14px;font-weight:${unread?'700':'500'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:150px;">${escH(c.name)}</span>
                     ${timeStr}
                 </div>
                 <div style="display:flex;align-items:center;justify-content:space-between;gap:4px;">
