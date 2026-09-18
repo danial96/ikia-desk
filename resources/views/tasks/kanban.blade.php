@@ -28,24 +28,24 @@
 
     <div style="position:relative;min-width:0;">
 
-        {{-- Left arrow --}}
+        {{-- Left arrow — pinned to the top corner of the columns, like Bitrix --}}
         <button id="kb-left"
-                style="position:fixed;left:230px;top:50%;transform:translateY(-50%);z-index:99;width:44px;height:44px;border-radius:50%;background:rgba(30,30,80,.55);backdrop-filter:blur(12px);border:1.5px solid rgba(255,255,255,.25);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .2s,opacity .2s;opacity:0;pointer-events:none;box-shadow:0 4px 20px rgba(0,0,0,.4);"
+                style="position:absolute;left:0;top:14px;z-index:99;width:32px;height:32px;border-radius:50%;background:rgba(30,30,80,.6);backdrop-filter:blur(12px);border:1.5px solid rgba(255,255,255,.25);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .2s,opacity .2s;opacity:0;pointer-events:none;box-shadow:0 4px 14px rgba(0,0,0,.35);"
                 onclick="document.getElementById('kb-scroll').scrollBy({left:-280,behavior:'smooth'})"
                 onmouseover="this.style.background='rgba(255,255,255,.25)'"
-                onmouseout="this.style.background='rgba(30,30,80,.55)'">
-            <svg style="width:20px;height:20px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                onmouseout="this.style.background='rgba(30,30,80,.6)'">
+            <svg style="width:16px;height:16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/>
             </svg>
         </button>
 
-        {{-- Right arrow --}}
+        {{-- Right arrow — pinned to the top corner of the columns, like Bitrix --}}
         <button id="kb-right"
-                style="position:fixed;right:62px;top:50%;transform:translateY(-50%);z-index:99;width:44px;height:44px;border-radius:50%;background:rgba(30,30,80,.55);backdrop-filter:blur(12px);border:1.5px solid rgba(255,255,255,.25);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .2s,opacity .2s;box-shadow:0 4px 20px rgba(0,0,0,.4);"
+                style="position:absolute;right:0;top:14px;z-index:99;width:32px;height:32px;border-radius:50%;background:rgba(30,30,80,.6);backdrop-filter:blur(12px);border:1.5px solid rgba(255,255,255,.25);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .2s,opacity .2s;box-shadow:0 4px 14px rgba(0,0,0,.35);"
                 onclick="document.getElementById('kb-scroll').scrollBy({left:280,behavior:'smooth'})"
                 onmouseover="this.style.background='rgba(255,255,255,.25)'"
-                onmouseout="this.style.background='rgba(30,30,80,.55)'">
-            <svg style="width:20px;height:20px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                onmouseout="this.style.background='rgba(30,30,80,.6)'">
+            <svg style="width:16px;height:16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/>
             </svg>
         </button>
