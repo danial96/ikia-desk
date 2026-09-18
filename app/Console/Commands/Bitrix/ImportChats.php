@@ -237,7 +237,9 @@ class ImportChats extends BitrixCommand
 
             $localUserId = $this->userMap[$authorBxId] ?? $this->adminId;
 
-            Message::updateOrCreate(
+            // withTrashed(): don't create a duplicate for a message someone deleted locally
+            // after it was imported; 'deleted_at' isn't in the payload so it stays deleted.
+            Message::withTrashed()->updateOrCreate(
                 ['bitrix_id' => $bitrixMsgId],
                 [
                     'conversation_id' => $conversation->id,

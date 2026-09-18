@@ -145,7 +145,9 @@ class ImportComments extends BitrixCommand
 
             $fileIds = $diskFileIds ? $this->importDiskFileIds($task, $diskFileIds, $userId) : [];
 
-            TaskComment::updateOrCreate(
+            // withTrashed(): don't create a duplicate for a comment someone deleted locally
+            // after it was imported; 'deleted_at' isn't in the payload so it stays deleted.
+            TaskComment::withTrashed()->updateOrCreate(
                 ['bitrix_id' => $bitrixMsgId],
                 [
                     'task_id'    => $task->id,
@@ -189,7 +191,9 @@ class ImportComments extends BitrixCommand
 
             $fileIds = $this->importAttachedObjects($task, $attachedObjects, $userId);
 
-            TaskComment::updateOrCreate(
+            // withTrashed(): don't create a duplicate for a comment someone deleted locally
+            // after it was imported; 'deleted_at' isn't in the payload so it stays deleted.
+            TaskComment::withTrashed()->updateOrCreate(
                 ['bitrix_id' => $bitrixCommentId],
                 [
                     'task_id'    => $task->id,
