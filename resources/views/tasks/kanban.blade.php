@@ -406,10 +406,11 @@ function kbUpdateArrows() {
     right.style.opacity      = atEnd   ? '0' : '1';
     right.style.pointerEvents = atEnd  ? 'none' : 'auto';
 
-    // Sidebar-aware positions
+    // Sidebar-aware position — only #kb-track needs this (it's still position:fixed,
+    // relative to the viewport). #kb-left/#kb-right are position:absolute inside the
+    // columns wrapper now, so their `left`/`right` come from the CSS only.
     const sidebar = document.getElementById('sidebar');
     const sbWidth = (sidebar && !sidebar.classList.contains('hidden-sidebar')) ? 220 : 0;
-    left.style.left        = (sbWidth + 10) + 'px';
     if (track) track.style.left = (sbWidth + 10) + 'px';
 
     // Thumb width & position
