@@ -111,7 +111,7 @@
                 </div>
                 <div class="checkbox-row">
                     <input type="checkbox" name="remember" id="remember">
-                    <span>Remember me for 30 days</span>
+                    <span>Keep me signed in</span>
                 </div>
                 <button type="submit" class="ikia-btn">Sign In →</button>
             </form>
