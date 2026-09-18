@@ -104,7 +104,11 @@ class ImportTasks extends BitrixCommand
         // Map Bitrix priority (0-2) → our enum
         $priority = $this->mapPriority((string)($t['priority'] ?? '1'));
 
-        $task = Task::updateOrCreate(
+        // withTrashed(): a task locally deleted (soft-delete) after being imported must still
+        // be matched by bitrix_id here, or updateOrCreate would silently create a duplicate
+        // row for it (the default query excludes trashed rows). Since 'deleted_at' is not in
+        // the update payload below, this never resurrects a task someone deleted on purpose.
+        $task = Task::withTrashed()->updateOrCreate(
             ['bitrix_id' => $bitrixId],
             [
                 'title'                 => $t['title'] ?? "Task #$bitrixId",
