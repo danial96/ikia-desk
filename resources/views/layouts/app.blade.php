@@ -976,6 +976,13 @@ function chatDesktopNotify(conv) {
     } catch(e) {}
 }
 
+/* Slide remaining stacked popups up to fill the gap left by one that just closed */
+function _repositionMsgPopups() {
+    document.querySelectorAll('.cmsg-popup').forEach((el, i) => {
+        el.style.top = (58 + i * 78) + 'px';
+    });
+}
+
 /* ── Floating popup notification for new messages ── */
 function chatShowMsgPopup(conv) {
     if (_chatOpen && _activeConvId === conv.id) return; // already viewing this conv
@@ -995,6 +1002,7 @@ function chatShowMsgPopup(conv) {
         + 'border:1px solid rgba(0,212,232,.3);border-radius:14px;'
         + 'padding:11px 13px;z-index:9997;width:250px;cursor:pointer;'
         + 'box-shadow:0 8px 40px rgba(0,0,0,.65);'
+        + 'transition:top .25s ease;'
         + 'animation:chatPopupIn .28s cubic-bezier(.22,1,.36,1) forwards;';
     popup.innerHTML = '<div style="display:flex;align-items:center;gap:10px;">'
         + '<div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,rgba(0,212,232,.3),rgba(27,114,232,.3));'
@@ -1008,9 +1016,11 @@ function chatShowMsgPopup(conv) {
     popup.querySelector('.cmsgpop-x').addEventListener('click', function(e) {
         e.stopPropagation();
         popup.remove();
+        _repositionMsgPopups();
     });
     popup.addEventListener('click', function() {
         popup.remove();
+        _repositionMsgPopups();
         if (conv.type === 'direct' && conv.other_user_id) {
             chatOpenDirect(conv.other_user_id);
         } else {
@@ -1021,7 +1031,7 @@ function chatShowMsgPopup(conv) {
     setTimeout(function() {
         if (popup.parentNode) {
             popup.style.animation = 'chatPopupOut .22s ease-in forwards';
-            setTimeout(() => popup.remove(), 220);
+            setTimeout(() => { popup.remove(); _repositionMsgPopups(); }, 220);
         }
     }, 5000);
 }
