@@ -429,15 +429,15 @@ const chatDivider = iso => `<div style="display:flex;align-items:center;justify-
 /* build a chat bubble — isMine = right green, else left white */
 const chatBubble = ({isMine, name, nameColor, text, time, showName=true, isSystem=false, files=[]}) => {
     if(isSystem) return `
-        <div style="display:flex;justify-content:center;margin:3px 0 6px;">
-            <div style="background:rgba(0,0,0,0.22);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);border-radius:12px;padding:4px 14px;max-width:88%;text-align:center;line-height:1.4;">
-                <span style="color:rgba(255,255,255,.88);font-size:11.5px;">${text}</span>
-                <span style="color:rgba(255,255,255,.45);font-size:9.5px;margin-left:8px;white-space:nowrap;">${time}</span>
+        <div style="display:flex;justify-content:center;margin:7px 0;">
+            <div style="max-width:90%;text-align:center;line-height:1.45;">
+                <span style="color:#8a94a6;font-size:12px;">${text}</span>
+                <span style="color:#b4bcc8;font-size:10.5px;margin-left:6px;white-space:nowrap;">${time}</span>
             </div>
         </div>`;
-    const bg   = isMine ? 'rgba(200,240,210,0.90)' : 'rgba(255,255,255,0.82)';
+    const bg   = isMine ? '#d7f5c9' : '#ffffff';
     const br   = isMine ? '14px 4px 14px 14px'     : '4px 14px 14px 14px';
-    const tc   = isMine ? '#1a3a25' : '#1e293b';
+    const tc   = isMine ? '#173a20' : '#1e293b';
     const timec= isMine ? '#5a8a6a' : '#94a3b8';
     const tick = isMine ? '<i class="fas fa-check-double" style="font-size:8px;color:#5a8a6a;margin-left:3px;"></i>' : '';
     const nameHtml = (!isMine && showName && name) ? `<div style="color:${nameColor||'#0ea5e9'};font-size:11.5px;font-weight:700;margin-bottom:3px;">${esc(name)}</div>` : '';
@@ -459,9 +459,9 @@ const chatBubble = ({isMine, name, nameColor, text, time, showName=true, isSyste
     }).join('')}</div>` : '';
     return `
         <div style="display:flex;justify-content:${isMine?'flex-end':'flex-start'};margin-bottom:2px;">
-            <div style="max-width:78%;background:${bg};backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.6);border-radius:${br};padding:8px 12px 6px;box-shadow:0 2px 8px rgba(0,0,0,.1);">
+            <div style="max-width:78%;background:${bg};border:1px solid ${isMine?'#c3ebb4':'#e8ebef'};border-radius:${br};padding:8px 12px 6px;box-shadow:0 1px 2px rgba(0,0,0,.06);">
                 ${nameHtml}
-                ${text ? `<div style="color:${tc};font-size:13px;line-height:1.5;word-break:break-word;">${text}</div>` : ''}
+                ${text ? `<div style="color:${tc};font-size:14px;line-height:1.5;word-break:break-word;">${text}</div>` : ''}
                 ${filesHtml}
                 <div style="text-align:right;margin-top:3px;">
                     <span style="color:${timec};font-size:10px;">${time}${tick}</span>
