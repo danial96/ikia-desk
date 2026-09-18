@@ -236,7 +236,7 @@
             -webkit-backdrop-filter: blur(28px) saturate(1.8) brightness(0.95);
             border-left: 1px solid rgba(255,255,255,0.09);
             z-index: 50;
-            overflow-y: auto;
+            overflow: hidden;
         }
         .user-avatar-btn {
             position: relative;
@@ -532,12 +532,6 @@
 
             <div style="flex:1;"></div>
 
-            {{-- Quick actions --}}
-            <button onclick="chatToggle()" class="topbar-btn" id="chat-topbar-btn" title="Messenger" style="position:relative;">
-                <i class="fas fa-comment-dots" style="font-size:16px;"></i>
-                <span id="chat-unread-badge" style="display:none;position:absolute;top:-5px;right:-5px;min-width:16px;height:16px;background:#ef4444;color:#fff;border-radius:8px;font-size:9px;font-weight:700;align-items:center;justify-content:center;padding:0 3px;border:2px solid var(--topbar-bg,#1a1a2e);line-height:1;"></span>
-            </button>
-
             {{-- Bell notifications --}}
             <button id="notif-btn" onclick="notifToggle()" class="topbar-btn" style="position:relative;" title="Notifications">
                 <i class="fas fa-bell" style="font-size:15px;"></i>
@@ -573,15 +567,16 @@
 
     {{-- ═══ RIGHT USER PANEL ═══ --}}
     <aside id="right-panel">
-        {{-- Chat icon --}}
-        <button onclick="chatToggle()" title="Messenger"
-                style="width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:rgba(0,212,232,.15);color:#00D4E8;margin-bottom:4px;border:none;cursor:pointer;">
+        {{-- Chat icon — pinned, does not scroll with the avatar list below --}}
+        <button onclick="chatToggle()" title="Messenger" style="position:relative;flex-shrink:0;width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:rgba(0,212,232,.15);color:#00D4E8;margin-bottom:4px;border:none;cursor:pointer;">
             <i class="fas fa-comment-dots" style="font-size:17px;"></i>
+            <span id="chat-unread-badge" style="display:none;position:absolute;top:-4px;right:-4px;min-width:16px;height:16px;background:#ef4444;color:#fff;border-radius:8px;font-size:9px;font-weight:700;align-items:center;justify-content:center;padding:0 3px;border:2px solid #0a0f3c;line-height:1;"></span>
         </button>
 
-        <div style="width:28px;height:1px;background:rgba(255,255,255,.08);margin:4px 0;"></div>
+        <div style="width:28px;height:1px;background:rgba(255,255,255,.08);margin:4px 0;flex-shrink:0;"></div>
 
-        {{-- Team members --}}
+        {{-- Team members — only this list scrolls, independent of the chat icon above --}}
+        <div style="flex:1;min-height:0;width:100%;overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column;align-items:center;gap:8px;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.15) transparent;">
         @isset($onlineUsers)
         @foreach($onlineUsers as $u)
         <div class="user-avatar-wrap" style="position:relative;flex-shrink:0;">
@@ -595,6 +590,7 @@
         </div>
         @endforeach
         @endisset
+        </div>
     </aside>
 
 </div>{{-- /app-shell --}}
