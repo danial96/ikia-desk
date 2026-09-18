@@ -680,7 +680,7 @@
         </div>
 
         {{-- Messages --}}
-        <div id="chat-msg-area" style="flex:1;overflow-y:auto;padding:16px 24px;display:none;flex-direction:column;gap:2px;background:linear-gradient(rgba(255,255,255,.6),rgba(255,255,255,.6)),url('{{ asset('pattern-chat.svg') }}');background-size:cover;background-position:center;background-color:#eef2f5;"></div>
+        <div id="chat-msg-area" style="flex:1;overflow-y:auto;padding:16px 24px;display:none;flex-direction:column;gap:2px;background:linear-gradient(rgba(244,247,249,.9),rgba(244,247,249,.9)),url('{{ asset('pattern-chat.svg') }}');background-size:340px;background-position:center;background-repeat:repeat;background-attachment:local;"></div>
 
         {{-- Input --}}
         <div id="chat-input-area" style="display:none;padding:8px 12px 10px;border-top:1px solid #e2e8f0;background:#fff;flex-shrink:0;">
@@ -837,6 +837,9 @@
 let _chatOpen  = false;
 let _activeConvId = null;
 let _allConvs  = [];
+// Guards the very first chatLoadConvs() call after a page (re)load from treating
+// already-existing unread counts as brand-new messages and re-alerting for them.
+let _chatBaselineSet = false;
 let _allEmps   = [];
 let _pollTimer = null;
 let _lastMsgId = 0;
@@ -902,23 +905,29 @@ async function chatLoadConvs() {
     try {
         const r = await fetch(API_BASE + '/api/chat/convs');
         const d = await r.json();
+        const isFirstLoad = !_chatBaselineSet;
         const prevUnread = Object.fromEntries(_allConvs.map(c => [c.id, c.unread || 0]));
         _allConvs = d.convs || [];
+        _chatBaselineSet = true;
         const totalUnread = _allConvs.reduce((s,c) => s+(c.unread||0), 0);
         chatUpdateBadge(totalUnread);
         chatUpdateUserBadges();
         if (_chatOpen) chatRenderConvs(_allConvs);
-        _allConvs.forEach(c => {
-            if ((c.unread || 0) > (prevUnread[c.id] || 0)) {
-                chatPlaySound();
-                chatShowMsgPopup(c);
-                chatDesktopNotify(c);
-                if (_chatOpen) {
-                    const row = document.querySelector(`.chat-conv-item[data-id="${c.id}"]`);
-                    if (row) { row.style.animation='none'; void row.offsetWidth; row.style.animation='chatFlash .6s ease-out forwards'; }
+        // Only alert for increases after the baseline is established — otherwise every
+        // page load/reload would re-announce whatever was already unread beforehand.
+        if (!isFirstLoad) {
+            _allConvs.forEach(c => {
+                if ((c.unread || 0) > (prevUnread[c.id] || 0)) {
+                    chatPlaySound();
+                    chatShowMsgPopup(c);
+                    chatDesktopNotify(c);
+                    if (_chatOpen) {
+                        const row = document.querySelector(`.chat-conv-item[data-id="${c.id}"]`);
+                        if (row) { row.style.animation='none'; void row.offsetWidth; row.style.animation='chatFlash .6s ease-out forwards'; }
+                    }
                 }
-            }
-        });
+            });
+        }
     } catch(e) {
         const el = document.getElementById('chat-conv-list');
         if (el) el.innerHTML =
@@ -962,6 +971,8 @@ function chatDesktopNotify(conv) {
             else if (!_chatOpen) chatOpen();
             n.close();
         };
+        // Auto-dismiss after 5s (some OSes/browsers otherwise leave it up indefinitely)
+        setTimeout(() => { try { n.close(); } catch(e2) {} }, 5000);
     } catch(e) {}
 }
 

@@ -87,7 +87,7 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
 
         {{-- Messages --}}
-        <div id="cp-msg-area" style="display:none;flex:1;overflow-y:auto;padding:20px 200px;background:linear-gradient(rgba(255,255,255,.6),rgba(255,255,255,.6)),url('{{ asset('pattern-chat.svg') }}');background-size:cover;background-position:center;background-color:#eef2f5;flex-direction:column;"></div>
+        <div id="cp-msg-area" style="display:none;flex:1;overflow-y:auto;padding:20px 200px;background:linear-gradient(rgba(244,247,249,.9),rgba(244,247,249,.9)),url('{{ asset('pattern-chat.svg') }}');background-size:340px;background-position:center;background-repeat:repeat;background-attachment:local;flex-direction:column;"></div>
 
         {{-- Input --}}
         <div id="cp-input-area" style="display:none;padding:10px 16px 14px;border-top:1px solid #e2e8f0;background:#fff;flex-shrink:0;">
