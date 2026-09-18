@@ -440,7 +440,7 @@ const chatBubble = ({isMine, name, nameColor, text, time, showName=true, isSyste
     const tc   = isMine ? '#173a20' : '#1e293b';
     const timec= isMine ? '#5a8a6a' : '#94a3b8';
     const tick = isMine ? '<i class="fas fa-check-double" style="font-size:8px;color:#5a8a6a;margin-left:3px;"></i>' : '';
-    const nameHtml = (!isMine && showName && name) ? `<div style="color:${nameColor||'#0ea5e9'};font-size:11.5px;font-weight:700;margin-bottom:3px;">${esc(name)}</div>` : '';
+    const nameHtml = (!isMine && showName && name) ? `<div style="color:${nameColor||'#0ea5e9'};font-size:13.5px;font-weight:700;margin-bottom:3px;">${esc(name)}</div>` : '';
     const fileIcons = {pdf:'fa-file-pdf',doc:'fa-file-word',docx:'fa-file-word',xls:'fa-file-excel',xlsx:'fa-file-excel',ppt:'fa-file-powerpoint',pptx:'fa-file-powerpoint',zip:'fa-file-zipper',rar:'fa-file-zipper',mp4:'fa-file-video',mov:'fa-file-video',mp3:'fa-file-audio'};
     const imgExts = new Set(['jpg','jpeg','png','gif','webp','svg','bmp']);
     const filesHtml = (files||[]).length ? `<div style="display:flex;flex-direction:column;gap:6px;margin-top:6px;">${(files||[]).map(f=>{
@@ -909,7 +909,7 @@ function tpRenderB24(data, bxId) {
     const icons={pdf:'fa-file-pdf',jpg:'fa-file-image',jpeg:'fa-file-image',png:'fa-file-image',doc:'fa-file-word',docx:'fa-file-word',xls:'fa-file-excel',xlsx:'fa-file-excel',zip:'fa-file-archive',rar:'fa-file-archive'};
 
     $('tp-left-body').innerHTML=
-        (desc?sec(`${sLabel('fa-align-left','Description')}<div style="color:#374151;font-size:13px;line-height:1.65;">${desc}</div>`):'') +
+        (desc?sec(`${sLabel('fa-align-left','Description')}<div style="color:#374151;font-size:14px;line-height:1.65;">${desc}</div>`):'') +
         sec(`${sLabel('fa-circle-dot','Status')}<div style="display:flex;gap:6px;flex-wrap:wrap;">${['1','2','3','4','5','6'].map(s=>`<span class="tp-pill${t.status===s?' active':''}" style="background:${sBg[s]};color:${sCol[s]};border-color:${t.status===s?sCol[s]:'transparent'};">${sMap[s]}</span>`).join('')}</div>`) +
         sec(`${sLabel('fa-calendar-alt','Deadline')}${t.deadline?`<p style="color:#111827;font-size:13.5px;font-weight:600;margin:0;">${fmtDate(t.deadline)}</p><p style="color:#9ca3af;font-size:11px;margin:2px 0 0;">${fmtTime(t.deadline)}</p>`:`<p style="color:#9ca3af;font-size:13px;margin:0;">No deadline</p>`}`) +
         sec(`${sLabel('fa-users','People')}
@@ -1101,7 +1101,7 @@ function tpRenderLocal(data) {
         const descSection=desc?`<div style="border:1.5px solid #e2e8f0;border-radius:10px;background:#fff;margin:14px 0 12px;">
             <div style="padding:13px 15px 10px;">
                 <div id="tp-desc-wrap" style="position:relative;">
-                    <div id="tp-desc-content" style="color:#374151;font-size:13px;line-height:1.7;word-break:break-word;min-height:52px;max-height:220px;overflow:hidden;transition:max-height .3s ease;">${desc}</div>
+                    <div id="tp-desc-content" style="color:#374151;font-size:14px;line-height:1.7;word-break:break-word;min-height:52px;max-height:220px;overflow:hidden;transition:max-height .3s ease;">${desc}</div>
                     <div id="tp-desc-fade" style="display:none;position:absolute;bottom:0;left:0;right:0;height:40px;background:linear-gradient(transparent,#fff);pointer-events:none;"></div>
                 </div>
                 <button id="tp-desc-btn" onclick="tpToggleDesc()" style="display:none;margin-top:6px;background:none;border:none;color:#0ea5e9;font-size:12px;font-weight:600;cursor:pointer;padding:0;"><i class="fas fa-chevron-down" style="margin-right:4px;font-size:10px;"></i>Show more</button>
@@ -1136,7 +1136,7 @@ function tpRenderLocal(data) {
             ? sec(`${sLabel('fa-paperclip',`Files (${localFiles.length})`)}<div style="display:flex;flex-wrap:wrap;gap:8px;">${localFileHtml}</div>`)
             : '';
         const filesSection=`<div id="tp-files-section">
-            ${attachSec||localFilesSec||sec(`${sLabel('fa-paperclip','Files')}<p style="color:#b0bec5;font-size:12.5px;margin:0;">No files attached yet. Drag files onto this panel to attach them.</p>`)}
+            ${attachSec||localFilesSec||sec(`${sLabel('fa-paperclip','Files')}<p style="color:#b0bec5;font-size:14px;margin:0;">No files attached yet. Drag files onto this panel to attach them.</p>`)}
         </div>`;
 
         /* Checklist section — always rendered */
@@ -1145,7 +1145,7 @@ function tpRenderLocal(data) {
             <div id="tp-cl-list-${taskId}" style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px;"></div>
             <div style="display:flex;gap:6px;align-items:center;">
                 <input id="tp-cl-input-${taskId}" type="text" placeholder="Add an item..." onkeydown="if(event.key==='Enter')tpClAdd(${taskId})"
-                    style="flex:1;border:1.5px solid #e2e8f0;border-radius:8px;padding:6px 10px;font-size:12.5px;color:#374151;outline:none;background:#fff;transition:border-color .15s;font-family:inherit;"
+                    style="flex:1;border:1.5px solid #e2e8f0;border-radius:8px;padding:8px 12px;font-size:14px;color:#374151;outline:none;background:#fff;transition:border-color .15s;font-family:inherit;"
                     onfocus="this.style.borderColor='#0ea5e9'" onblur="this.style.borderColor='#e2e8f0'">
                 <button onclick="tpClAdd(${taskId})" style="padding:6px 14px;border-radius:8px;background:#0ea5e9;border:none;color:#fff;font-size:12px;font-weight:600;cursor:pointer;transition:opacity .15s;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'"><i class="fas fa-plus" style="font-size:10px;"></i></button>
             </div>
@@ -1159,7 +1159,7 @@ function tpRenderLocal(data) {
             {label:'Observers',    fn:`tpTabPeople('tp-drop-observer-${taskId}')`},
         ];
         const tabBar=`<div style="overflow-x:auto;scrollbar-width:none;-ms-overflow-style:none;margin:0 0 16px;"><div style="display:flex;gap:6px;min-width:max-content;">
-            ${tabDefs.map(tab=>`<button onclick="${tab.fn}" style="flex-shrink:0;padding:5px 14px;border-radius:8px;border:1px solid #e2e8f0;background:#f8fafc;color:#6b7280;font-size:12px;font-weight:400;cursor:pointer;white-space:nowrap;transition:all .12s;" onmouseover="this.style.background='#f1f5f9';this.style.borderColor='#cbd5e1';" onmouseout="this.style.background='#f8fafc';this.style.borderColor='#e2e8f0';">${tab.label}</button>`).join('')}
+            ${tabDefs.map(tab=>`<button onclick="${tab.fn}" style="flex-shrink:0;padding:6px 15px;border-radius:8px;border:1px solid #e2e8f0;background:#f8fafc;color:#6b7280;font-size:13px;font-weight:400;cursor:pointer;white-space:nowrap;transition:all .12s;" onmouseover="this.style.background='#f1f5f9';this.style.borderColor='#cbd5e1';" onmouseout="this.style.background='#f8fafc';this.style.borderColor='#e2e8f0';">${tab.label}</button>`).join('')}
         </div></div>`;
 
         return descSection+filesSection+checklistSection+infoCard+peopleCard+projectCard+tabBar;
