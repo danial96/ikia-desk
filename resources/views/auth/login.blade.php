@@ -5,11 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login — IKIA Desk</title>
     @vite(['resources/css/app.css'])
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;500;600;700&display=swap">
     <style>
-        body { margin: 0; font-family: 'Open Sans', 'Segoe UI', ui-sans-serif, system-ui, sans-serif; }
+        body { margin: 0; font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Ubuntu, 'Helvetica Neue', Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; }
         .ikia-gradient-bg {
             background: linear-gradient(145deg, #0d1b2a 0%, #0f2744 40%, #1a1060 100%);
         }

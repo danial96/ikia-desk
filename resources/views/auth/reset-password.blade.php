@@ -5,11 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Reset Password — IKIA Desk</title>
     @vite(['resources/css/app.css'])
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;500;600;700&display=swap">
     <style>
-        body { margin: 0; font-family: 'Open Sans', 'Segoe UI', ui-sans-serif, system-ui, sans-serif; }
+        body { margin: 0; font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Ubuntu, 'Helvetica Neue', Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; }
         .ikia-gradient-bg { background: linear-gradient(145deg, #0d1b2a 0%, #0f2744 40%, #1a1060 100%); }
         .ikia-card { background: rgba(255,255,255,0.04); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.09); border-radius: 18px; }
         .ikia-input { background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12); color: white; border-radius: 10px; padding: 12px 16px; width: 100%; font-size: 14px; outline: none; transition: border-color .2s, background .2s; box-sizing: border-box; }
