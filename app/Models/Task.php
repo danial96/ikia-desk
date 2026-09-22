@@ -55,6 +55,23 @@ class Task extends Model
         });
     }
 
+    /**
+     * Search a task's title, description, or comment contents (any comment matching
+     * the term is enough for the task itself to show up in results).
+     */
+    public function scopeSearch($query, ?string $term)
+    {
+        $term = trim((string) $term);
+        if ($term === '') return $query;
+
+        $like = '%' . $term . '%';
+        return $query->where(function ($q) use ($like) {
+            $q->where('title', 'like', $like)
+              ->orWhere('description', 'like', $like)
+              ->orWhereHas('comments', fn($c) => $c->where('content', 'like', $like));
+        });
+    }
+
     public function isMember(User $user): bool
     {
         return $this->members()->where('user_id', $user->id)->exists()

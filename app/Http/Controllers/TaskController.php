@@ -35,7 +35,7 @@ class TaskController extends Controller
         ]);
         $query->visibleTo($user);
         if ($request->project_id)        $query->where('project_id', $request->project_id);
-        if ($request->filled('search'))  $query->where('title', 'like', '%' . $request->search . '%');
+        $query->search($request->search);
         if ($request->filled('priority'))$query->where('priority', $request->priority);
         if ($request->filled('assignee_id')) $query->where('assigned_to', $request->assignee_id);
         return $query;
@@ -95,10 +95,7 @@ class TaskController extends Controller
             });
         }
 
-        if ($request->filled('search')) {
-            $q = '%' . $request->search . '%';
-            $query->where('title', 'like', $q);
-        }
+        $query->search($request->search);
         if ($request->project_id) {
             $query->where('project_id', $request->project_id);
         }
@@ -558,9 +555,7 @@ class TaskController extends Controller
             if ($request->project_id) {
                 $query->where('project_id', $request->project_id);
             }
-            if ($request->filled('search')) {
-                $query->where('title', 'like', '%' . $request->search . '%');
-            }
+            $query->search($request->search);
             if ($request->filled('priority')) {
                 $query->where('priority', $request->priority);
             }
