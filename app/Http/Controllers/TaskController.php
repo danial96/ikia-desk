@@ -462,7 +462,9 @@ class TaskController extends Controller
     public function move(Request $request, Task $task)
     {
         $user = Auth::user();
-        if (!$user->isSuperAdmin() && !$task->isMember($user) && $task->created_by !== $user->id && $task->assigned_to !== $user->id) {
+        // Only Super Admin, the task's creator, or its assignee may drag-move a card
+        // (which changes status/deadline) — plain participants/observers may not.
+        if (!$user->isSuperAdmin() && $task->created_by !== $user->id && $task->assigned_to !== $user->id) {
             abort(403);
         }
         $all     = $request->all();
@@ -648,6 +650,8 @@ class TaskController extends Controller
                     'project'  => $t->project  ? $t->project->name  : null,
                     'assignee'    => $t->assignee ? ['name' => $t->assignee->name, 'avatar' => $t->assignee->avatar_url] : null,
                     'cover_image' => $t->coverFile->first() ? asset($t->coverFile->first()->disk_path) : null,
+                    // Only Super Admin / creator / assignee may drag this card (matches TaskController::move).
+                    'can_move' => $user->isSuperAdmin() || $t->created_by === $user->id || $t->assigned_to === $user->id,
                 ])->values();
             }
             return response()->json(['columns' => $result, 'completedTotal' => $completedTotal, 'unseenTaskIds' => $unseenTaskIds]);

@@ -66,6 +66,8 @@
         .kb-drag-active { opacity:.85; cursor:grabbing !important; }
         [data-task-id] { cursor:grab; }
         [data-task-id]:active { cursor:grabbing; }
+        [data-task-id][data-can-move="0"] { cursor:pointer; }
+        [data-task-id][data-can-move="0"]:active { cursor:pointer; }
         @keyframes kbPulse {
             0%,100% { transform:scale(1);   opacity:1; }
             50%      { transform:scale(1.4); opacity:.7; }
@@ -550,7 +552,7 @@ function kbRenderCard(t) {
         ? `<span class="kb-unseen-dot" style="position:absolute;top:-4px;right:-4px;width:12px;height:12px;background:#ef4444;border-radius:50%;border:2px solid #fff;animation:kbPulse 1.8s ease-in-out infinite;"></span>`
         : '';
 
-    return `<div id="kb-task-${t.id}" data-task-id="${t.id}" onclick="tpOpen('local',${t.id})"
+    return `<div id="kb-task-${t.id}" data-task-id="${t.id}" data-can-move="${t.can_move ? '1' : '0'}" onclick="tpOpen('local',${t.id})"
         style="position:relative;background:#fff;border:1px solid #eef0f2;border-radius:10px;padding:12px;cursor:pointer;transition:box-shadow .15s,transform .15s;box-shadow:0 1px 3px rgba(0,0,0,.07)${hasUnseen ? ';border-left:3px solid #ef4444' : ''};"
         onmouseover="this.style.boxShadow='0 4px 14px rgba(0,0,0,.13)';this.style.transform='translateY(-1px)'"
         onmouseout="this.style.boxShadow='0 1px 3px rgba(0,0,0,.07)';this.style.transform=''">
@@ -635,7 +637,10 @@ function kbDragInit() {
             ghostClass:   'kb-drag-ghost',
             chosenClass:  'kb-drag-chosen',
             dragClass:    'kb-drag-active',
-            filter:       '.kb-empty-msg',
+            // Only Super Admin / the creator / the assignee may drag a card (server enforces
+            // this too in TaskController::move) — plain participants/members can't.
+            filter:       '.kb-empty-msg, [data-can-move="0"]',
+            preventOnFilter: true,
             forceFallback: false,
 
             onMove: function (evt) {

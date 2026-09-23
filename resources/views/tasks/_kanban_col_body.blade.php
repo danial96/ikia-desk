@@ -6,8 +6,11 @@
     $dlPast = $task->deadline
         && $task->deadline->copy()->setTimezone('Asia/Karachi')->toDateString() < now('Asia/Karachi')->toDateString()
         && $task->status !== 'completed';
+    // Only Super Admin / the creator / the assignee may drag this card (matches TaskController::move).
+    // Plain participants/members can view and open it, just not drag it to change status/deadline.
+    $canMove = auth()->user()->isSuperAdmin() || $task->created_by === auth()->id() || $task->assigned_to === auth()->id();
 @endphp
-<div id="kb-task-{{ $task->id }}" data-task-id="{{ $task->id }}" onclick="tpOpen('local', {{ $task->id }})"
+<div id="kb-task-{{ $task->id }}" data-task-id="{{ $task->id }}" data-can-move="{{ $canMove ? '1' : '0' }}" onclick="tpOpen('local', {{ $task->id }})"
    style="position:relative;background:#fff;border:1px solid #eef0f2;border-radius:10px;padding:12px;cursor:pointer;transition:box-shadow .15s,transform .15s;box-shadow:0 1px 3px rgba(0,0,0,.07);"
    onmouseover="this.style.boxShadow='0 4px 14px rgba(0,0,0,.13)';this.style.transform='translateY(-1px)'"
    onmouseout="this.style.boxShadow='0 1px 3px rgba(0,0,0,.07)';this.style.transform=''">
