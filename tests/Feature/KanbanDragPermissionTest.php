@@ -68,4 +68,17 @@ class KanbanDragPermissionTest extends TestCase
 
         $this->moveTask($task, $outsider)->assertForbidden();
     }
+
+    public function test_observer_cannot_move_the_card(): void
+    {
+        $creator  = $this->makeUser();
+        $observer = $this->makeUser();
+        $task     = Task::create(['title' => 'T', 'created_by' => $creator->id, 'priority' => 'medium', 'status' => 'in_progress']);
+        $task->observers()->attach($observer->id);
+
+        $this->moveTask($task, $observer)->assertForbidden();
+
+        // Deadline must be unchanged
+        $this->assertNull($task->fresh()->deadline);
+    }
 }
