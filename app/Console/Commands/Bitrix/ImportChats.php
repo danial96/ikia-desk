@@ -13,7 +13,8 @@ class ImportChats extends BitrixCommand
                             {--fresh : Delete existing Bitrix-imported chats before re-importing}
                             {--webhook= : Use a custom webhook URL instead of BITRIX_WEBHOOK env}
                             {--offset=0 : Skip the first N chats in the recent list}
-                            {--skip-with-messages : Skip importMessages for convs that already have messages}';
+                            {--skip-with-messages : Skip importMessages for convs that already have messages}
+                            {--incremental : Read each chat newest-first and stop once a whole page is already imported (much faster than re-reading the full history of every chat)}';
 
     protected $description = 'Import Bitrix24 direct and group chats into the local messenger';
 
@@ -223,6 +224,10 @@ class ImportChats extends BitrixCommand
             $allMessages = array_merge($allMessages, $messages);
             $lastId = end($messages)['id'] ?? null;
             if (count($messages) < 50) break;
+
+            // Pages come newest-first: once every message on a page is already stored (or is one
+            // we never store — system/empty), everything older is stored too, so stop paging.
+            if ($this->option('incremental') && $this->pageFullyImported($messages)) break;
         } while (true);
 
         $allMessages = array_reverse($allMessages);
@@ -253,6 +258,19 @@ class ImportChats extends BitrixCommand
         }
 
         return $count;
+    }
+
+    /** True when nothing on this page would be a new insert. */
+    private function pageFullyImported(array $messages): bool
+    {
+        $wanted = [];
+        foreach ($messages as $m) {
+            $skipped = (int)($m['author_id'] ?? 0) === 0 || trim($m['text'] ?? '') === '';   // never stored by importMessages()
+            if (!$skipped) $wanted[] = (int)$m['id'];
+        }
+        if (!$wanted) return true;
+
+        return Message::withTrashed()->whereIn('bitrix_id', $wanted)->count() === count($wanted);
     }
 
     private function addMember(int $conversationId, int $userId): void
