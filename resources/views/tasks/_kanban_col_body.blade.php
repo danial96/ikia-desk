@@ -3,9 +3,8 @@
     $dotColor = ['low'=>'#cbd5e1','medium'=>'#3b82f6','high'=>'#f59e0b','urgent'=>'#ef4444'][$task->priority] ?? '#cbd5e1';
     $coverFile = $task->coverFile->first();
     $thumbUrl  = $coverFile ? asset($coverFile->disk_path) : null;
-    $dlPast = $task->deadline
-        && $task->deadline->copy()->setTimezone('Asia/Karachi')->toDateString() < now('Asia/Karachi')->toDateString()
-        && $task->status !== 'completed';
+    // Overdue as soon as the deadline time passes (matches the task panel / board columns).
+    $dlPast = $task->deadline && $task->deadline->lt(now()) && $task->status !== 'completed';
     // Only Super Admin / the creator / the assignee may drag this card (matches TaskController::move).
     // Plain participants/members can view and open it, just not drag it to change status/deadline.
     $canMove = auth()->user()->isSuperAdmin() || $task->created_by === auth()->id() || $task->assigned_to === auth()->id();
@@ -43,7 +42,7 @@
     <div style="display:flex;align-items:center;justify-content:space-between;border-top:1px solid #f1f3f5;padding-top:8px;">
         @if($task->deadline)
         <span style="font-size:11.5px;color:{{ $dlPast ? '#ef4444' : '#8a94a6' }};display:flex;align-items:center;gap:4px;">
-            <i class="far fa-clock" style="font-size:10px;"></i>{{ $task->deadline->copy()->setTimezone('Asia/Karachi')->format('M d, Y') }}
+            <i class="far fa-clock" style="font-size:10px;"></i>{{ $task->deadline->copy()->setTimezone('Asia/Karachi')->format('M d, Y, g:i A') }}
         </span>
         @else
         <span style="font-size:11.5px;color:#c4ccd6;">No deadline</span>

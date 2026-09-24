@@ -413,16 +413,41 @@ const parseMsg = txt => {
 // Deadlines are stored/reported in Asia/Karachi — always render in that zone so the
 // date can't shift a day for viewers in another timezone.
 const APP_TZ = 'Asia/Karachi';
-const fmtDate  = iso => iso ? new Date(iso).toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric',timeZone:APP_TZ}) : '—';
-const fmtTime  = iso => iso ? new Date(iso).toLocaleTimeString('en-GB',{hour:'numeric',minute:'2-digit',hour12:true,timeZone:APP_TZ}) : '';
-const fmtShort = iso => iso ? new Date(iso).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) : '';
-const fmtTimeOnly = iso => { if(!iso) return ''; const d=new Date(iso); return (''+d.getHours()).padStart(2,'0')+':'+(''+d.getMinutes()).padStart(2,'0'); };
-const chatDayKey  = iso => { if(!iso) return ''; const d=new Date(iso); return d.getFullYear()+'-'+d.getMonth()+'-'+d.getDate(); };
-const chatDayLabel = iso => {
-    const d=new Date(iso), now=new Date(), diff=Math.floor((now-d)/(86400000));
-    if(diff===0) return 'today';
-    if(diff===1) return 'yesterday';
-    return d.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
+
+// Turn a server value into a real instant. Values WITHOUT a timezone ("2026-09-24 18:00:00",
+// "2026-09-24T18:00:00" — how deadlines are stored and written to the activity log) are
+// Asia/Karachi wall-clock times, NOT the viewer's device time; parsing them with a bare
+// new Date() shifts them by (Karachi offset − viewer offset). Karachi is a fixed UTC+5 (no DST).
+const parseAppDate = v => {
+    if(!v) return null;
+    if(v instanceof Date) return isNaN(v) ? null : v;
+    let s=String(v).trim();
+    if(/^\d{4}-\d{2}-\d{2}$/.test(s)) s+='T00:00:00';
+    if(!/(Z|[+-]\d{2}:?\d{2})$/i.test(s)) s=s.replace(' ','T')+'+05:00';
+    const d=new Date(s);
+    return isNaN(d)?null:d;
+};
+// Y/M/D/H/Min of an instant as seen in the app timezone.
+const karachiParts = d => {
+    const o={}; new Intl.DateTimeFormat('en-GB',{timeZone:APP_TZ,year:'numeric',month:'numeric',day:'numeric',hour:'numeric',minute:'numeric',hourCycle:'h23'})
+        .formatToParts(d).forEach(p=>{ if(p.type!=='literal') o[p.type]=parseInt(p.value,10); });
+    return {y:o.year,m:o.month,d:o.day,h:o.hour%24,min:o.minute};
+};
+// "Today" in the app timezone, as a local-midnight Date used only as a calendar-date carrier.
+const karachiToday = () => { const p=karachiParts(new Date()); return new Date(p.y,p.m-1,p.d); };
+
+const fmtDate  = v => { const d=parseAppDate(v); return d ? d.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric',timeZone:APP_TZ}) : '—'; };
+const fmtTime  = v => { const d=parseAppDate(v); return d ? d.toLocaleTimeString('en-GB',{hour:'numeric',minute:'2-digit',hour12:true,timeZone:APP_TZ}) : ''; };
+const fmtShort = v => { const d=parseAppDate(v); return d ? d.toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit',timeZone:APP_TZ}) : ''; };
+// Feed/comment timestamps and day dividers — always in the app timezone so every viewer sees the same time.
+const fmtTimeOnly = v => { const d=parseAppDate(v); return d ? d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',hour12:false,timeZone:APP_TZ}) : ''; };
+const chatDayKey  = v => { const d=parseAppDate(v); return d ? d.toLocaleDateString('en-CA',{timeZone:APP_TZ}) : ''; };
+const chatDayLabel = v => {
+    const d=parseAppDate(v); if(!d) return '';
+    const key=chatDayKey(d);
+    if(key===chatDayKey(new Date())) return 'today';
+    if(key===chatDayKey(new Date(Date.now()-86400000))) return 'yesterday';
+    return d.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric',timeZone:APP_TZ});
 };
 const chatDivider = iso => `<div style="display:flex;align-items:center;justify-content:center;margin:12px 0 8px;"><span style="background:rgba(0,0,0,0.28);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);color:rgba(255,255,255,.9);font-size:11px;font-weight:600;padding:3px 14px;border-radius:12px;letter-spacing:.3px;">${chatDayLabel(iso)}</span></div>`;
 
@@ -469,7 +494,9 @@ const chatBubble = ({isMine, name, nameColor, text, time, showName=true, isSyste
             </div>
         </div>`;
 };
-const fmtLocal = iso => { if(!iso) return ''; const d=new Date(iso); return d.getFullYear()+'-'+(''+(d.getMonth()+1)).padStart(2,'0')+'-'+(''+(d.getDate())).padStart(2,'0')+'T'+(''+(d.getHours())).padStart(2,'0')+':'+(''+(d.getMinutes())).padStart(2,'0'); };
+// Value for <input type="datetime-local"> — the deadline as an app-timezone (Karachi) wall time,
+// so the edit form doesn't show (and re-save!) a deadline shifted by the viewer's device timezone.
+const fmtLocal = v => { const d=parseAppDate(v); if(!d) return ''; const p=karachiParts(d), z=n=>String(n).padStart(2,'0'); return p.y+'-'+z(p.m)+'-'+z(p.d)+'T'+z(p.h)+':'+z(p.min); };
 
 const sLabel = (icon,text) =>
     `<p style="color:#9ca3af;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin:0 0 10px;display:flex;align-items:center;gap:6px;"><i class="fas ${icon}" style="color:#0ea5e9;font-size:9px;"></i>${text}</p>`;
@@ -704,12 +731,15 @@ function _tpCalDateStr(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).pad
 
 window.tpCalOpen=function(taskId,anchor,currentIso){
     _tpCal.taskId=taskId;
-    const now=new Date();
-    if(currentIso){
-        const d=new Date(currentIso);
-        _tpCal.year=d.getFullYear(); _tpCal.month=d.getMonth();
-        _tpCal.selDate=_tpCalDateStr(d);
-        _tpCal.selH=d.getHours(); _tpCal.selM=Math.round(d.getMinutes()/5)*5%60;
+    const now=karachiToday();
+    const cur=currentIso?parseAppDate(currentIso):null;
+    if(cur){
+        // Read the existing deadline in the app timezone (Karachi), not the viewer's device
+        // timezone — otherwise re-saving it from another timezone would silently shift it.
+        const p=karachiParts(cur);
+        _tpCal.year=p.y; _tpCal.month=p.m-1;
+        _tpCal.selDate=p.y+'-'+String(p.m).padStart(2,'0')+'-'+String(p.d).padStart(2,'0');
+        _tpCal.selH=p.h; _tpCal.selM=Math.round(p.min/5)*5%60;
     } else {
         _tpCal.year=now.getFullYear(); _tpCal.month=now.getMonth();
         _tpCal.selDate=null; _tpCal.selH=9; _tpCal.selM=0;
@@ -736,7 +766,7 @@ function _tpCalRender(){
     const first=new Date(_tpCal.year,_tpCal.month,1);
     const dim=new Date(_tpCal.year,_tpCal.month+1,0).getDate();
     const startDay=first.getDay();
-    const todayStr=_tpCalDateStr(new Date());
+    const todayStr=_tpCalDateStr(karachiToday());
     let html='';
     for(let i=0;i<startDay;i++) html+='<div></div>';
     for(let d=1;d<=dim;d++){
@@ -762,7 +792,7 @@ function _tpCalTimeLabel(){
 }
 
 function _tpCalQuick(){
-    const now=new Date(), today=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+    const today=karachiToday();
     const MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
     const fq=d=>d.getDate()+' '+MON[d.getMonth()];
     const opts=[
@@ -1426,8 +1456,9 @@ window.tpRenderLocalFeed = function(data, taskId) {
                 const authorName = typeof f.author === 'string' ? f.author : (f.author?.name || 'System');
                 const fmtActVal = (v, field) => {
                     if(field === 'deadline' && v) {
-                        const d = new Date(v);
-                        if(!isNaN(d)) return fmtDate(v) + ' ' + fmtTime(v);
+                        // v is a naive Karachi wall-time string — parseAppDate() reads it as such
+                        // (so every viewer sees the same time, whatever their device timezone).
+                        if(parseAppDate(v)) return fmtDate(v) + ' ' + fmtTime(v);
                     }
                     return esc(v);
                 };
@@ -1712,7 +1743,7 @@ window.tpSubmitComment=function(taskId){
     }).then(r=>r.json()).then(resp=>{
         ta.value='';
         if(window.clearAttachments) window.clearAttachments('tp-comment-text','tp-attach-preview');
-        const now=new Date(), time=(''+now.getHours()).padStart(2,'0')+':'+(''+now.getMinutes()).padStart(2,'0');
+        const now=new Date(), time=fmtTimeOnly(now); // app-timezone, same as the feed re-render
         const el=document.createElement('div');
         el.innerHTML=chatBubble({isMine:true, text:parseMsg(fullContent), time, showName:false});
         const msgs=$('tp-messages');

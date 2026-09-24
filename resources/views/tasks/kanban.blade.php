@@ -623,6 +623,41 @@ function kbAjaxFilter() {
 // ── Drag & Drop (SortableJS) ─────────────────────────────────────────────────
 const _kbSortables = {};
 const _kbCsrf = '{{ csrf_token() }}';
+let _kbDragging = false;
+
+// ── Keep the board fresh when someone ELSE changes a task ────────────────────
+// Without this, a card keeps showing its old deadline/status until the page is reloaded.
+// A tiny "version" endpoint (latest updated_at + count) is polled; the full board is only
+// re-fetched when it actually changed, and never mid-drag or while the tab is hidden.
+let _kbVersion = null;
+let _kbLastFull = Date.now();
+async function kbCheckVersion() {
+    if (document.hidden || _kbDragging) return;
+    try {
+        const r = await fetch('{{ route("tasks.kanban.version") }}', { headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' } });
+        if (!r.ok) return;
+        const { v } = await r.json();
+        // Also refresh every 5 min even if nothing was edited: columns are time-based, so a task
+        // whose deadline passes while the board sits open must move into Overdue by itself.
+        const timeToRecheck = Date.now() - _kbLastFull > 300000;
+        if (((_kbVersion !== null && v !== _kbVersion) || timeToRecheck) && typeof kbAjaxFilter === 'function') {
+            _kbLastFull = Date.now();
+            kbAjaxFilter();
+        }
+        _kbVersion = v;
+    } catch (e) { /* offline / transient — try again next tick */ }
+}
+setInterval(kbCheckVersion, 20000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) kbCheckVersion(); });
+kbCheckVersion();
+
+// "Today" as a calendar date in the app timezone (Asia/Karachi), independent of the
+// viewer's own device timezone. Returned as a local-midnight Date used only as a date carrier.
+function kbKarachiToday() {
+    const p = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Karachi', year: 'numeric', month: '2-digit', day: '2-digit' })
+        .format(new Date()).split('-').map(Number);
+    return new Date(p[0], p[1] - 1, p[2]);
+}
 
 function kbDragInit() {
     const colKeys = ['overdue','due_today','due_this_week','due_next_week','no_deadline','due_over_two_weeks','completed'];
@@ -643,6 +678,8 @@ function kbDragInit() {
             preventOnFilter: true,
             forceFallback: false,
 
+            onStart: function () { _kbDragging = true; },
+
             onMove: function (evt) {
                 // Prevent dropping INTO overdue
                 const toKey = evt.to.id.replace('kb-col-', '');
@@ -650,6 +687,7 @@ function kbDragInit() {
             },
 
             onEnd: function (evt) {
+                _kbDragging = false;
                 const taskId  = evt.item.dataset.taskId;
                 const fromKey = evt.from.id.replace('kb-col-', '');
                 const toKey   = evt.to.id.replace('kb-col-', '');
@@ -683,6 +721,12 @@ function kbDragInit() {
                 .then(r => r.json())
                 .then(data => {
                     if (!data.success) console.warn('[kb-move] server error', data);
+                    // The drag keeps the task's time-of-day and only changes the date, so the new
+                    // date can already be in the past (e.g. a 6 PM task dropped on "Due today" at
+                    // 7 PM) — say so instead of letting the card silently bounce into Overdue.
+                    if (data.overdue && payload.deadline !== undefined && toKey !== 'completed' && typeof showToast === 'function') {
+                        showToast('Its deadline time has already passed, so the task stays Overdue. Open the task to set a later time.', 'info');
+                    }
                     kbAjaxFilter(); // cache is busted by move(), so this fetches fresh data
                 })
                 .catch(err => {
@@ -695,7 +739,7 @@ function kbDragInit() {
 }
 
 function kbColDeadline(col) {
-    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const today = kbKarachiToday();
     // Local date components, not toISOString() (which is UTC and shifts the date back a
     // day for any timezone ahead of UTC, e.g. Asia/Karachi at local midnight).
     const fmt   = d => d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');

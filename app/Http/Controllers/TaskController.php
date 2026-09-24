@@ -514,7 +514,18 @@ class TaskController extends Controller
             );
         }
 
-        return response()->json(['success' => true]);
+        // Let the board tell the user when the (unchanged) time-of-day means the new date is
+        // already in the past, e.g. dragging a 6 PM task to "Due today" at 7 PM — otherwise
+        // the card would just silently bounce back into Overdue.
+        $nowOverdue = $task->status !== 'completed' && $task->deadline && $task->deadline->lt(now());
+
+        return response()->json(['success' => true, 'overdue' => (bool) $nowOverdue]);
+    }
+
+    /** Cheap change-marker so open boards can tell when someone else edited a task. */
+    public function kanbanVersion()
+    {
+        return response()->json(['v' => (Task::max('updated_at') ?? '') . '|' . Task::count()]);
     }
 
     public function kanban(Request $request)
@@ -538,7 +549,7 @@ class TaskController extends Controller
 
         $buildColumns = function () use ($request, $user, $unseenTaskIds) {
             $tz          = 'Asia/Karachi';
-            $today       = now($tz)->startOfDay();
+            $now         = now($tz);
             $todayEnd    = now($tz)->endOfDay();
             $weekEnd     = now($tz)->endOfWeek();
             $nextWeekEnd = now($tz)->addWeek()->endOfWeek();
@@ -621,7 +632,9 @@ class TaskController extends Controller
                     $columns['no_deadline']->push($task);
                 } else {
                     $dl = $task->deadline->copy()->setTimezone($tz);
-                    if ($dl->lt($today)) {
+                    // Overdue the moment the deadline *time* has passed (same rule as the task
+                    // panel, dashboard and Bitrix) — not only once the whole day is over.
+                    if ($dl->lt($now)) {
                         $columns['overdue']->push($task);
                     } elseif ($dl->lte($todayEnd)) {
                         $columns['due_today']->push($task);
@@ -660,8 +673,8 @@ class TaskController extends Controller
                     'desc'     => $t->description,
                     'priority' => $t->priority,
                     'status'   => $t->status,
-                    'deadline' => $t->deadline ? $t->deadline->copy()->setTimezone('Asia/Karachi')->format('M d, Y') : null,
-                    'dl_past'  => $t->deadline && $t->deadline->copy()->setTimezone('Asia/Karachi')->toDateString() < now('Asia/Karachi')->toDateString() && $t->status !== 'completed',
+                    'deadline' => $t->deadline ? $t->deadline->copy()->setTimezone('Asia/Karachi')->format('M d, Y, g:i A') : null,
+                    'dl_past'  => (bool) ($t->deadline && $t->deadline->lt(now()) && $t->status !== 'completed'),
                     'project'  => $t->project  ? $t->project->name  : null,
                     'assignee'    => $t->assignee ? ['name' => $t->assignee->name, 'avatar' => $t->assignee->avatar_url] : null,
                     'cover_image' => $t->coverFile->first() ? asset($t->coverFile->first()->disk_path) : null,
