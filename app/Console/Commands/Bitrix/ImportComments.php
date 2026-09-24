@@ -13,7 +13,8 @@ class ImportComments extends BitrixCommand
                             {--limit=0    : Max tasks to process (0 = all)}
                             {--task=0     : Import comments for a single task by its LOCAL id}
                             {--fresh      : Delete existing imported comments before re-importing}
-                            {--chat-only  : Only process tasks that have a Bitrix chat_id (faster for IM file fix)}';
+                            {--chat-only  : Only process tasks that have a Bitrix chat_id (faster for IM file fix)}
+                            {--since=     : Incremental: only tasks whose Bitrix ACTIVITY_DATE is on/after this (Karachi time, e.g. "2026-09-21 20:00")}';
 
     protected $description = 'Import Bitrix task comments (forum + IM chat) and file attachments';
 
@@ -41,6 +42,17 @@ class ImportComments extends BitrixCommand
 
         $query = Task::whereNotNull('bitrix_id');
         if ($chatOnly) $query->whereNotNull('chat_id');
+
+        // Incremental sync: ask Bitrix which tasks had any activity (new comment, status change, …)
+        // since the given time and only re-read those, instead of walking all ~11k tasks.
+        if ($since = $this->option('since')) {
+            $sinceIso = \Carbon\Carbon::parse($since, 'Asia/Karachi')->toIso8601String();
+            $changed  = $this->bxAll('tasks.task.list', ['select' => ['ID'], 'filter' => ['>=ACTIVITY_DATE' => $sinceIso]]);
+            $ids      = array_map(fn($t) => (int)($t['id'] ?? $t['ID'] ?? 0), $changed);
+            $this->info('Bitrix reports ' . count($ids) . " task(s) with activity since $since.");
+            $query->whereIn('bitrix_id', $ids ?: [0]);
+        }
+
         if ($limit > 0) $query->limit($limit);
 
         $tasks = $query->get();
