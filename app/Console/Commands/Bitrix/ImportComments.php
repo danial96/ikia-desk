@@ -220,7 +220,14 @@ class ImportComments extends BitrixCommand
             $bitrixAttachId = (int)($attachObj['ATTACHMENT_ID'] ?? 0);
             if (!$bitrixAttachId) continue;
 
-            $existing = TaskFile::where('bitrix_file_id', $bitrixAttachId)->first();
+            // ATTACHMENT_ID is an attached-object id — a different ID space from the disk object
+            // ids stored on chat/direct-attachment rows. Only reuse a row of THIS task and never a
+            // corrected direct-attachment row (has bitrix_attached_id), or a numerically equal id
+            // could pull in an unrelated file.
+            $existing = TaskFile::where('task_id', $task->id)
+                ->where('bitrix_file_id', $bitrixAttachId)
+                ->whereNull('bitrix_attached_id')
+                ->first();
             if ($existing) {
                 $fileIds[] = $existing->id;
                 continue;
