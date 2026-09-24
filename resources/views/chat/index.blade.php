@@ -985,9 +985,9 @@ window.cpNewGroup = async function() {
 window.cpCloseNewGroup = function() { document.getElementById('cp-group-modal').classList.remove('cp-show'); };
 window.cpCreateGroup = async function() {
     const name    = document.getElementById('cp-group-name').value.trim();
-    if (!name) { alert('Enter a group name'); return; }
+    if (!name) { showToast('Enter a group name'); return; }
     const members = [...document.querySelectorAll('#cp-group-members input:checked')].map(i => +i.value);
-    if (!members.length) { alert('Select at least one member'); return; }
+    if (!members.length) { showToast('Select at least one member'); return; }
     const r = await fetch(API_BASE + '/api/chat/group',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF},body:JSON.stringify({name,members})});
     const d = await r.json();
     cpCloseNewGroup();

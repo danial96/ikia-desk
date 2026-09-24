@@ -597,9 +597,9 @@ window.tpUpdateField = function(taskId, field, value, onDone, onFail) {
         body:JSON.stringify({field,value}),
     }).then(r=>r.json()).then(resp=>{
         if(resp.success&&onDone) onDone(resp);
-        else if(!resp.success){ alert(resp.message||'Update failed. You may not have permission.'); if(onFail) onFail(resp); }
+        else if(!resp.success){ showToast(resp.message||'Update failed. You may not have permission.'); if(onFail) onFail(resp); }
     })
-    .catch(()=>{ alert('Update failed.'); if(onFail) onFail(); });
+    .catch(()=>{ showToast('Update failed.'); if(onFail) onFail(); });
 };
 window.tpToggleMember = function(taskId,userId,onDone){
     fetch(TP_TASKS_URL+'/'+taskId+'/participants/toggle',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-TOKEN':TP_CSRF,'Accept':'application/json'},body:JSON.stringify({user_id:userId})}).then(r=>r.json()).then(resp=>{if(onDone)onDone(resp);});
@@ -1689,9 +1689,9 @@ window.tpEditSubmit = function() {
             fetch(TP_LOCAL_URL + '/' + taskId, {headers:{'X-CSRF-TOKEN':TP_CSRF,'Accept':'application/json'}})
                 .then(r => r.json()).then(d => { tpRenderLocal(d); tpStartChatPoll(taskId); kbUpdateCard(taskId); });
         } else {
-            alert(resp.message || 'Could not save changes.');
+            showToast(resp.message || 'Could not save changes.');
         }
-    }).catch(() => alert('Could not save changes.'))
+    }).catch(() => showToast('Could not save changes.'))
     .finally(() => { btn.disabled = false; btn.style.opacity = '1'; });
 };
 
@@ -1719,7 +1719,7 @@ window.tpSubmitComment=function(taskId){
         // remove "no comments" placeholder if present
         const ph=msgs.querySelector('[style*="comment-slash"]'); if(ph) ph.closest('div').remove();
         msgs.appendChild(el.firstElementChild); msgs.scrollTop=msgs.scrollHeight;
-    }).catch(()=>alert('Could not send comment.')).finally(()=>{ if(btn){btn.disabled=false;btn.style.opacity='1';} });
+    }).catch(()=>showToast('Could not send comment.')).finally(()=>{ if(btn){btn.disabled=false;btn.style.opacity='1';} });
 };
 
 // ── Drag-and-drop on comments area only ──
@@ -1753,7 +1753,7 @@ window.tpSubmitComment=function(taskId){
         var files = Array.from(e.dataTransfer.files);
         if (!files.length) return;
         var ta = document.getElementById('tp-comment-text');
-        if (!ta) { alert('Open a task first to attach files.'); return; }
+        if (!ta) { showToast('Open a task first to attach files.'); return; }
         for (var i = 0; i < files.length; i++) {
             await window.uploadFileDirect(files[i], 'tp-comment-text', 'tp-attach-preview');
         }

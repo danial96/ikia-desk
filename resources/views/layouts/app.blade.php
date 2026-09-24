@@ -833,6 +833,49 @@
 </style>
 
 <script>
+/* ── In-app toast — replaces the native alert() dialog so errors show as a styled notice on the
+   site itself instead of a jarring "desk.ikiatech.com says…" browser dialog. ── */
+window.showToast = function(message, type) {
+    type = type || 'error';
+    const palette = {
+        error:   { bg: '#fef2f2', border: '#fecaca', text: '#991b1b', icon: 'fa-circle-exclamation', iconColor: '#ef4444' },
+        success: { bg: '#f0fdf4', border: '#bbf7d0', text: '#166534', icon: 'fa-circle-check',       iconColor: '#22c55e' },
+        info:    { bg: '#eff6ff', border: '#bfdbfe', text: '#1e3a8a', icon: 'fa-circle-info',         iconColor: '#3b82f6' },
+    };
+    const c = palette[type] || palette.error;
+    let stack = document.getElementById('app-toast-stack');
+    if (!stack) {
+        stack = document.createElement('div');
+        stack.id = 'app-toast-stack';
+        stack.style.cssText = 'position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:99999;display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none;';
+        document.body.appendChild(stack);
+    }
+    const toast = document.createElement('div');
+    // Start hidden via inline style + a transition (not @keyframes) — if animations are
+    // ever disabled (prefers-reduced-motion, a throttled background tab, etc.) the toast
+    // still ends up at its fully-visible target style instead of getting stuck invisible.
+    toast.style.cssText = `pointer-events:auto;display:flex;align-items:center;gap:10px;max-width:420px;background:${c.bg};border:1px solid ${c.border};color:${c.text};border-radius:10px;padding:11px 14px;font-size:13px;font-weight:500;box-shadow:0 8px 28px rgba(0,0,0,.14);opacity:0;transform:translateY(-10px);transition:opacity .22s ease,transform .22s ease;`;
+    toast.innerHTML = `<i class="fas ${c.icon}" style="color:${c.iconColor};font-size:15px;flex-shrink:0;"></i>`
+        + `<span style="flex:1;line-height:1.4;">${String(message).replace(/&/g,'&amp;').replace(/</g,'&lt;')}</span>`
+        + `<button type="button" style="background:none;border:none;color:${c.text};opacity:.5;cursor:pointer;font-size:15px;padding:0 0 0 4px;line-height:1;flex-shrink:0;">&times;</button>`;
+    const remove = () => {
+        if (!toast.parentNode) return;
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(-8px)';
+        setTimeout(() => toast.remove(), 180);
+    };
+    toast.querySelector('button').addEventListener('click', remove);
+    stack.appendChild(toast);
+    // Force a reflow so the transition actually runs from the hidden state above,
+    // then flip to the visible target — this also guarantees the toast is visible
+    // even in a browser/tab where transitions never fire (it just skips straight there).
+    void toast.offsetWidth;
+    toast.style.opacity = '1';
+    toast.style.transform = 'translateY(0)';
+    setTimeout(remove, 4000);
+};
+</script>
+<script>
 (function(){
 let _chatOpen  = false;
 let _activeConvId = null;
@@ -1449,7 +1492,7 @@ window.chatSaveEdit = async function() {
         method:'PATCH', headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF},
         body: JSON.stringify({content: newText})
     });
-    if (!r.ok) { const e = await r.json().catch(()=>({})); alert((e&&e.error)||'Edit failed'); return; }
+    if (!r.ok) { const e = await r.json().catch(()=>({})); showToast((e&&e.error)||'Edit failed'); return; }
     if (_activeConvId) chatSelectConv(_activeConvId);
 };
 window.chatCtxDelete = async function() {
@@ -1529,7 +1572,7 @@ window.chatSend = async function() {
         zone.addEventListener('drop', async function(e) {
             if (!e.dataTransfer || !e.dataTransfer.files.length) return;
             e.preventDefault(); zone.style.background = '';
-            if (!_activeConvId) { alert('Open a chat first to attach files.'); return; }
+            if (!_activeConvId) { showToast('Open a chat first to attach files.'); return; }
             for (const f of Array.from(e.dataTransfer.files)) {
                 await window.uploadFileDirect(f, 'chat-textarea', 'chat-attach-preview');
             }
@@ -1699,9 +1742,9 @@ window.chatCloseNewGroup = function() {
 };
 window.chatCreateGroup = async function() {
     const name = document.getElementById('chat-group-name').value.trim();
-    if (!name) { alert('Enter a group name'); return; }
+    if (!name) { showToast('Enter a group name'); return; }
     const members = [...document.querySelectorAll('#chat-group-members input:checked')].map(i => +i.value);
-    if (!members.length) { alert('Select at least one member'); return; }
+    if (!members.length) { showToast('Select at least one member'); return; }
     const r = await fetch(API_BASE + '/api/chat/group',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF},body:JSON.stringify({name,members})});
     const d = await r.json();
     chatCloseNewGroup();
@@ -1950,7 +1993,7 @@ window.uploadAndInsert = async function(textareaId, fileInputId, previewId) {
             }
         }
     } catch(e) {
-        alert('Upload failed. Please try again.');
+        showToast('Upload failed. Please try again.');
     } finally {
         ta.placeholder = origPH;
         ta.disabled    = false;
@@ -2235,13 +2278,13 @@ let _vnRec = null, _vnChunks = [], _vnSecs = 0, _vnTick = null, _vnStream = null
 
 window.vnStart = async function(panel) {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        alert('Microphone is not supported in this browser.');
+        showToast('Microphone is not supported in this browser.');
         return;
     }
     try {
         _vnStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
     } catch(e) {
-        alert('Microphone access denied. Please allow microphone access and try again.');
+        showToast('Microphone access denied. Please allow microphone access and try again.');
         return;
     }
     _vnChunks = [];
