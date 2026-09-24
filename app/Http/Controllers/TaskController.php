@@ -483,7 +483,15 @@ class TaskController extends Controller
             $updates['status'] = $all['status'];
         }
         if (array_key_exists('deadline', $all)) {
-            $updates['deadline'] = $all['deadline'] ?: null;
+            $newDeadline = $all['deadline'] ?: null;
+            // Drag-and-drop sends a date-only string (moving between deadline columns is
+            // meant to change the date only). Keep the task's existing time-of-day instead
+            // of letting it silently reset to midnight.
+            if ($newDeadline && preg_match('/^\d{4}-\d{2}-\d{2}$/', $newDeadline)) {
+                $existingTime = $task->deadline ? $task->deadline->format('H:i:s') : '00:00:00';
+                $newDeadline  = $newDeadline . ' ' . $existingTime;
+            }
+            $updates['deadline'] = $newDeadline;
         }
 
         // Direct DB update — bypass model events that might interfere

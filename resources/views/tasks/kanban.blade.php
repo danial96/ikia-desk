@@ -696,7 +696,9 @@ function kbDragInit() {
 
 function kbColDeadline(col) {
     const today = new Date(); today.setHours(0, 0, 0, 0);
-    const fmt   = d => d.toISOString().split('T')[0];
+    // Local date components, not toISOString() (which is UTC and shifts the date back a
+    // day for any timezone ahead of UTC, e.g. Asia/Karachi at local midnight).
+    const fmt   = d => d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
     const add   = n => { const d = new Date(today); d.setDate(today.getDate() + n); return fmt(d); };
     const dow   = today.getDay(); // 0=Sun … 6=Sat
     const toFri = dow <= 5 ? (5 - dow) || 7 : 6; // days until this/next Friday

@@ -69,6 +69,34 @@ class KanbanDragPermissionTest extends TestCase
         $this->moveTask($task, $outsider)->assertForbidden();
     }
 
+    public function test_moving_a_card_preserves_the_existing_time_of_day(): void
+    {
+        $creator = $this->makeUser();
+        $task    = Task::create([
+            'title' => 'T', 'created_by' => $creator->id, 'priority' => 'medium', 'status' => 'in_progress',
+            'deadline' => '2026-09-20 16:05:00',
+        ]);
+
+        // Drag sends a date-only string (moving between columns changes the date, not the time).
+        $this->moveTask($task, $creator, '2026-10-05')->assertOk()->assertJson(['success' => true]);
+
+        $fresh = $task->fresh();
+        $this->assertSame('2026-10-05', $fresh->deadline->format('Y-m-d'));
+        $this->assertSame('16:05:00', $fresh->deadline->format('H:i:s'));
+    }
+
+    public function test_moving_a_card_with_no_prior_deadline_defaults_to_midnight(): void
+    {
+        $creator = $this->makeUser();
+        $task    = Task::create(['title' => 'T', 'created_by' => $creator->id, 'priority' => 'medium', 'status' => 'in_progress']);
+
+        $this->moveTask($task, $creator, '2026-10-05')->assertOk()->assertJson(['success' => true]);
+
+        $fresh = $task->fresh();
+        $this->assertSame('2026-10-05', $fresh->deadline->format('Y-m-d'));
+        $this->assertSame('00:00:00', $fresh->deadline->format('H:i:s'));
+    }
+
     public function test_observer_cannot_move_the_card(): void
     {
         $creator  = $this->makeUser();
