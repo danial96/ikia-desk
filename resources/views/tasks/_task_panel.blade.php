@@ -725,12 +725,16 @@ function renderDeadlineBlock(iso, status, taskId, createdAt) {
         </div>`);
 }
 /* ─── Custom calendar (deadline picker) ────────────────── */
-const _tpCal={taskId:null,year:null,month:null,selDate:null,selH:9,selM:0};
+// dirty = the user actually changed the date/time since opening the picker. Merely opening it
+// and clicking away must NOT re-save (it would rewrite the deadline, log an activity and
+// notify everyone even though nothing changed — and previously could silently shift it).
+const _tpCal={taskId:null,year:null,month:null,selDate:null,selH:9,selM:0,dirty:false};
 
 function _tpCalDateStr(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
 
 window.tpCalOpen=function(taskId,anchor,currentIso){
     _tpCal.taskId=taskId;
+    _tpCal.dirty=false;
     const now=karachiToday();
     const cur=currentIso?parseAppDate(currentIso):null;
     if(cur){
@@ -837,6 +841,7 @@ function _tpCalSave(){
     }, ()=>{ tpCalClose(); }); // even on failure (e.g. no permission), never leave the popup stuck open
 }
 window.tpCalSelectDate=function(ds){
+    _tpCal.dirty=true;
     _tpCal.selDate=ds;
     const parts=ds.split('-'); _tpCal.year=parseInt(parts[0]); _tpCal.month=parseInt(parts[1])-1;
     _tpCalRender(); _tpCalQuick();
@@ -867,8 +872,9 @@ function _tpCalTimeGrid(){
         return `<button type="button" onclick="tpCalPickMinute(${m})" style="height:32px;border-radius:7px;border:1.5px solid ${isSel?'#0ea5e9':'#e2e8f0'};background:${isSel?'#0ea5e9':'#fff'};color:${isSel?'#fff':'#374151'};font-size:12px;font-weight:${isSel?700:400};cursor:pointer;transition:all .1s;">${String(m).padStart(2,'0')}</button>`;
     }).join('');
 }
-window.tpCalPickHour=function(h24){ _tpCal.selH=h24; _tpCalTimeGrid(); };
+window.tpCalPickHour=function(h24){ _tpCal.dirty=true; _tpCal.selH=h24; _tpCalTimeGrid(); };
 window.tpCalPickMinute=function(m){
+    _tpCal.dirty=true;
     _tpCal.selM=m;
     $('tp-cal-date-view').style.display='flex';
     $('tp-cal-time-view').style.display='none';
@@ -878,8 +884,10 @@ window.tpCalPickMinute=function(m){
 document.addEventListener('click',function(e){
     const pop=$('tp-cal-popup');
     if(pop&&pop.style.display!=='none'&&!pop.contains(e.target)&&!e.target.closest('[onclick*="tpCalOpen"]')){
-        if(_tpCal.selDate){
+        if(_tpCal.selDate && _tpCal.dirty){
             _tpCalSave();
+        } else if(_tpCal.selDate){
+            tpCalClose();   // opened and dismissed without changing anything — nothing to save
         } else {
             const tid=_tpCal.taskId;
             tpCalClose();
