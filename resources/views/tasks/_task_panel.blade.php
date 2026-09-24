@@ -590,13 +590,16 @@ document.addEventListener('DOMContentLoaded', function() {
 })();
 
 /* ─── AJAX helpers ─────────────────────────────────────── */
-window.tpUpdateField = function(taskId, field, value, onDone) {
+window.tpUpdateField = function(taskId, field, value, onDone, onFail) {
     fetch(TP_TASKS_URL+'/'+taskId+'/field',{
         method:'PATCH',
         headers:{'Content-Type':'application/json','X-CSRF-TOKEN':TP_CSRF,'Accept':'application/json'},
         body:JSON.stringify({field,value}),
-    }).then(r=>r.json()).then(resp=>{ if(resp.success&&onDone) onDone(resp); else if(!resp.success) alert(resp.message||'Update failed. You may not have permission.'); })
-    .catch(()=>alert('Update failed.'));
+    }).then(r=>r.json()).then(resp=>{
+        if(resp.success&&onDone) onDone(resp);
+        else if(!resp.success){ alert(resp.message||'Update failed. You may not have permission.'); if(onFail) onFail(resp); }
+    })
+    .catch(()=>{ alert('Update failed.'); if(onFail) onFail(); });
 };
 window.tpToggleMember = function(taskId,userId,onDone){
     fetch(TP_TASKS_URL+'/'+taskId+'/participants/toggle',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-TOKEN':TP_CSRF,'Accept':'application/json'},body:JSON.stringify({user_id:userId})}).then(r=>r.json()).then(resp=>{if(onDone)onDone(resp);});
@@ -801,7 +804,7 @@ function _tpCalSave(){
     tpUpdateField(_calTid,'deadline',_tpCalLocalToISO(),()=>{
         tpCalClose();
         fetch(TP_LOCAL_URL+'/'+_calTid,{headers:{'X-CSRF-TOKEN':TP_CSRF,'Accept':'application/json'}}).then(r=>r.json()).then(d=>{ tpRenderLocal(d); kbUpdateCard(_calTid); });
-    });
+    }, ()=>{ tpCalClose(); }); // even on failure (e.g. no permission), never leave the popup stuck open
 }
 window.tpCalSelectDate=function(ds){
     _tpCal.selDate=ds;
@@ -814,7 +817,7 @@ window.tpCalClear=function(){
     tpUpdateField(_calTid,'deadline',null,()=>{
         tpCalClose();
         fetch(TP_LOCAL_URL+'/'+_calTid,{headers:{'X-CSRF-TOKEN':TP_CSRF,'Accept':'application/json'}}).then(r=>r.json()).then(d=>{ tpRenderLocal(d); kbUpdateCard(_calTid); });
-    });
+    }, ()=>{ tpCalClose(); }); // even on failure, never leave the popup stuck open
 };
 window.tpCalShowTime=function(){
     $('tp-cal-date-view').style.display='none';
