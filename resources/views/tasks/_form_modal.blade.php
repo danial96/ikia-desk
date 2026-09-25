@@ -25,6 +25,32 @@
     transition:border-color .15s;font-family:inherit;cursor:pointer;
 }
 .nt-select:focus { border-color:#0ea5e9; }
+
+/* ── Bitrix-style create-task window ── */
+#nt-panel { border-radius:11px 11px 0 0 !important; }
+#nt-form { background:#eef2f3; border-right:none !important; }
+#nt-mode-badge { display:none !important; }
+#nt-title-input { font-size:21px !important; font-weight:500 !important; color:#000 !important; }
+#nt-title-input::placeholder { color:#9aa5ad; font-weight:400; }
+#nt-desc-card { border:none !important; border-radius:11px !important; box-shadow:none; }
+#nt-desc-card textarea { font-size:15px !important; padding:16px 20px !important; min-height:110px !important; }
+.nt-card { background:#fff; border-radius:11px; padding:6px 0; margin-bottom:12px; }
+.nt-card .nt-sec { display:flex; align-items:center; padding:7px 20px; border:none !important; min-height:42px; }
+.nt-card .nt-sec > .nt-lbl { flex:0 0 170px; margin:0; }
+.nt-card .nt-sec > *:not(.nt-lbl):not(input) { flex:1; min-width:0; }
+.nt-card .nt-lbl i { display:none; }
+.nt-card .nt-lbl span { font-size:14px; font-weight:400; color:#848688; text-transform:none; letter-spacing:0; }
+.nt-card #nt-assignee-trigger, .nt-card #nt-participants-trigger, .nt-card #nt-observers-trigger, .nt-card #nt-deadline-trigger { border:none !important; padding:4px 0 !important; background:transparent !important; }
+.nt-card #nt-assignee-trigger > i, .nt-card #nt-participants-trigger > i:last-child, .nt-card #nt-observers-trigger > i:last-child { display:none; }
+.nt-card #nt-assignee-name, .nt-card #nt-deadline-label, .nt-card #nt-participants-label, .nt-card #nt-observers-label { font-size:15px !important; color:#333 !important; font-weight:400 !important; }
+.nt-card .nt-select { border:none; background:transparent; font-size:15px; padding:6px 0; color:#333; }
+.nt-card .nt-owner { display:flex; align-items:center; gap:9px; font-size:15px; color:#333; }
+.nt-card .nt-owner img { width:24px; height:24px; border-radius:50%; object-fit:cover; }
+#nt-form .nt-chipbtn, #nt-files-btn { border:none !important; background:#fff !important; border-radius:7px !important; font-weight:400 !important; color:#525c69 !important; font-size:13px !important; padding:9px 13px !important; }
+#nt-form .nt-chipbtn i, #nt-files-btn i { color:#6b7680 !important; }
+#nt-create-btn { background:#0075fd !important; border-radius:8px !important; padding:11px 24px !important; font-size:15px !important; font-weight:600 !important; order:-1; }
+#nt-create-btn i { display:none; }
+#nt-form .nt-cancel { border:none !important; background:transparent !important; color:#333 !important; font-size:15px !important; font-weight:400 !important; }
 #nt-assignee-dd .nt-dd-opt,
 #nt-participants-dd .nt-dd-opt,
 #nt-observers-dd .nt-dd-opt {
@@ -41,16 +67,16 @@
      onclick="if(event.target===this)closeTaskModal()"
      style="display:none;opacity:0;position:fixed;inset:0;z-index:3000;background:rgba(15,23,42,.55);backdrop-filter:blur(4px);overflow:hidden;margin-right:50px;">
 
-    {{-- Close button (outside panel, top-left) --}}
-    <button onclick="closeTaskModal()" type="button"
-            style="position:absolute;left:24px;top:70px;width:42px;height:42px;border-radius:50%;background:#0ea5e9;border:none;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(14,165,233,.4);transition:background .15s;z-index:10;"
-            onmouseover="this.style.background='#0284c7'" onmouseout="this.style.background='#0ea5e9'">
-        <i class="fas fa-times" style="font-size:14px;"></i>
+    {{-- Close pill (outside panel, top-left) --}}
+    <button onclick="closeTaskModal()" type="button" title="Close"
+            style="position:absolute;left:14px;top:22px;z-index:10;width:44px;height:30px;border-radius:15px;background:#2b8fd6;border:none;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 4px rgba(0,0,0,.2);"
+            onmouseover="this.style.background='#1f7dc0'" onmouseout="this.style.background='#2b8fd6'">
+        <i class="fas fa-times" style="font-size:13px;"></i>
     </button>
 
     {{-- Two-column panel --}}
     <div id="nt-panel"
-         style="position:absolute;top:56px;left:90px;right:0;bottom:0;display:flex;background:#fff;border-radius:16px 0 0 0;overflow:hidden;box-shadow:0 -4px 40px rgba(0,0,0,.15);">
+         style="position:absolute;top:10px;left:58px;right:0;bottom:0;display:flex;background:#fff;border-radius:11px 11px 0 0;overflow:hidden;box-shadow:0 -4px 40px rgba(0,0,0,.15);">
 
         {{-- Drag-and-drop overlay (shown when dragging files over panel) --}}
         <div id="nt-drop-overlay"
@@ -72,7 +98,7 @@
             <input type="hidden" name="assigned_to" id="nt-assigned-val" value="">
 
             {{-- Header --}}
-            <div style="flex-shrink:0;padding:16px 24px;border-bottom:1px solid #f1f3f5;background:#f8fafc;">
+            <div style="flex-shrink:0;padding:24px 26px 12px 22px;background:#eef2f3;">
                 <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
                     <div id="nt-mode-badge" style="display:flex;align-items:center;gap:4px;padding:2px 7px;background:#dcfce7;border:1px solid #86efac;border-radius:5px;">
                         <i class="fas fa-plus" style="font-size:8px;color:#15803d;"></i>
@@ -80,12 +106,12 @@
                     </div>
                 </div>
                 <input name="title" required id="nt-title-input"
-                       placeholder="Task title..."
+                       placeholder="Task name"
                        oninput="ntSaveDraft()"
                        style="width:100%;border:none;outline:none;background:transparent;font-size:16px;font-weight:700;color:#111827;line-height:1.4;font-family:inherit;box-sizing:border-box;">
                 {{-- Tab buttons --}}
-                <div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap;position:relative;">
-                    <button type="button" onclick="ntToggleSsSection()"
+                <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap;position:relative;">
+                    <button type="button" class="nt-chipbtn" onclick="ntToggleSsSection()"
                             style="display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border:1.5px solid #e2e8f0;border-radius:7px;background:#fff;color:#374151;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;line-height:1;"
                             onmouseover="this.style.borderColor='#0ea5e9';this.style.color='#0ea5e9'"
                             onmouseout="this.style.borderColor='#e2e8f0';this.style.color='#374151'">
@@ -120,7 +146,7 @@
             </div>
 
             {{-- Scrollable body --}}
-            <div style="flex:1;overflow-y:auto;padding:0 24px;scrollbar-width:thin;scrollbar-color:#dee2e6 transparent;background:#fff;">
+            <div style="flex:1;overflow-y:auto;padding:0 22px 0 22px;scrollbar-width:thin;scrollbar-color:#cfd6da transparent;background:#eef2f3;">
 
                 {{-- Task status summary (hidden until button clicked) --}}
                 <div id="nt-ss-section" style="display:none;padding-top:14px;padding-bottom:4px;">
@@ -157,7 +183,7 @@
                 </div>
 
                 {{-- Description --}}
-                <div class="nt-sec" style="padding-top:14px;padding-bottom:14px;">
+                <div class="nt-sec" style="padding-top:4px;padding-bottom:12px;border-bottom:none;">
                     <input type="file" id="nt-desc-file" multiple
                            accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.zip"
                            style="display:none" onchange="ntDescUploadFiles(this)">
@@ -222,9 +248,69 @@
                          style="display:none;flex-wrap:wrap;gap:8px;margin-top:10px;"></div>
                 </div>
 
+                <div class="nt-card">
+                <div class="nt-sec">
+                    <div class="nt-lbl"><span>Task owner:</span></div>
+                    <div class="nt-owner"><img src="{{ auth()->user()->avatar_url }}" alt=""><span>{{ auth()->user()->name }}</span></div>
+                </div>
+                {{-- Assigned To --}}
+                <div class="nt-sec">
+                    <div class="nt-lbl"><i class="fas fa-user"></i><span>Assignee:</span></div>
+                    <div style="position:relative;">
+                        <div id="nt-assignee-trigger"
+                             onclick="ntToggleAssigneeDd()"
+                             style="display:flex;align-items:center;gap:9px;padding:7px 12px;border:1.5px solid #e2e8f0;border-radius:9px;cursor:pointer;transition:border-color .15s;user-select:none;"
+                             onmouseover="this.style.borderColor='#0ea5e9'" onmouseout="this.style.borderColor='#e2e8f0'">
+                            <div id="nt-assignee-avatar"
+                                 style="width:28px;height:28px;border-radius:50%;background:#e2e8f0;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                                <i class="fas fa-user" style="font-size:11px;color:#9ca3af;"></i>
+                            </div>
+                            <span id="nt-assignee-name" style="font-size:13px;color:#9ca3af;flex:1;">Unassigned</span>
+                            <i class="fas fa-chevron-down" style="font-size:9px;color:#9ca3af;"></i>
+                        </div>
+                        <div id="nt-assignee-dd"
+                             style="display:none;position:absolute;top:calc(100% + 6px);left:0;right:0;z-index:20;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:6px;box-shadow:0 8px 30px rgba(0,0,0,.12);">
+                            {{-- Search --}}
+                            <div style="padding:2px 2px 6px;">
+                                <div style="display:flex;align-items:center;gap:6px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:7px;padding:0 10px;">
+                                    <i class="fas fa-search" style="font-size:11px;color:#9ca3af;flex-shrink:0;"></i>
+                                    <input type="text" id="nt-assignee-search" placeholder="Search..."
+                                           oninput="ntFilterAssignee(this.value)"
+                                           style="border:none;background:none;outline:none;font-size:12.5px;color:#374151;padding:7px 0;width:100%;font-family:inherit;">
+                                </div>
+                            </div>
+                            {{-- Options list --}}
+                            <div id="nt-assignee-opts" style="max-height:180px;overflow-y:auto;">
+                                <div class="nt-dd-opt" data-name="unassigned" onclick="ntPickAssignee(0,'','')">
+                                    <div style="width:28px;height:28px;border-radius:50%;background:#e2e8f0;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                                        <i class="fas fa-user" style="font-size:11px;color:#9ca3af;"></i>
+                                    </div>
+                                    <span style="color:#9ca3af;">Unassigned</span>
+                                </div>
+                                @foreach($employees as $emp)
+                                @php
+                                    $ntColors  = ['#6366f1','#0ea5e9','#10b981','#f59e0b','#ef4444','#8b5cf6','#ec4899'];
+                                    $ntBg      = $ntColors[ord($emp->name[0] ?? 'A') % count($ntColors)];
+                                    $ntInitial = strtoupper(substr($emp->name, 0, 1));
+                                @endphp
+                                <div class="nt-dd-opt" data-name="{{ strtolower($emp->name) }}"
+                                     onclick="ntPickAssignee({{ $emp->id }}, '{{ addslashes($emp->avatar_url ?? '') }}', '{{ addslashes($emp->name) }}', '{{ $ntBg }}', '{{ $ntInitial }}')">
+                                    @if($emp->avatar_url)
+                                    <img src="{{ $emp->avatar_url }}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;flex-shrink:0;" alt="">
+                                    @else
+                                    <div style="width:28px;height:28px;border-radius:50%;background:{{ $ntBg }};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0;">{{ $ntInitial }}</div>
+                                    @endif
+                                    {{ $emp->name }}
+                                </div>
+                                @endforeach
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 {{-- Deadline --}}
                 <div class="nt-sec">
-                    <div class="nt-lbl"><i class="fas fa-calendar-alt"></i><span>Deadline</span></div>
+                    <div class="nt-lbl"><i class="fas fa-calendar-alt"></i><span>Deadline:</span></div>
                     <input type="hidden" name="deadline" id="nt-deadline-val">
                     <div style="position:relative;display:inline-block;">
                         <div id="nt-deadline-trigger" onclick="ntToggleDeadlinePicker()"
@@ -292,64 +378,12 @@
                     </div>
                 </div>
 
-                {{-- Assigned To --}}
-                <div class="nt-sec">
-                    <div class="nt-lbl"><i class="fas fa-user"></i><span>Assigned To</span></div>
-                    <div style="position:relative;">
-                        <div id="nt-assignee-trigger"
-                             onclick="ntToggleAssigneeDd()"
-                             style="display:flex;align-items:center;gap:9px;padding:7px 12px;border:1.5px solid #e2e8f0;border-radius:9px;cursor:pointer;transition:border-color .15s;user-select:none;"
-                             onmouseover="this.style.borderColor='#0ea5e9'" onmouseout="this.style.borderColor='#e2e8f0'">
-                            <div id="nt-assignee-avatar"
-                                 style="width:28px;height:28px;border-radius:50%;background:#e2e8f0;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                                <i class="fas fa-user" style="font-size:11px;color:#9ca3af;"></i>
-                            </div>
-                            <span id="nt-assignee-name" style="font-size:13px;color:#9ca3af;flex:1;">Unassigned</span>
-                            <i class="fas fa-chevron-down" style="font-size:9px;color:#9ca3af;"></i>
-                        </div>
-                        <div id="nt-assignee-dd"
-                             style="display:none;position:absolute;top:calc(100% + 6px);left:0;right:0;z-index:20;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:6px;box-shadow:0 8px 30px rgba(0,0,0,.12);">
-                            {{-- Search --}}
-                            <div style="padding:2px 2px 6px;">
-                                <div style="display:flex;align-items:center;gap:6px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:7px;padding:0 10px;">
-                                    <i class="fas fa-search" style="font-size:11px;color:#9ca3af;flex-shrink:0;"></i>
-                                    <input type="text" id="nt-assignee-search" placeholder="Search..."
-                                           oninput="ntFilterAssignee(this.value)"
-                                           style="border:none;background:none;outline:none;font-size:12.5px;color:#374151;padding:7px 0;width:100%;font-family:inherit;">
-                                </div>
-                            </div>
-                            {{-- Options list --}}
-                            <div id="nt-assignee-opts" style="max-height:180px;overflow-y:auto;">
-                                <div class="nt-dd-opt" data-name="unassigned" onclick="ntPickAssignee(0,'','')">
-                                    <div style="width:28px;height:28px;border-radius:50%;background:#e2e8f0;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                                        <i class="fas fa-user" style="font-size:11px;color:#9ca3af;"></i>
-                                    </div>
-                                    <span style="color:#9ca3af;">Unassigned</span>
-                                </div>
-                                @foreach($employees as $emp)
-                                @php
-                                    $ntColors  = ['#6366f1','#0ea5e9','#10b981','#f59e0b','#ef4444','#8b5cf6','#ec4899'];
-                                    $ntBg      = $ntColors[ord($emp->name[0] ?? 'A') % count($ntColors)];
-                                    $ntInitial = strtoupper(substr($emp->name, 0, 1));
-                                @endphp
-                                <div class="nt-dd-opt" data-name="{{ strtolower($emp->name) }}"
-                                     onclick="ntPickAssignee({{ $emp->id }}, '{{ addslashes($emp->avatar_url ?? '') }}', '{{ addslashes($emp->name) }}', '{{ $ntBg }}', '{{ $ntInitial }}')">
-                                    @if($emp->avatar_url)
-                                    <img src="{{ $emp->avatar_url }}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;flex-shrink:0;" alt="">
-                                    @else
-                                    <div style="width:28px;height:28px;border-radius:50%;background:{{ $ntBg }};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0;">{{ $ntInitial }}</div>
-                                    @endif
-                                    {{ $emp->name }}
-                                </div>
-                                @endforeach
-                            </div>
-                        </div>
-                    </div>
                 </div>
 
+                <div class="nt-card">
                 {{-- Participants --}}
                 <div class="nt-sec">
-                    <div class="nt-lbl"><i class="fas fa-users"></i><span>Participants</span></div>
+                    <div class="nt-lbl"><i class="fas fa-users"></i><span>Participants:</span></div>
                     <div style="position:relative;">
                         {{-- Trigger --}}
                         <div id="nt-participants-trigger"
@@ -404,7 +438,7 @@
 
                 {{-- Observers --}}
                 <div class="nt-sec">
-                    <div class="nt-lbl"><i class="fas fa-eye"></i><span>Observers</span></div>
+                    <div class="nt-lbl"><i class="fas fa-eye"></i><span>Observers:</span></div>
                     <div style="position:relative;">
                         {{-- Trigger --}}
                         <div id="nt-observers-trigger"
@@ -459,7 +493,7 @@
 
                 {{-- Project --}}
                 <div class="nt-sec">
-                    <div class="nt-lbl"><i class="fas fa-folder"></i><span>Project</span></div>
+                    <div class="nt-lbl"><i class="fas fa-folder"></i><span>Project:</span></div>
                     <select name="project_id" class="nt-select"
                             onchange="ntSaveDraft()"
                             onfocus="this.style.borderColor='#0ea5e9'" onblur="this.style.borderColor='#e2e8f0'">
@@ -472,7 +506,7 @@
 
                 {{-- Status --}}
                 <div class="nt-sec">
-                    <div class="nt-lbl"><i class="fas fa-circle-dot"></i><span>Status</span></div>
+                    <div class="nt-lbl"><i class="fas fa-circle-dot"></i><span>Status:</span></div>
                     <div style="display:flex;gap:6px;flex-wrap:wrap;">
                         <span class="nt-pill active" data-group="status" data-val="new"         style="background:#f1f5f9;color:#475569;" onclick="ntSetPill(this,'status')"><i class="fas fa-circle" style="font-size:6px;"></i>New</span>
                         <span class="nt-pill"         data-group="status" data-val="in_progress" style="background:#dbeafe;color:#1d4ed8;" onclick="ntSetPill(this,'status')"><i class="fas fa-circle" style="font-size:6px;"></i>In Progress</span>
@@ -483,7 +517,7 @@
 
                 {{-- Priority --}}
                 <div class="nt-sec" style="border-bottom:none;">
-                    <div class="nt-lbl"><i class="fas fa-flag"></i><span>Priority</span></div>
+                    <div class="nt-lbl"><i class="fas fa-flag"></i><span>Priority:</span></div>
                     <div style="display:flex;gap:6px;flex-wrap:wrap;">
                         <span class="nt-pill"         data-group="priority" data-val="low"    style="background:#f1f5f9;color:#475569;" onclick="ntSetPill(this,'priority')"><i class="fas fa-flag" style="font-size:7px;"></i>Low</span>
                         <span class="nt-pill active"  data-group="priority" data-val="medium" style="background:#dbeafe;color:#1d4ed8;" onclick="ntSetPill(this,'priority')"><i class="fas fa-flag" style="font-size:7px;"></i>Medium</span>
@@ -492,12 +526,14 @@
                     </div>
                 </div>
 
+                </div>
+
                 <div style="height:20px;"></div>
             </div>
 
             {{-- Footer --}}
-            <div style="flex-shrink:0;padding:10px 20px;border-top:1px solid #f1f3f5;background:#fff;display:flex;align-items:center;gap:10px;">
-                <button type="button" onclick="closeTaskModal()"
+            <div style="flex-shrink:0;padding:16px 22px;border-top:1px solid #e3e8ea;background:#fff;display:flex;align-items:center;gap:14px;">
+                <button type="button" class="nt-cancel" onclick="closeTaskModal()"
                         style="padding:8px 22px;border:1.5px solid #e2e8f0;background:#f8fafc;color:#374151;border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;"
                         onmouseover="this.style.background='#e2e8f0'" onmouseout="this.style.background='#f8fafc'">
                     Cancel
@@ -506,29 +542,39 @@
                         style="padding:8px 22px;background:#0ea5e9;border:none;color:#fff;border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;transition:opacity .15s;display:inline-flex;align-items:center;gap:7px;"
                         onmouseover="if(!this.disabled)this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
                     <i class="fas fa-plus" style="font-size:11px;"></i>
-                    Create Task
+                    Create
                 </button>
             </div>
         </form>
 
-        {{-- ===== RIGHT COLUMN — comments placeholder ===== --}}
-        <div style="flex:1;min-width:0;display:flex;flex-direction:column;overflow:hidden;background:#f8fafc;">
+        {{-- ===== RIGHT COLUMN — Task chat placeholder (Bitrix style) ===== --}}
+        <div style="flex:1;min-width:0;display:flex;flex-direction:column;overflow:hidden;background:#5a9e96 url('{{ asset('pattern-chat-teal.svg') }}') center/cover no-repeat;position:relative;">
+            <div style="position:absolute;inset:0;background:rgba(255,255,255,.62);"></div>
 
-            {{-- Header --}}
-            <div style="flex-shrink:0;padding:14px 20px;border-bottom:1px solid rgba(255,255,255,.4);display:flex;align-items:center;gap:7px;background:rgba(255,255,255,.55);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);">
-                <i class="fas fa-comment-dots" style="color:#0ea5e9;font-size:12px;"></i>
-                <span style="color:#374151;font-size:13px;font-weight:700;">Comments</span>
+            <div style="position:relative;flex-shrink:0;height:63px;padding:0 24px;display:flex;align-items:center;gap:14px;background:rgba(255,255,255,.85);">
+                <div style="width:40px;height:40px;border-radius:50%;background:#e3f1f1;display:flex;align-items:center;justify-content:center;"><i class="far fa-comments" style="color:#8fb5b0;font-size:18px;"></i></div>
+                <div><div style="font-size:15px;color:#9aa5ad;">Task chat</div><div style="font-size:12.5px;color:#b3bcc2;">1 member</div></div>
             </div>
 
-            {{-- Pattern area with placeholder --}}
-            <div style="flex:1;display:flex;align-items:center;justify-content:center;background-image:url('{{ asset('pattern-chat.svg') }}');background-size:cover;background-position:center;background-repeat:no-repeat;">
-                <div style="text-align:center;padding:40px 24px;">
-                    <div style="width:56px;height:56px;border-radius:50%;background:rgba(255,255,255,.18);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;">
-                        <i class="fas fa-comment-slash" style="font-size:22px;color:rgba(255,255,255,.5);"></i>
+            <div style="position:relative;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;">
+                <span style="background:rgba(83,139,127,.55);color:#fff;font-size:13px;font-weight:600;padding:3px 16px;border-radius:14px;margin-bottom:26px;">today</span>
+                <div style="background:rgba(255,255,255,.85);border-radius:12px;padding:26px 34px;display:flex;gap:30px;align-items:center;max-width:540px;">
+                    <div style="width:110px;height:100px;border-radius:10px;background:linear-gradient(135deg,#eaf4fb,#f6fafc);flex-shrink:0;display:flex;align-items:center;justify-content:center;"><i class="far fa-message" style="font-size:38px;color:#b4d3e6;"></i></div>
+                    <div>
+                        <div style="font-size:19px;color:#9aa5ad;margin-bottom:12px;">Task chat</div>
+                        <div style="display:flex;flex-direction:column;gap:9px;font-size:14px;color:#a6b0b7;">
+                            <div><i class="far fa-video" style="color:#b7d6e8;width:22px;"></i>Call chat members</div>
+                            <div><i class="fas fa-paperclip" style="color:#b7d6e8;width:22px;"></i>Share documents and files</div>
+                            <div><i class="far fa-file-lines" style="color:#b7d6e8;width:22px;"></i>Discuss progress and results</div>
+                            <div><i class="fas fa-angles-right" style="color:#b7d6e8;width:22px;"></i>Track task updates</div>
+                        </div>
                     </div>
-                    <p style="color:rgba(255,255,255,.8);font-size:13px;font-weight:600;margin:0 0 5px;">No comments yet</p>
-                    <p style="color:rgba(255,255,255,.4);font-size:12px;margin:0;line-height:1.6;">Save the task first<br>to start a discussion</p>
                 </div>
+                <p style="margin:18px 0 0;font-size:12.5px;color:#7d8a92;">Create the task to start the discussion.</p>
+            </div>
+
+            <div style="position:relative;flex-shrink:0;padding:0 24px 22px;">
+                <div style="max-width:860px;margin:0 auto;background:rgba(255,255,255,.75);border-radius:10px;min-height:96px;padding:16px 20px;color:#b5bec4;font-size:15px;"><i class="fas fa-paperclip" style="margin-right:12px;"></i>Type @ or + to mention a person, a chat or AI</div>
             </div>
         </div>
 
@@ -1285,7 +1331,7 @@
         if (badge) { badge.style.background='#dcfce7'; badge.style.border='1px solid #86efac'; }
         // Button → Create Task
         var btn = document.getElementById('nt-create-btn');
-        if (btn) btn.innerHTML = '<i class="fas fa-plus" style="font-size:11px;"></i>&nbsp;Create Task';
+        if (btn) btn.innerHTML = '<i class="fas fa-plus" style="font-size:11px;"></i>&nbsp;Create';
     };
 
     // AJAX form submit — no page reload
@@ -1362,7 +1408,7 @@
             }
         })
         .catch(function() {
-            if (btn) { btn.disabled = false; btn.innerHTML = isEdit ? '<i class="fas fa-save" style="font-size:11px;"></i>&nbsp;Save Changes' : '<i class="fas fa-plus" style="font-size:11px;"></i>&nbsp;Create Task'; }
+            if (btn) { btn.disabled = false; btn.innerHTML = isEdit ? '<i class="fas fa-save" style="font-size:11px;"></i>&nbsp;Save Changes' : '<i class="fas fa-plus" style="font-size:11px;"></i>&nbsp;Create'; }
             ntShowToast('Failed to ' + (isEdit ? 'update' : 'create') + ' task. Please try again.', true);
         });
     });
