@@ -68,7 +68,14 @@ class ProfileController extends Controller
 
         if ($request->hasFile('avatar')) {
             if ($user->avatar) Storage::disk('public')->delete($user->avatar);
-            $data['avatar'] = $request->file('avatar')->store('avatars', 'public');
+            $file = $request->file('avatar');
+            $webp = \App\Support\AvatarImage::toWebp($file->get());
+            if ($webp) {
+                $data['avatar'] = 'avatars/' . $user->id . '-' . substr(md5($webp), 0, 8) . '.webp';
+                Storage::disk('public')->put($data['avatar'], $webp);
+            } else {
+                $data['avatar'] = $file->store('avatars', 'public');
+            }
         }
 
         $user->update($data);

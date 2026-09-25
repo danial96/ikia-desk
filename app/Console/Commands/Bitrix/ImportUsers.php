@@ -125,9 +125,10 @@ class ImportUsers extends BitrixCommand
 
             if (!$img || strlen($img) < 500) return;
 
-            $ext  = str_contains($ct, 'png') ? 'png' : 'jpg';
+            $webp = \App\Support\AvatarImage::toWebp($img);
+            $ext  = $webp ? 'webp' : (str_contains($ct, 'png') ? 'png' : 'jpg');
             $path = "avatars/{$user->bitrix_id}.{$ext}";
-            Storage::disk('public')->put($path, $img);
+            Storage::disk('public')->put($path, $webp ?: $img);
             $user->update(['avatar' => $path]);
         } catch (\Throwable) {
             // Non-fatal — leave avatar null
