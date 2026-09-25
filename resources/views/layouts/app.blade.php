@@ -2372,6 +2372,8 @@ function openTaskModal(projectId) {
     _modalCloseToken++; // cancel any pending closeTaskModal reset
     const ov = document.getElementById('nt-overlay');
     if (!ov) return;
+    // position:fixed must not sit inside the transformed #main-content (it would shrink to the content area)
+    if (ov.parentElement !== document.body) document.body.appendChild(ov);
     ov.style.display = 'flex';
     requestAnimationFrame(() => { ov.style.opacity = '1'; });
     localStorage.setItem('nt_open', '1');
