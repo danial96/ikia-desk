@@ -27,6 +27,10 @@ Route::get('/reset-password/{token}', [ResetPasswordController::class, 'showForm
 Route::post('/reset-password', [ResetPasswordController::class, 'reset'])->name('password.update');
 
 // Protected routes
+// Fresh CSRF token + whether the session is still logged in (used by the page's fetch wrapper).
+Route::get('/csrf-token', fn () => response()->json(['token' => csrf_token(), 'auth' => auth()->check()])
+    ->header('Cache-Control', 'no-store'))->name('csrf.token');
+
 // Initials avatar for users without an uploaded photo — served locally and cached for a year.
 Route::get('/avatar-initials', function (\Illuminate\Http\Request $r) {
     $name  = trim((string) $r->query('n', '?'));

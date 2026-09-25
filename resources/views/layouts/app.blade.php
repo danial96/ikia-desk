@@ -2556,6 +2556,52 @@ document.addEventListener('keydown', function(e){ if(e.key==='Escape') { closeTa
 let notifIsOpen    = false;
 let notifPollTimer = null;
 let _notifPrevCount = -1; // -1 = first load, no sound yet
+/* ── CSRF self-healing: a stale token (login in another tab, long-idle tab) no longer breaks actions ── */
+(function () {
+    const orig = window.fetch.bind(window);
+    const meta = document.querySelector('meta[name="csrf-token"]');
+    let tok = (meta && meta.content) || '', expiredShown = false;
+
+    function expired() {
+        if (expiredShown) return; expiredShown = true;
+        if (window.showToast) showToast('Your session has expired — please log in again.');
+        setTimeout(function () { location.href = '/login'; }, 1800);
+    }
+    async function refresh() {
+        try {
+            const r = await orig('/csrf-token', { credentials: 'same-origin', headers: { 'Accept': 'application/json' }, cache: 'no-store' });
+            if (!r.ok) return null;
+            const d = await r.json();
+            if (!d.auth) { expired(); return null; }
+            tok = d.token;
+            if (meta) meta.content = tok;
+            document.querySelectorAll('input[name="_token"]').forEach(function (i) { i.value = tok; });
+            return d;
+        } catch (e) { return null; }
+    }
+    window.fetch = function (input, init) {
+        init = init || {};
+        const method = String(init.method || (input && input.method) || 'GET').toUpperCase();
+        const url = typeof input === 'string' ? input : ((input && input.url) || '');
+        const same = url.charAt(0) === '/' || url.indexOf(location.origin) === 0;
+        if (!same || method === 'GET' || method === 'HEAD' || (input && typeof input !== 'string')) return orig(input, init);
+        const send = function () {
+            const i2 = Object.assign({}, init), h = new Headers(init.headers || {});
+            if (tok) h.set('X-CSRF-TOKEN', tok);
+            i2.headers = h;
+            if (i2.body instanceof FormData && i2.body.has('_token')) i2.body.set('_token', tok);
+            return orig(input, i2);
+        };
+        return send().then(async function (res) {
+            if (res.status !== 419) return res;
+            const d = await refresh();
+            return d ? send() : res;
+        });
+    };
+    setInterval(refresh, 10 * 60 * 1000);
+    document.addEventListener('visibilitychange', function () { if (!document.hidden) refresh(); });
+})();
+
 const CSRF     = document.querySelector('meta[name="csrf-token"]')?.content || '';
 const API_BASE = '{{ url("") }}';
 
