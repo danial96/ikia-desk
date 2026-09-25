@@ -2,7 +2,7 @@
     $dl     = $task->kanbanDeadline();
     $pill   = ['overdue' => ['#e0413a', '#e0413a', '#fdecea'], 'today' => ['#e08a00', '#fde8c4', '#fde8c4'], 'normal' => ['#1a6fd4', '#1a6fd4', '#fff'], 'done' => ['#7d858c', '#d5d9dd', '#fff']];
     $active = $task->updated_at?->copy()->setTimezone(config('app.timezone'));
-    $stCol  = ['new' => ['#eef1f3', '#5b6670'], 'pending' => ['#e0f2fe', '#0369a1'], 'in_progress' => ['#dbeafe', '#1d4ed8'], 'paused' => ['#fef3c7', '#b45309'], 'completed' => ['#dcfce7', '#15803d']][$task->status] ?? ['#eef1f3', '#5b6670'];
+    $stCol  = ['new' => ['#eef1f3', '#5b6670'], 'pending' => ['#e0f2fe', '#0369a1'], 'in_progress' => ['#dbeafe', '#1d4ed8'], 'reviewing' => ['#ede9fe', '#6d28d9'], 'paused' => ['#fef3c7', '#b45309'], 'completed' => ['#dcfce7', '#15803d']][$task->status] ?? ['#eef1f3', '#5b6670'];
     $person = fn($u) => $u ? '<span class="bx-user"><img src="' . e($u->avatar_url) . '" alt=""><span>' . e($u->name) . '</span></span>' : '';
 @endphp
 <tr class="bx-row" onclick="tpOpen('local', {{ $task->id }})">

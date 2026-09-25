@@ -1070,7 +1070,8 @@ function tpRenderLocal(data) {
         {v:'new',        label:'New',             bg:'#f1f5f9',col:'#475569'},
         {v:'pending',    label:'Pending',         bg:'#e0f2fe',col:'#0369a1'},
         {v:'in_progress',label:'In Progress',     bg:'#dbeafe',col:'#1d4ed8'},
-        {v:'paused',     label:'Paused',          bg:'#fef3c7',col:'#b45309'},
+        {v:'reviewing',  label:'Reviewing',       bg:'#ede9fe',col:'#6d28d9'},
+        {v:'paused',     label:'Deferred',        bg:'#fef3c7',col:'#b45309'},
         {v:'completed',  label:'Completed',       bg:'#dcfce7',col:'#15803d'},
     ];
     const priorities=[
@@ -1142,7 +1143,7 @@ function tpRenderLocal(data) {
             :`<div onclick="tpCalOpen(${taskId},this,'')" style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;color:#9ca3af;"><span>Set deadline</span></div>`;
 
         /* Status */
-        const statusIcon={new:'far fa-circle',pending:'fas fa-hourglass-half',in_progress:'far fa-play-circle',paused:'far fa-pause-circle',completed:'far fa-check-circle'}[t.status]||'far fa-circle';
+        const statusIcon={new:'far fa-circle',pending:'fas fa-hourglass-half',in_progress:'far fa-play-circle',reviewing:'far fa-eye',paused:'far fa-pause-circle',completed:'far fa-check-circle'}[t.status]||'far fa-circle';
         const statusVal=`<div style="position:relative;display:inline-flex;">
             <div onclick="tpToggleDropdown('tp-drop-status-${taskId}')" style="display:inline-flex;align-items:center;gap:8px;cursor:pointer;">${curStatus.label}<i class="fas fa-chevron-down" style="font-size:9px;color:#b0b5bb;"></i></div>
             <div id="tp-drop-status-${taskId}" class="tp-people-dropdown" style="display:none;top:100%;left:0;min-width:160px;z-index:200;">
@@ -1515,7 +1516,7 @@ window.tpStopChatPoll = function() {
 /* ─── "Rahim created this task" card (Bitrix style) ────── */
 window.tpCreatedCard = function(data, iso){
     const t=data.task||{}, creator=data.creator, assignee=data.assignee;
-    const stLabel={new:'New',pending:'Pending',in_progress:'In Progress',paused:'Paused',completed:'Completed'}[t.status]||t.status||'';
+    const stLabel={new:'New',pending:'Pending',in_progress:'In Progress',reviewing:'Reviewing',paused:'Deferred',completed:'Completed'}[t.status]||t.status||'';
     let plain=(t.description||'').replace(/\[[^\]]*\]/g,' ').replace(/<[^>]+>/g,' ').replace(/&nbsp;/g,' ').replace(/[ \t]+/g,' ')
         .split('\n').map(x=>x.trim()).filter(Boolean).join('\n');
     if(plain.length>160) plain=plain.slice(0,160).trim()+'…';
@@ -1648,7 +1649,7 @@ function kbUpdateCard(taskId) {
         // Update priority/status badges inline
         const badges = card.querySelectorAll('span[style*="font-size:10px"]');
         const priColors = {low:['#e2e8f0','#475569'],medium:['#dbeafe','#1d4ed8'],high:['#ffedd5','#c2410c'],urgent:['#fee2e2','#b91c1c']};
-        const stColors  = {new:['#f1f5f9','#334155','#cbd5e1'],in_progress:['#dbeafe','#1d4ed8','#bfdbfe'],paused:['#fef3c7','#b45309','#fde68a'],completed:['#dcfce7','#166534','#bbf7d0']};
+        const stColors  = {new:['#f1f5f9','#334155','#cbd5e1'],in_progress:['#dbeafe','#1d4ed8','#bfdbfe'],reviewing:['#ede9fe','#6d28d9','#ddd6fe'],paused:['#fef3c7','#b45309','#fde68a'],completed:['#dcfce7','#166534','#bbf7d0']};
         if(badges[0]&&priColors[d.priority]){ badges[0].style.background=priColors[d.priority][0]; badges[0].style.color=priColors[d.priority][1]; badges[0].textContent=d.priority.toUpperCase(); }
         if(badges[1]&&stColors[d.status])  { const sc=stColors[d.status]; badges[1].style.background=sc[0]; badges[1].style.color=sc[1]; badges[1].style.borderColor=sc[2]; badges[1].textContent=d.status.replace('_',' ').replace(/\b\w/g,c=>c.toUpperCase()); }
         // Move card to correct column

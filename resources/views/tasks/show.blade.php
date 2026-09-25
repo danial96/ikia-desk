@@ -50,7 +50,7 @@ $csrf    = csrf_token();
 .ie-pill     { padding:4px 12px;border-radius:6px;font-size:11.5px;font-weight:600;cursor:pointer;border:1.5px solid transparent;transition:all .15s; }
 .ie-pill:hover { filter:brightness(.93); }
 .ie-pill.active { box-shadow:0 0 0 2px currentColor; }
-.pill-new{background:#f1f5f9;color:#475569}.pill-pending{background:#e0f2fe;color:#0369a1}.pill-in_progress{background:#dbeafe;color:#1d4ed8}.pill-paused{background:#fef3c7;color:#b45309}.pill-completed{background:#dcfce7;color:#166534}
+.pill-new{background:#f1f5f9;color:#475569}.pill-pending{background:#e0f2fe;color:#0369a1}.pill-in_progress{background:#dbeafe;color:#1d4ed8}.pill-reviewing{background:#ede9fe;color:#6d28d9}.pill-paused{background:#fef3c7;color:#b45309}.pill-completed{background:#dcfce7;color:#166534}
 .pill-low{background:#f1f5f9;color:#64748b}.pill-medium{background:#dbeafe;color:#1d4ed8}
 .pill-high{background:#fff7ed;color:#c2410c}.pill-urgent{background:#fee2e2;color:#b91c1c}
 .sb { font-size:11.5px;font-weight:600;padding:3px 10px;border-radius:6px; }
@@ -206,7 +206,7 @@ $csrf    = csrf_token();
                     </div>
                     <div class="ie-picker" id="pick-status" style="display:none;">
                         <div class="ie-pill-row">
-                            @foreach(['new','pending','in_progress','paused','completed'] as $s)
+                            @foreach(['new','pending','in_progress','reviewing','paused','completed'] as $s)
                             <span class="ie-pill pill-{{ $s }} {{ $task->status===$s?'active':'' }}" onclick="ieUpdateField('status','{{ $s }}')">{{ str_replace('_',' ',ucfirst($s)) }}</span>
                             @endforeach
                         </div>
@@ -514,7 +514,7 @@ $csrf    = csrf_token();
             <div style="margin-bottom:14px;"><label class="em-l">Title *</label><input type="text" name="title" value="{{ $task->title }}" required class="em-f"></div>
             <div style="margin-bottom:14px;"><label class="em-l">Description</label><textarea name="description" rows="3" class="em-f" style="resize:none;">{{ $task->description }}</textarea></div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
-                <div><label class="em-l">Status</label><select name="status" class="em-f">@foreach(['new','pending','in_progress','paused','completed'] as $s)<option value="{{ $s }}" {{ $task->status===$s?'selected':'' }}>{{ str_replace('_',' ',ucfirst($s)) }}</option>@endforeach</select></div>
+                <div><label class="em-l">Status</label><select name="status" class="em-f">@foreach(['new','pending','in_progress','reviewing','paused','completed'] as $s)<option value="{{ $s }}" {{ $task->status===$s?'selected':'' }}>{{ str_replace('_',' ',ucfirst($s)) }}</option>@endforeach</select></div>
                 <div><label class="em-l">Priority</label><select name="priority" class="em-f">@foreach(['low','medium','high','urgent'] as $p)<option value="{{ $p }}" {{ $task->priority===$p?'selected':'' }}>{{ ucfirst($p) }}</option>@endforeach</select></div>
             </div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">

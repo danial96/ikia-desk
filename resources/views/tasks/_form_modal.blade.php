@@ -477,7 +477,8 @@
                     <div style="display:flex;gap:6px;flex-wrap:wrap;">
                         <span class="nt-pill active" data-group="status" data-val="new"         style="background:#f1f5f9;color:#475569;" onclick="ntSetPill(this,'status')"><i class="fas fa-circle" style="font-size:6px;"></i>New</span>
                         <span class="nt-pill"         data-group="status" data-val="in_progress" style="background:#dbeafe;color:#1d4ed8;" onclick="ntSetPill(this,'status')"><i class="fas fa-circle" style="font-size:6px;"></i>In Progress</span>
-                        <span class="nt-pill"         data-group="status" data-val="paused"       style="background:#fef3c7;color:#b45309;" onclick="ntSetPill(this,'status')"><i class="fas fa-circle" style="font-size:6px;"></i>Paused</span>
+                        <span class="nt-pill"         data-group="status" data-val="reviewing"    style="background:#ede9fe;color:#6d28d9;" onclick="ntSetPill(this,'status')"><i class="fas fa-circle" style="font-size:6px;"></i>Reviewing</span>
+                        <span class="nt-pill"         data-group="status" data-val="paused"       style="background:#fef3c7;color:#b45309;" onclick="ntSetPill(this,'status')"><i class="fas fa-circle" style="font-size:6px;"></i>Deferred</span>
                         <span class="nt-pill"         data-group="status" data-val="completed"   style="background:#dcfce7;color:#15803d;" onclick="ntSetPill(this,'status')"><i class="fas fa-circle" style="font-size:6px;"></i>Completed</span>
                     </div>
                 </div>

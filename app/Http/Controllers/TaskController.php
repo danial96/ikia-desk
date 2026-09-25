@@ -20,7 +20,7 @@ class TaskController extends Controller
     private static function expandStatuses(array $statuses): array
     {
         return in_array('in_progress', $statuses, true)
-            ? array_values(array_unique(array_merge($statuses, ['pending'])))
+            ? array_values(array_unique(array_merge($statuses, ['pending', 'reviewing'])))
             : $statuses;
     }
 
@@ -161,7 +161,7 @@ class TaskController extends Controller
             'project_id'  => 'nullable|exists:projects,id',
             'assigned_to' => 'nullable|exists:users,id',
             'priority'    => 'required|in:low,medium,high,urgent',
-            'status'      => 'nullable|in:new,pending,in_progress,paused,completed',
+            'status'      => 'nullable|in:new,pending,in_progress,reviewing,paused,completed',
             'deadline'    => 'nullable|date',
             'members'     => 'nullable|array',
             'members.*'   => 'exists:users,id',
@@ -242,7 +242,7 @@ class TaskController extends Controller
             if (!$task->isMember($user)) {
                 abort(403, 'You are not a member of this task.');
             }
-            $validStatuses = ['new', 'pending', 'in_progress', 'paused', 'completed'];
+            $validStatuses = ['new', 'pending', 'in_progress', 'reviewing', 'paused', 'completed'];
             if (!in_array($request->status, $validStatuses)) {
                 abort(422, 'Invalid status value.');
             }
@@ -267,7 +267,7 @@ class TaskController extends Controller
             'assigned_to' => 'nullable|exists:users,id',
             'priority'    => 'required|in:low,medium,high,urgent',
             'deadline'    => 'nullable|date',
-            'status'      => 'required|in:new,pending,in_progress,paused,completed',
+            'status'      => 'required|in:new,pending,in_progress,reviewing,paused,completed',
             'members'     => 'nullable|array',
         ]);
 
@@ -537,7 +537,7 @@ class TaskController extends Controller
         $updates = ['updated_at' => now()];
 
         if (array_key_exists('status', $all) && $all['status']) {
-            $validStatuses = ['new', 'pending', 'in_progress', 'paused', 'completed'];
+            $validStatuses = ['new', 'pending', 'in_progress', 'reviewing', 'paused', 'completed'];
             if (!in_array($all['status'], $validStatuses)) abort(422, 'Invalid status.');
             $updates['status'] = $all['status'];
         }

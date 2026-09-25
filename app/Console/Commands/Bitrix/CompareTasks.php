@@ -24,7 +24,7 @@ class CompareTasks extends BitrixCommand
 
         $users    = User::whereNotNull('bitrix_id')->pluck('id', 'bitrix_id')->all();
         $projects = Project::whereNotNull('bitrix_id')->pluck('id', 'bitrix_id')->all();
-        $statusMap   = ['1' => 'new', '2' => 'pending', '3' => 'in_progress', '4' => 'in_progress', '5' => 'completed', '6' => 'paused'];
+        $statusMap   = ['1' => 'new', '2' => 'pending', '3' => 'in_progress', '4' => 'reviewing', '5' => 'completed', '6' => 'paused'];
         $priorityMap = ['0' => 'low', '1' => 'medium', '2' => 'urgent'];
         $tz = new \DateTimeZone(config('app.timezone'));
 

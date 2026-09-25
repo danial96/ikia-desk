@@ -104,7 +104,7 @@
         <div>
             <p style="color:#94a3b8;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;margin:0 0 8px;">Status</p>
             <div style="display:flex;flex-wrap:wrap;gap:6px;">
-                @foreach(['new'=>'New','pending'=>'Pending','in_progress'=>'In Progress','paused'=>'Paused','completed'=>'Completed'] as $val=>$lbl)
+                @foreach(['new'=>'New','pending'=>'Pending','in_progress'=>'In Progress','reviewing'=>'Reviewing','paused'=>'Deferred','completed'=>'Completed'] as $val=>$lbl)
                 <button type="button" data-field="status" data-value="{{ $val }}"
                         onclick="tsfToggleFilter('status','{{ $val }}','{{ $lbl }}')"
                         class="{{ request('status')===$val ? 'tsf-active' : '' }}"

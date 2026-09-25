@@ -160,7 +160,7 @@ class ImportTasks extends BitrixCommand
             '1'     => 'new',
             '2'     => 'pending',
             '3'     => 'in_progress',
-            '4'     => 'in_progress',
+            '4'     => 'reviewing',
             '5'     => 'completed',
             '6'     => 'paused',
             default => 'new',
