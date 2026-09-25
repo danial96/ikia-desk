@@ -154,6 +154,13 @@
             box-shadow: 0 0 0 2.5px rgba(0,212,232,.4);
             transition: box-shadow .18s;
         }
+
+        /* Chat scrollbars: wider + clearly visible on the teal wallpaper */
+        #cp-msg-area, #chat-msg-area, #tp-messages { scrollbar-width: auto; scrollbar-color: rgba(255,255,255,.55) rgba(0,0,0,.12); }
+        #cp-msg-area::-webkit-scrollbar, #chat-msg-area::-webkit-scrollbar, #tp-messages::-webkit-scrollbar { width: 12px !important; }
+        #cp-msg-area::-webkit-scrollbar-track, #chat-msg-area::-webkit-scrollbar-track, #tp-messages::-webkit-scrollbar-track { background: rgba(0,0,0,.12) !important; }
+        #cp-msg-area::-webkit-scrollbar-thumb, #chat-msg-area::-webkit-scrollbar-thumb, #tp-messages::-webkit-scrollbar-thumb { background: rgba(255,255,255,.55) !important; border-radius: 8px !important; border: 2px solid transparent; background-clip: padding-box; }
+        #cp-msg-area::-webkit-scrollbar-thumb:hover, #chat-msg-area::-webkit-scrollbar-thumb:hover, #tp-messages::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,.8) !important; background-clip: padding-box; }
         /* message boxes sit inside a white card — no extra focus ring */
         #chat-textarea:focus, #cp-textarea:focus, #tp-comment-text:focus, #nt-title-input:focus { box-shadow: none !important; outline: none !important; }
 
@@ -2652,6 +2659,36 @@ document.addEventListener('load', function (e) {
     const distance = box.scrollHeight - box.scrollTop - box.clientHeight;   // after growth
     if (distance <= img.offsetHeight + 220) box.scrollTop = box.scrollHeight + 9999;
 }, true);
+
+/* "Scroll to newest" arrow for every chat / comment list */
+(function () {
+    const IDS = ['cp-msg-area', 'chat-msg-area', 'tp-messages'];
+    const btns = {};
+    function mk(id) {
+        const b = document.createElement('button');
+        b.type = 'button'; b.title = 'Scroll to the newest message';
+        b.style.cssText = 'position:fixed;z-index:3600;width:42px;height:42px;border-radius:50%;background:#fff;border:none;color:#525c69;cursor:pointer;display:none;align-items:center;justify-content:center;box-shadow:0 3px 12px rgba(0,0,0,.3);transition:opacity .15s;';
+        b.innerHTML = '<i class="fas fa-chevron-down" style="font-size:15px;"></i>';
+        b.onclick = function () { const el = document.getElementById(id); if (el) el.scrollTo({ top: el.scrollHeight + 9999, behavior: 'smooth' }); };
+        document.body.appendChild(b);
+        return (btns[id] = b);
+    }
+    function update() {
+        IDS.forEach(function (id) {
+            const el = document.getElementById(id), b = btns[id] || mk(id);
+            const r = el && el.getBoundingClientRect();
+            const visible = el && r.width > 0 && r.height > 80 && getComputedStyle(el).visibility !== 'hidden';
+            const far = visible && (el.scrollHeight - el.scrollTop - el.clientHeight) > 300;
+            if (!far) { b.style.display = 'none'; return; }
+            b.style.display = 'flex';
+            b.style.left = Math.round(r.right - 12 - 42 - 14) + 'px';
+            b.style.top = Math.round(r.bottom - 42 - 16) + 'px';
+        });
+    }
+    document.addEventListener('scroll', update, true);
+    window.addEventListener('resize', update);
+    setInterval(update, 600);
+})();
 
 /* ── CSRF self-healing: a stale token (login in another tab, long-idle tab) no longer breaks actions ── */
 (function () {
