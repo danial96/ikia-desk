@@ -30,6 +30,8 @@
 #nt-panel { border-radius:11px 11px 0 0 !important; }
 #nt-form { background:#eef2f3; border-right:none !important; }
 #nt-mode-badge { display:none !important; }
+#nt-title-input, #nt-title-input:focus { outline:none !important; box-shadow:none !important; border:none !important; padding-right:40px; }
+.nt-chipbtn.on { background:#dff0fb !important; color:#0a7ab8 !important; }
 #nt-title-input { font-size:21px !important; font-weight:500 !important; color:#000 !important; }
 #nt-title-input::placeholder { color:#9aa5ad; font-weight:400; }
 #nt-desc-card { border:none !important; border-radius:11px !important; box-shadow:none; }
@@ -98,7 +100,8 @@
             <input type="hidden" name="assigned_to" id="nt-assigned-val" value="">
 
             {{-- Header --}}
-            <div style="flex-shrink:0;padding:24px 26px 12px 22px;background:#eef2f3;">
+            <div style="flex-shrink:0;padding:24px 26px 12px 22px;background:#eef2f3;position:relative;">
+                <button type="button" id="nt-flame" title="High priority" onclick="ntToggleFlame()" style="position:absolute;right:30px;top:28px;background:none;border:none;cursor:pointer;color:#a9b2b8;font-size:20px;line-height:1;"><i class="fas fa-fire"></i></button>
                 <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
                     <div id="nt-mode-badge" style="display:flex;align-items:center;gap:4px;padding:2px 7px;background:#dcfce7;border:1px solid #86efac;border-radius:5px;">
                         <i class="fas fa-plus" style="font-size:8px;color:#15803d;"></i>
@@ -142,6 +145,11 @@
                             </div>
                         </div>
                     </div>
+
+                    <button type="button" class="nt-chipbtn" id="nt-chip-project" onclick="ntToggleRow('project',this)" style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;line-height:1;"><i class="far fa-folder" style="font-size:12px;"></i>Project</button>
+                    <button type="button" class="nt-chipbtn" id="nt-chip-participants" onclick="ntToggleRow('participants',this)" style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;line-height:1;"><i class="far fa-user" style="font-size:12px;"></i>Participants</button>
+                    <button type="button" class="nt-chipbtn" id="nt-chip-observers" onclick="ntToggleRow('observers',this)" style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;line-height:1;"><i class="far fa-eye" style="font-size:12px;"></i>Observers</button>
+                    <button type="button" class="nt-chipbtn" id="nt-chip-status" onclick="ntToggleRow('status',this)" style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;line-height:1;"><i class="far fa-circle-dot" style="font-size:12px;"></i>Status</button>
                 </div>
             </div>
 
@@ -382,7 +390,7 @@
 
                 <div class="nt-card">
                 {{-- Participants --}}
-                <div class="nt-sec">
+                <div class="nt-sec" id="nt-row-participants" style="display:none;">
                     <div class="nt-lbl"><i class="fas fa-users"></i><span>Participants:</span></div>
                     <div style="position:relative;">
                         {{-- Trigger --}}
@@ -437,7 +445,7 @@
                 </div>
 
                 {{-- Observers --}}
-                <div class="nt-sec">
+                <div class="nt-sec" id="nt-row-observers" style="display:none;">
                     <div class="nt-lbl"><i class="fas fa-eye"></i><span>Observers:</span></div>
                     <div style="position:relative;">
                         {{-- Trigger --}}
@@ -492,7 +500,7 @@
                 </div>
 
                 {{-- Project --}}
-                <div class="nt-sec">
+                <div class="nt-sec" id="nt-row-project" style="display:none;">
                     <div class="nt-lbl"><i class="fas fa-folder"></i><span>Project:</span></div>
                     <select name="project_id" class="nt-select"
                             onchange="ntSaveDraft()"
@@ -505,7 +513,7 @@
                 </div>
 
                 {{-- Status --}}
-                <div class="nt-sec">
+                <div class="nt-sec" id="nt-row-status" style="display:none;">
                     <div class="nt-lbl"><i class="fas fa-circle-dot"></i><span>Status:</span></div>
                     <div style="display:flex;gap:6px;flex-wrap:wrap;">
                         <span class="nt-pill active" data-group="status" data-val="new"         style="background:#f1f5f9;color:#475569;" onclick="ntSetPill(this,'status')"><i class="fas fa-circle" style="font-size:6px;"></i>New</span>
@@ -516,7 +524,7 @@
                 </div>
 
                 {{-- Priority --}}
-                <div class="nt-sec" style="border-bottom:none;">
+                <div class="nt-sec" id="nt-row-priority" style="display:none;">
                     <div class="nt-lbl"><i class="fas fa-flag"></i><span>Priority:</span></div>
                     <div style="display:flex;gap:6px;flex-wrap:wrap;">
                         <span class="nt-pill"         data-group="priority" data-val="low"    style="background:#f1f5f9;color:#475569;" onclick="ntSetPill(this,'priority')"><i class="fas fa-flag" style="font-size:7px;"></i>Low</span>
@@ -553,7 +561,9 @@
 
             <div style="position:relative;flex-shrink:0;height:63px;padding:0 24px;display:flex;align-items:center;gap:14px;background:rgba(255,255,255,.85);">
                 <div style="width:40px;height:40px;border-radius:50%;background:#e3f1f1;display:flex;align-items:center;justify-content:center;"><i class="far fa-comments" style="color:#8fb5b0;font-size:18px;"></i></div>
-                <div><div style="font-size:15px;color:#9aa5ad;">Task chat</div><div style="font-size:12.5px;color:#b3bcc2;">1 member</div></div>
+                <div style="flex:1;"><div style="font-size:15px;color:#9aa5ad;">Task chat</div><div style="font-size:12.5px;color:#b3bcc2;">1 member</div></div>
+                <span style="background:#d7ecf7;color:#fff;font-size:13px;font-weight:600;padding:7px 16px;border-radius:16px;"><i class="fas fa-video" style="margin-right:6px;font-size:11px;"></i>Voice call</span>
+                <i class="far fa-user" style="color:#c9d1d6;font-size:16px;"></i><i class="fas fa-search" style="color:#c9d1d6;font-size:15px;"></i>
             </div>
 
             <div style="position:relative;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;">
@@ -648,6 +658,43 @@
     };
 
     // Restore draft from localStorage into the form
+    // Optional rows behind chips (Bitrix style)
+    window.ntToggleRow = function(key, chip) {
+        var r = document.getElementById('nt-row-' + key); if (!r) return;
+        var show = r.style.display === 'none';
+        r.style.display = show ? 'flex' : 'none';
+        if (chip) chip.classList.toggle('on', show);
+    };
+    function ntShowRow(key) {
+        var r = document.getElementById('nt-row-' + key); if (!r) return;
+        r.style.display = 'flex';
+        var c = document.getElementById('nt-chip-' + key); if (c) c.classList.add('on');
+    }
+    window.ntFlameSync = function() {
+        var f = document.getElementById('nt-flame'), v = document.getElementById('nt-priority-val');
+        if (f && v) f.style.color = (v.value === 'high' || v.value === 'urgent') ? '#f5a623' : '#a9b2b8';
+    };
+    window.ntToggleFlame = function() {
+        var v = document.getElementById('nt-priority-val'); if (!v) return;
+        var want = (v.value === 'high' || v.value === 'urgent') ? 'medium' : 'high';
+        var pill = document.querySelector('.nt-pill[data-group="priority"][data-val="' + want + '"]');
+        if (pill) ntSetPill(pill, 'priority');
+        ntFlameSync();
+    };
+    // Show the optional rows that already hold a value (restored draft / edit mode); default the assignee to me
+    window.ntSyncRows = function() {
+        var proj = document.querySelector('#nt-form select[name="project_id"]');
+        if (proj && proj.value) ntShowRow('project');
+        if (document.querySelector('#nt-form input[name="members[]"]:checked')) ntShowRow('participants');
+        if (document.querySelector('#nt-form input[name="observers[]"]:checked')) ntShowRow('observers');
+        var st = document.getElementById('nt-status-val'); if (st && st.value && st.value !== 'new') ntShowRow('status');
+        ntFlameSync();
+        var asg = document.getElementById('nt-assigned-val');
+        if (asg && !asg.value && !_ntEditMode && !localStorage.getItem('nt_assigned_id') && window.ntPickAssignee) {
+            ntPickAssignee({{ auth()->id() }}, @json(auth()->user()->avatar_url), @json(auth()->user()->name), '#6366f1', '');
+        }
+    };
+
     window.ntRestoreDraft = function() {
         _ntRestoring = true;
         // Read ALL saved values first, before any side-effect calls (e.g. ntSetDeadline→ntSaveDraft)

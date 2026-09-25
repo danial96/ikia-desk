@@ -2383,6 +2383,7 @@ function openTaskModal(projectId) {
     }
     setTimeout(() => {
         if (window.ntRestoreDraft) ntRestoreDraft();
+        if (window.ntSyncRows) ntSyncRows();
         const t = document.getElementById('nt-title-input'); if(t) t.focus();
     }, 60);
 }
