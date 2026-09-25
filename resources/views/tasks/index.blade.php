@@ -12,22 +12,59 @@
         'projects'   => $projects,
         'employees'  => $employees,
     ])
-    {{-- Task List --}}
-    <div id="task-list" style="display:flex;flex-direction:column;gap:6px;">
-        @forelse($tasks as $task)
-        @include('tasks._task_row')
-        @empty
-        <div style="padding:60px 20px;text-align:center;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:14px;">
-            <svg style="width:52px;height:52px;margin:0 auto 14px;opacity:.3;" fill="none" stroke="white" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
-            </svg>
-            <p style="color:rgba(255,255,255,.4);font-size:13.5px;margin:0 0 12px;">No tasks found</p>
-            @if(auth()->user()->isAdmin())
-            <button onclick="openTaskModal()" style="color:#00D4E8;background:none;border:none;font-size:13px;font-weight:600;cursor:pointer;">Create your first task</button>
-            @endif
+    {{-- Task List (Bitrix-style table) --}}
+    <style>
+    .bx-card { background:#fff; border-radius:11px; overflow:hidden; box-shadow:0 2px 14px rgba(0,0,0,.25); }
+    .bx-table { width:100%; border-collapse:collapse; font-size:14px; color:#333; }
+    .bx-table th { text-align:left; font-weight:400; color:#535c69; padding:16px 12px; border-bottom:1px solid #e7ecee; white-space:nowrap; font-size:14.5px; }
+    .bx-table td { padding:12px; border-bottom:1px solid #eef1f3; vertical-align:middle; }
+    .bx-table th.c-active, .bx-table td.c-active { background:#f0f9fd; }
+    .bx-row { cursor:pointer; transition:background .1s; }
+    .bx-row:hover td { background:#f5f9fb; } .bx-row:hover td.c-active { background:#e9f5fb; }
+    .c-chk { width:44px; text-align:center; } .c-name { min-width:280px; width:34%; }
+    .c-active { color:#4a5560; white-space:nowrap; } .c-dl { white-space:nowrap; } .c-proj { color:#5b6670; }
+    .bx-title { font-size:14.5px; color:#333; }
+    .bx-chip { display:inline-flex; align-items:center; gap:4px; margin-left:8px; font-size:11px; color:#9aa0a6; border:1px solid #e3e6e9; border-radius:9px; padding:0 6px; line-height:17px; }
+    .bx-chip i { font-size:9px; }
+    .bx-pill { display:inline-block; border:1px solid; border-radius:12px; padding:0 11px; line-height:24px; font-size:13px; }
+    .bx-user { display:inline-flex; align-items:center; gap:9px; white-space:nowrap; }
+    .bx-user img { width:26px; height:26px; border-radius:50%; object-fit:cover; }
+    .bx-status { display:inline-block; border-radius:6px; padding:3px 10px; font-size:12.5px; font-weight:500; white-space:nowrap; }
+    .bx-foot { display:flex; gap:44px; align-items:center; padding:16px 22px; font-size:11.5px; letter-spacing:.3px; color:#535c69; text-transform:uppercase; border-top:1px solid #e7ecee; }
+    .bx-foot b { color:#333; }
+    .bx-chk, #bx-all { width:17px; height:17px; cursor:pointer; }
+    @media (max-width: 1100px) { .bx-table th:nth-child(5), .bx-table td:nth-child(5), .bx-table th:nth-child(7), .bx-table td:nth-child(7) { display:none; } }
+    </style>
+    <div class="bx-card">
+        <div style="overflow-x:auto;">
+        <table class="bx-table">
+            <thead><tr>
+                <th class="c-chk"><input type="checkbox" id="bx-all" onchange="bxAll(this)"></th>
+                <th>Name</th><th class="c-active">Active <i class="fas fa-chevron-down" style="font-size:9px;margin-left:3px;"></i></th><th>Deadline</th><th>Created by</th><th>Assignee</th><th>Project</th><th>Status</th>
+            </tr></thead>
+            <tbody id="task-list">
+                @forelse($tasks as $task)
+                @include('tasks._task_row')
+                @empty
+                <tr><td colspan="8" style="padding:60px 20px;text-align:center;color:#9aa5ad;">
+                    <div style="font-size:15px;color:#7d8790;">No tasks found</div>
+                    @if(auth()->user()->isAdmin())
+                    <button onclick="openTaskModal()" style="color:#0075fd;background:none;border:none;font-size:13.5px;font-weight:600;cursor:pointer;margin-top:8px;">Create your first task</button>
+                    @endif
+                </td></tr>
+                @endforelse
+            </tbody>
+        </table>
         </div>
-        @endforelse
+        <div class="bx-foot">
+            <span>Selected: <b id="bx-sel">0</b> / {{ $tasks->total() }}</span>
+            <span>Total: <b>{{ number_format($tasks->total()) }}</b></span>
+        </div>
     </div>
+    <script>
+    function bxCount(){ var n=document.querySelectorAll('.bx-chk:checked').length; document.getElementById('bx-sel').textContent=n; var a=document.getElementById('bx-all'); if(a) a.checked = n>0 && n===document.querySelectorAll('.bx-chk').length; }
+    function bxAll(cb){ document.querySelectorAll('.bx-chk').forEach(function(c){ c.checked=cb.checked; }); bxCount(); }
+    </script>
 
     {{-- Infinite scroll sentinel --}}
     <div id="task-sentinel" style="height:1px;margin-top:8px;"></div>

@@ -104,7 +104,8 @@ class TaskController extends Controller
             return redirect()->route('tasks.index', ['status' => 'in_progress']);
         }
 
-        $query = Task::with(['project', 'assignee', 'creator']);
+        $query = Task::with(['project', 'assignee', 'creator'])
+            ->withCount(['files as task_files_count' => fn($q) => $q->where('is_task_attachment', true)]);
         if (!$user->canViewAllTasks()) {
             $query->where(function ($q) use ($user) {
                 $q->where('created_by', $user->id)
@@ -128,7 +129,7 @@ class TaskController extends Controller
             $query->where('assigned_to', $request->assignee_id);
         }
 
-        $tasks    = $query->latest()->paginate(20)->withQueryString();
+        $tasks    = $query->orderByDesc('updated_at')->orderByDesc('id')->paginate(20)->withQueryString();   // "Active" = last activity first, like Bitrix
         $projects  = Cache::remember('all_projects_list', 120, fn() => Project::orderBy('name')->get(['id', 'name']));
         $employees = Cache::remember('active_employees_list', 120, fn() => User::where('is_active', true)->get(['id', 'name', 'avatar']));
 

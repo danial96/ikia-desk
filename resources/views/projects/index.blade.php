@@ -13,37 +13,54 @@
 
 <div x-data="{ showModal: false }">
 
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
-        <p class="txt-sub" style="font-size:13px;margin:0;">{{ $projects->total() }} projects total</p>
+    {{-- Title + Create (Bitrix style) --}}
+    <div style="display:flex;align-items:center;gap:16px;margin-bottom:16px;flex-wrap:wrap;">
+        <h1 style="margin:0;font-size:30px;font-weight:500;color:#fff;letter-spacing:-.2px;">Projects</h1>
         @if(auth()->user()->canCreateProjects())
-        <button @click="showModal = true" class="ikia-btn">
-            <svg style="width:15px;height:15px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-            </svg>
-            New Project
+        <button @click="showModal = true" style="background:#8bc12f;border:none;color:#fff;border-radius:6px;padding:0 16px;height:36px;font-size:14px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:8px;box-shadow:0 1px 4px rgba(0,0,0,.25);">
+            <i class="fas fa-plus" style="font-size:12px;"></i>Create
         </button>
         @endif
+        <span style="margin-left:auto;font-size:13px;color:rgba(255,255,255,.7);">{{ $projects->total() }} projects</span>
     </div>
 
-    <div id="proj-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;">
-        @forelse($projects as $project)
-        @include('projects._project_card')
-        @empty
-        <div style="grid-column:1/-1;padding:60px 20px;text-align:center;">
-            <div style="width:60px;height:60px;border-radius:16px;margin:0 auto 14px;display:flex;align-items:center;justify-content:center;background:rgba(27,114,232,.1);">
-                <svg style="width:28px;height:28px;" fill="none" stroke="#1B72E8" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-                          d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
-                </svg>
-            </div>
-            <p class="txt-sub" style="font-size:13px;margin:0 0 12px;">No projects yet</p>
-            @if(auth()->user()->isAdmin())
-            <button @click="showModal = true" style="font-size:13px;font-weight:600;color:#1B72E8;background:none;border:none;cursor:pointer;">
-                Create your first project →
-            </button>
-            @endif
+    <style>
+    .bx-card { background:#fff; border-radius:11px; overflow:hidden; box-shadow:0 2px 14px rgba(0,0,0,.25); }
+    .bx-table { width:100%; border-collapse:collapse; font-size:14px; color:#333; }
+    .bx-table th { text-align:left; font-weight:400; color:#535c69; padding:16px 12px; border-bottom:1px solid #e7ecee; white-space:nowrap; font-size:14.5px; }
+    .bx-table td { padding:12px; border-bottom:1px solid #eef1f3; vertical-align:middle; }
+    .bx-table th.c-active, .bx-table td.c-active { background:#f0f9fd; }
+    .bx-row { cursor:pointer; transition:background .1s; }
+    .bx-row:hover td { background:#f5f9fb; } .bx-row:hover td.c-active { background:#e9f5fb; }
+    .c-id { width:70px; color:#5b6670; } .c-name { min-width:260px; } .c-active { color:#4a5560; white-space:nowrap; } .c-proj { color:#5b6670; white-space:nowrap; }
+    .bx-title { font-size:14.5px; color:#333; }
+    .bx-user { display:inline-flex; align-items:center; gap:9px; white-space:nowrap; }
+    .bx-user img { width:26px; height:26px; border-radius:50%; object-fit:cover; }
+    .bx-status { display:inline-block; border-radius:6px; padding:3px 10px; font-size:12.5px; font-weight:500; white-space:nowrap; }
+    .bx-foot { display:flex; gap:44px; align-items:center; padding:16px 22px; font-size:11.5px; letter-spacing:.3px; color:#535c69; text-transform:uppercase; border-top:1px solid #e7ecee; }
+    .bx-foot b { color:#333; }
+    </style>
+    <div class="bx-card">
+        <div style="overflow-x:auto;">
+        <table class="bx-table">
+            <thead><tr>
+                <th class="c-id">ID</th><th>Name</th><th class="c-active">Active <i class="fas fa-chevron-down" style="font-size:9px;margin-left:3px;"></i></th><th>Performance</th><th>Tasks</th><th>Owner</th><th>Status</th>
+            </tr></thead>
+            <tbody id="proj-grid">
+                @forelse($projects as $project)
+                @include('projects._project_card')
+                @empty
+                <tr><td colspan="7" style="padding:60px 20px;text-align:center;color:#9aa5ad;">
+                    <div style="font-size:15px;color:#7d8790;">No projects yet</div>
+                    @if(auth()->user()->isAdmin())
+                    <button @click="showModal = true" style="font-size:13.5px;font-weight:600;color:#0075fd;background:none;border:none;cursor:pointer;margin-top:8px;">Create your first project →</button>
+                    @endif
+                </td></tr>
+                @endforelse
+            </tbody>
+        </table>
         </div>
-        @endforelse
+        <div class="bx-foot"><span>Total: <b>{{ number_format($projects->total()) }}</b></span></div>
     </div>
 
     <div id="proj-sentinel" style="height:1px;margin-top:8px;"></div>

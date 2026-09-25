@@ -1,47 +1,26 @@
-<div style="background:rgba(255,255,255,.12);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.16);border-radius:12px;padding:12px 18px;display:flex;align-items:center;gap:14px;transition:background .15s;"
-     onmouseover="this.style.background='rgba(255,255,255,.18)'" onmouseout="this.style.background='rgba(255,255,255,.12)'">
-
-    <form action="{{ route('tasks.update', $task) }}" method="POST">
-        @csrf @method('PUT')
-        <input type="hidden" name="status" value="{{ $task->status === 'completed' ? 'new' : 'completed' }}">
-        <button type="submit"
-                style="width:20px;height:20px;border-radius:50%;border:2px solid {{ $task->status === 'completed' ? '#22c55e' : 'rgba(255,255,255,.35)' }};
-                       background:{{ $task->status === 'completed' ? '#22c55e' : 'transparent' }};
-                       display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;transition:border-color .2s;"
-                onmouseover="this.style.borderColor='#00D4E8'" onmouseout="this.style.borderColor='{{ $task->status === 'completed' ? '#22c55e' : 'rgba(255,255,255,.35)' }}'">
-            @if($task->status === 'completed')
-            <svg style="width:11px;height:11px;" fill="none" stroke="white" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
-            @endif
-        </button>
-    </form>
-
-    <div onclick="tpOpen('local', {{ $task->id }})" style="flex:1;min-width:0;cursor:pointer;">
-        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-            <p style="font-size:14px;font-weight:500;color:rgba(255,255,255,.9);margin:0;{{ $task->status === 'completed' ? 'text-decoration:line-through;opacity:.5;' : '' }}">{{ $task->title }}</p>
-            <span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:6px;
-                 background:{{ ['low'=>'rgba(100,116,139,.3)','medium'=>'rgba(27,114,232,.3)','high'=>'rgba(249,115,22,.3)','urgent'=>'rgba(239,68,68,.3)'][$task->priority] ?? 'rgba(100,116,139,.3)' }};
-                 color:{{ ['low'=>'#94a3b8','medium'=>'#60a5fa','high'=>'#fb923c','urgent'=>'#f87171'][$task->priority] ?? '#94a3b8' }};">
-                {{ $task->priority }}
-            </span>
-            @if($task->project)
-            <span style="font-size:12px;color:rgba(255,255,255,.35);">• {{ $task->project->name }}</span>
-            @endif
-        </div>
-        @if($task->deadline)
-        <p style="font-size:11.5px;margin:3px 0 0;color:{{ $task->deadline->lt(now()) && $task->status !== 'completed' ? '#f87171' : 'rgba(255,255,255,.35)' }};">
-            Due {{ $task->deadline->copy()->setTimezone('Asia/Karachi')->format('M d, Y, g:i A') }}
-        </p>
+@php
+    $dl     = $task->kanbanDeadline();
+    $pill   = ['overdue' => ['#e0413a', '#e0413a', '#fdecea'], 'today' => ['#e08a00', '#fde8c4', '#fde8c4'], 'normal' => ['#1a6fd4', '#1a6fd4', '#fff'], 'done' => ['#7d858c', '#d5d9dd', '#fff']];
+    $active = $task->updated_at?->copy()->setTimezone(config('app.timezone'));
+    $stCol  = ['new' => ['#eef1f3', '#5b6670'], 'pending' => ['#e0f2fe', '#0369a1'], 'in_progress' => ['#dbeafe', '#1d4ed8'], 'paused' => ['#fef3c7', '#b45309'], 'completed' => ['#dcfce7', '#15803d']][$task->status] ?? ['#eef1f3', '#5b6670'];
+    $person = fn($u) => $u ? '<span class="bx-user"><img src="' . e($u->avatar_url) . '" alt=""><span>' . e($u->name) . '</span></span>' : '';
+@endphp
+<tr class="bx-row" onclick="tpOpen('local', {{ $task->id }})">
+    <td class="c-chk" onclick="event.stopPropagation()"><input type="checkbox" class="bx-chk" onchange="bxCount()"></td>
+    <td class="c-name">
+        <span class="bx-title" style="{{ $task->status === 'completed' ? 'text-decoration:line-through;opacity:.55;' : '' }}">{{ $task->title }}</span>
+        @if(in_array($task->priority, ['high', 'urgent'], true))<i class="fas fa-fire" style="color:#f5a623;font-size:11px;margin-left:5px;" title="High priority"></i>@endif
+        @if(($task->task_files_count ?? 0) > 0)<span class="bx-chip"><i class="fas fa-paperclip"></i>{{ $task->task_files_count }}</span>@endif
+    </td>
+    <td class="c-active">{{ $active ? strtolower($active->format('F j, g:i a')) : '' }}</td>
+    <td class="c-dl">
+        @if($dl)
+        @php [$pc, $pb, $pg] = $pill[$dl['kind']]; @endphp
+        <span class="bx-pill" style="color:{{ $pc }};border-color:{{ $pb }};background:{{ $pg }};">{{ $dl['label'] }}</span>
         @endif
-    </div>
-
-    <div style="display:flex;align-items:center;gap:10px;flex-shrink:0;">
-        <span style="font-size:11.5px;font-weight:500;padding:4px 10px;border-radius:7px;
-             background:{{ ['new'=>'rgba(148,163,184,.2)','pending'=>'rgba(56,189,248,.22)','in_progress'=>'rgba(27,114,232,.25)','paused'=>'rgba(251,191,36,.2)','completed'=>'rgba(34,197,94,.2)'][$task->status] ?? 'rgba(148,163,184,.2)' }};
-             color:{{ ['new'=>'#cbd5e1','pending'=>'#7dd3fc','in_progress'=>'#93c5fd','paused'=>'#fde68a','completed'=>'#86efac'][$task->status] ?? '#cbd5e1' }};">
-            {{ str_replace('_',' ',ucfirst($task->status)) }}
-        </span>
-        @if($task->assignee)
-        <img src="{{ $task->assignee->avatar_url }}" style="width:28px;height:28px;border-radius:50%;border:2px solid rgba(255,255,255,.2);" title="{{ $task->assignee->name }}" alt="">
-        @endif
-    </div>
-</div>
+    </td>
+    <td>{!! $person($task->creator) !!}</td>
+    <td>{!! $person($task->assignee) !!}</td>
+    <td class="c-proj">{{ $task->project?->name }}</td>
+    <td><span class="bx-status" style="background:{{ $stCol[0] }};color:{{ $stCol[1] }};">{{ str_replace('_', ' ', ucfirst($task->status)) }}</span></td>
+</tr>
