@@ -480,6 +480,69 @@ Route::middleware('auth')->group(function () {
         return response()->json(['convs'=>$list]);
     });
 
+    // ── "About chat" data (Bitrix-style side panel): links, files & media, shared tasks ──
+    Route::get('/api/chat/convs/{id}/about', function ($id, \Illuminate\Http\Request $request) {
+        $user = auth()->user();
+        $conv = \App\Models\Conversation::with('members')->findOrFail($id);
+        if ($conv->type !== 'general' && !$conv->members->contains('id', $user->id))
+            return response()->json(['error' => 'Forbidden'], 403);
+
+        $names  = \App\Models\User::whereIn('id', $conv->members->pluck('id'))->pluck('name', 'id');
+        $other  = $conv->type === 'direct' ? $conv->members->where('id', '!=', $user->id)->first() : null;
+        $authorOf = fn($uid) => $names[$uid] ?? \App\Models\User::where('id', $uid)->value('name') ?? '';
+        $strip = fn(string $t) => preg_replace(['/\[img\].*?\[\/img\]/s', '/\[file name="[^"]*"\].*?\[\/file\]/s', '/\[voice[^\]]*\].*?\[\/voice\]/s'], '', $t);
+
+        // links (newest first; capped scan so huge chats stay fast)
+        $links = [];
+        $rows = $conv->messages()->reorder()->where('content', 'like', '%http%')
+            ->orderByDesc('created_at')->orderByDesc('id')->limit(1500)->get(['id', 'user_id', 'content', 'created_at']);
+        foreach ($rows as $m) {
+            if (!preg_match_all('#https?://[^\s\[\]<>"\']+#i', $strip((string) $m->content), $mm)) continue;
+            foreach (array_unique($mm[0]) as $u) {
+                $links[] = ['url' => rtrim($u, '.,;)'), 'messageId' => $m->id, 'author' => $authorOf($m->user_id), 'date' => $m->created_at->format('j M Y')];
+                if (count($links) >= 300) break 2;
+            }
+        }
+
+        // files & media
+        $media = [];
+        $rows = $conv->messages()->reorder()
+            ->where(fn($q) => $q->where('content', 'like', '%[img]%')->orWhere('content', 'like', '%[file name=%'))
+            ->orderByDesc('created_at')->orderByDesc('id')->limit(400)->get(['id', 'user_id', 'content', 'created_at']);
+        foreach ($rows as $m) {
+            preg_match_all('/\[img\](.*?)\[\/img\]|\[file name="([^"]*)"\](.*?)\[\/file\]/s', (string) $m->content, $mm, PREG_SET_ORDER);
+            foreach ($mm as $x) {
+                $isImg = ($x[1] ?? '') !== '';
+                $url   = $isImg ? $x[1] : ($x[3] ?? '');
+                if ($url === '') continue;
+                $media[] = ['type' => $isImg ? 'img' : 'file', 'url' => $url, 'name' => $isImg ? basename(parse_url($url, PHP_URL_PATH) ?: 'image') : $x[2],
+                            'messageId' => $m->id, 'author' => $authorOf($m->user_id), 'date' => $m->created_at->format('j M Y')];
+                if (count($media) >= 200) break 2;
+            }
+        }
+
+        // tasks the two of them share (direct chats only)
+        $tasks = [];
+        if ($other) {
+            $tasks = \App\Models\Task::where(function ($q) use ($user, $other) {
+                    $q->where(fn($a) => $a->where('created_by', $user->id)->where('assigned_to', $other->id))
+                      ->orWhere(fn($a) => $a->where('created_by', $other->id)->where('assigned_to', $user->id));
+                })->latest()->limit(6)->get(['id', 'title', 'status'])
+                ->map(fn($t) => ['id' => $t->id, 'title' => $t->title, 'status' => $t->status])->all();
+        }
+
+        return response()->json([
+            'type'     => $conv->type,
+            'name'     => $conv->type === 'notes' ? 'Notes' : ($conv->type === 'direct' ? ($other?->name ?? '') : ($conv->name ?? 'Group')),
+            'avatar'   => $other?->avatar_url,
+            'subtitle' => $other?->position,
+            'members'  => $conv->members->count(),
+            'links'    => $links,
+            'media'    => $media,
+            'tasks'    => $tasks,
+        ]);
+    });
+
     // ── Search inside one conversation (Bitrix-style side panel) ──
     Route::get('/api/chat/convs/{id}/search', function ($id, \Illuminate\Http\Request $request) {
         $user = auth()->user();

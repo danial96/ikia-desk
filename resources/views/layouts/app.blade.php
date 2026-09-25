@@ -717,7 +717,8 @@
                 <p style="margin:0;display:flex;align-items:baseline;gap:8px;min-width:0;"><span id="chat-rh-name" style="color:#000;font-size:16px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></span><span id="chat-rh-online" style="color:#a0a8ae;font-size:14px;font-style:italic;flex-shrink:0;"></span></p>
                 <p id="chat-rh-sub" style="margin:0;color:#6b7680;font-size:13.5px;"></p>
             </div>
-                <button type="button" onclick="window._popupSearch&&_popupSearch.toggle()" title="Search in this chat" style="background:none;border:none;color:#20a0e0;font-size:18px;cursor:pointer;padding:8px 10px;border-radius:8px;flex-shrink:0;" onmouseover="this.style.background='#eef6fb'" onmouseout="this.style.background='none'"><i class="fas fa-search"></i></button>
+                <button type="button" onclick="window._popupAbout&&_popupAbout.close();window._popupSearch&&_popupSearch.toggle()" title="Search in this chat" style="background:none;border:none;color:#20a0e0;font-size:18px;cursor:pointer;padding:8px 10px;border-radius:8px;flex-shrink:0;" onmouseover="this.style.background='#eef6fb'" onmouseout="this.style.background='none'"><i class="fas fa-search"></i></button>
+                <button type="button" onclick="window._popupSearch&&_popupSearch.close();window._popupAbout&&_popupAbout.toggle()" title="About chat" style="background:none;border:none;color:#20a0e0;font-size:18px;cursor:pointer;padding:8px 10px;border-radius:8px;flex-shrink:0;" onmouseover="this.style.background='#eef6fb'" onmouseout="this.style.background='none'"><i class="fas fa-table-columns"></i></button>
         </div>
 
         {{-- Messages --}}
@@ -1198,6 +1199,7 @@ window.chatFilterConvs = function(q) {
 /* ── Select conversation ── */
 window.chatSelectConv = async function(id) {
     if (window._popupSearch) _popupSearch.reset();
+    if (window._popupAbout) _popupAbout.reset();
     // Per-chat draft: save the draft of the conversation we're leaving before switching
     const _prevTa = document.getElementById('chat-textarea');
     if (_activeConvId && _prevTa) {
@@ -2067,6 +2069,7 @@ async function chatLoadOlder() {
 document.addEventListener('DOMContentLoaded', function () {
     const a = document.getElementById('chat-msg-area');
     if (a) a.addEventListener('scroll', function () { if (this.scrollTop < 80) chatLoadOlder(); });
+    if (window.ChatAbout) window._popupAbout = ChatAbout.init({ rightId: 'chat-right', convId: () => _activeConvId });
     if (window.ChatSearch) window._popupSearch = ChatSearch.init({ rightId: 'chat-right', areaId: 'chat-msg-area', convId: () => _activeConvId, hasMore: () => _chatHasMore, loadOlder: () => chatLoadOlder() });
 });
 
@@ -2933,6 +2936,86 @@ window.ChatSearch = (function () {
         $('[data-back]').onclick = close;
 
         return { toggle: () => (panel.style.display === 'none' ? open() : close()), close, reset: () => { input.value = ''; empty('fa-search', 'This view will show found messages.'); close(); } };
+    }
+    return { init };
+})();
+
+/* ── "About chat" side panel (Bitrix style): who, all links, files & media, shared tasks ── */
+window.ChatAbout = (function () {
+    const esc = s => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    const card = 'background:#fff;border-radius:12px;padding:14px 16px;margin:0 10px 10px;';
+    const rowBtn = 'display:flex;align-items:center;gap:12px;padding:9px 0;cursor:pointer;';
+    const jumpTo = id => { const b = document.querySelector('[data-msg-id="' + id + '"]'); if (b) { b.scrollIntoView({ block: 'center', behavior: 'smooth' }); const bb = b.querySelector('[class$="-bubble-bg"]') || b; const o = bb.style.boxShadow; bb.style.transition = 'box-shadow .3s'; bb.style.boxShadow = '0 0 0 4px #ffe45c'; setTimeout(() => { bb.style.boxShadow = o; }, 1800); } };
+
+    function init(cfg) {
+        const right = document.getElementById(cfg.rightId);
+        if (!right || right._caWired) return;
+        right._caWired = true;
+        if (getComputedStyle(right).position === 'static') right.style.position = 'relative';
+
+        const panel = document.createElement('div');
+        panel.style.cssText = 'display:none;position:absolute;top:0;right:0;bottom:0;width:380px;max-width:100%;background:#f2f5f6;z-index:30;box-shadow:-6px 0 24px rgba(0,0,0,.18);flex-direction:column;';
+        right.appendChild(panel);
+        let data = null, view = 'main';
+
+        const head = (title, back) => '<div style="display:flex;align-items:center;gap:10px;padding:14px 16px;background:#fff;border-bottom:1px solid #eef1f3;flex-shrink:0;">' +
+            '<button type="button" data-x title="' + (back ? 'Back' : 'Close') + '" style="background:none;border:none;color:#7d8790;font-size:18px;cursor:pointer;padding:2px 6px;"><i class="fas fa-' + (back ? 'chevron-left' : 'xmark') + '"></i></button>' +
+            '<span style="font-size:17px;font-weight:600;color:#333;">' + esc(title) + '</span></div>';
+        const wrap = (title, inner, back) => { panel.innerHTML = head(title, back) + '<div style="flex:1;overflow-y:auto;padding:10px 0;">' + inner + '</div>'; panel.querySelector('[data-x]').onclick = back ? () => show('main') : close; };
+
+        function main() {
+            const d = data, media = d.media || [], links = d.links || [];
+            const thumbs = media.slice(0, 6).map(m => m.type === 'img'
+                ? '<img data-open="' + esc(m.url) + '" src="' + esc(m.url) + '" loading="lazy" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;cursor:zoom-in;display:block;" alt="">'
+                : '<a href="' + esc(m.url) + '" target="_blank" style="display:flex;align-items:center;justify-content:center;aspect-ratio:1;border:1px solid #e3e6e9;border-radius:8px;color:#6b7680;font-size:22px;text-decoration:none;"><i class="fas fa-file"></i></a>').join('');
+            const isGroup = d.type !== 'direct' && d.type !== 'notes';
+            let h = '<div style="' + card + 'text-align:center;padding:20px 16px;">' +
+                (d.avatar ? '<img src="' + esc(d.avatar) + '" style="width:90px;height:90px;border-radius:50%;object-fit:cover;margin-bottom:10px;" alt="">' : '<div style="width:90px;height:90px;border-radius:50%;background:#dfe9ec;display:flex;align-items:center;justify-content:center;margin:0 auto 10px;font-size:34px;color:#8aa;"><i class="fas fa-' + (d.type === 'notes' ? 'bookmark' : 'users') + '"></i></div>') +
+                '<div style="font-size:18px;font-weight:600;color:#333;">' + esc(d.name) + '</div>' +
+                '<div style="font-size:13.5px;color:#7d8790;margin-top:2px;">' + esc(isGroup ? d.members + ' members' : (d.type === 'notes' ? 'Only you can see this chat' : (d.subtitle || 'Direct message'))) + '</div></div>';
+            h += '<div style="' + card + '">' +
+                '<div data-go="links" style="' + rowBtn + '"><i class="fas fa-link" style="color:#1a8fbf;width:20px;text-align:center;"></i><span style="flex:1;color:#1a8fbf;font-size:15px;font-weight:500;">All links</span><span style="background:#e4e9ec;color:#7d8790;border-radius:10px;font-size:12px;font-weight:600;padding:2px 9px;">' + (links.length >= 300 ? '300+' : links.length) + '</span></div></div>';
+            h += '<div style="' + card + '"><div data-go="media" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;margin-bottom:10px;"><span style="font-size:15.5px;font-weight:600;color:#333;">Files and media <i class="fas fa-chevron-right" style="font-size:11px;color:#9aa5ad;margin-left:4px;"></i></span></div>' +
+                (media.length ? '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">' + thumbs + '</div>' : '<div style="color:#a0aab1;font-size:14px;text-align:center;padding:14px 0;">No files or media yet.</div>') + '</div>';
+            if (d.type === 'direct') {
+                h += '<div style="' + card + '"><div style="font-size:15.5px;font-weight:600;color:#333;margin-bottom:8px;">Tasks</div>' +
+                    ((d.tasks || []).length ? d.tasks.map(t => '<a href="/tasks/kanban?task=' + t.id + '" style="display:flex;align-items:center;gap:10px;padding:8px 0;text-decoration:none;color:#333;border-top:1px solid #f1f3f5;"><i class="far fa-square-check" style="color:#1a8fbf;"></i><span style="flex:1;min-width:0;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + esc(t.title) + '</span></a>').join('')
+                        : '<div style="color:#a0aab1;font-size:14px;text-align:center;padding:10px 0;">There are no tasks.</div>') + '</div>';
+            }
+            wrap('About chat', h, false);
+            panel.querySelectorAll('[data-go]').forEach(el => el.onclick = () => show(el.dataset.go));
+            panel.querySelectorAll('[data-open]').forEach(el => el.onclick = () => openImg(el.dataset.open));
+        }
+        function openImg(url) {
+            const imgs = (data.media || []).filter(m => m.type === 'img').map(m => m.url);
+            if (window.registerGallery && imgs.length > 1) window.imgLightbox(window.registerGallery(imgs), Math.max(0, imgs.indexOf(url)));
+            else window.imgLightbox(url, 0);
+        }
+        function linksView() {
+            const L = data.links || [];
+            wrap('All links', L.length ? L.map(l => '<div style="' + card + 'padding:10px 14px;"><a href="' + esc(l.url) + '" target="_blank" rel="noopener" style="color:#1a6fa8;font-size:14px;overflow-wrap:anywhere;text-decoration:none;">' + esc(l.url) + '</a>' +
+                '<div data-m="' + l.messageId + '" style="font-size:12px;color:#a0aab1;margin-top:3px;cursor:pointer;">' + esc(l.author) + ' · ' + esc(l.date) + ' · show in chat</div></div>').join('') : '<div style="text-align:center;padding:60px;color:#a0aab1;">No links yet.</div>', true);
+            panel.querySelectorAll('[data-m]').forEach(el => el.onclick = () => jumpTo(+el.dataset.m));
+        }
+        function mediaView() {
+            const M = data.media || [], imgs = M.filter(m => m.type === 'img'), files = M.filter(m => m.type === 'file');
+            let h = '';
+            if (imgs.length) h += '<div style="padding:0 10px 10px;display:grid;grid-template-columns:repeat(3,1fr);gap:6px;">' + imgs.map(m => '<img data-open="' + esc(m.url) + '" src="' + esc(m.url) + '" loading="lazy" title="' + esc(m.author + ' · ' + m.date) + '" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;cursor:zoom-in;display:block;" alt="">').join('') + '</div>';
+            if (files.length) h += files.map(f => '<a href="' + esc(f.url) + '" target="_blank" style="' + card + 'padding:10px 14px;display:flex;align-items:center;gap:12px;text-decoration:none;color:#333;"><i class="fas fa-file" style="color:#6b7680;font-size:20px;"></i><span style="min-width:0;flex:1;"><span style="display:block;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + esc(f.name) + '</span><span style="font-size:12px;color:#a0aab1;">' + esc(f.author) + ' · ' + esc(f.date) + '</span></span></a>').join('');
+            wrap('Files and media', h || '<div style="text-align:center;padding:60px;color:#a0aab1;">Nothing here yet.</div>', true);
+            panel.querySelectorAll('[data-open]').forEach(el => el.onclick = () => openImg(el.dataset.open));
+        }
+        function show(v) { view = v; ({ main, links: linksView, media: mediaView })[v](); }
+
+        async function open() {
+            panel.style.display = 'flex';
+            panel.innerHTML = '<div style="padding:60px;text-align:center;color:#9aa5ad;"><i class="fas fa-spinner fa-spin"></i></div>';
+            const id = cfg.convId(); if (!id) return;
+            try { const r = await fetch(API_BASE + '/api/chat/convs/' + id + '/about'); data = await r.json(); show('main'); }
+            catch (e) { wrap('About chat', '<div style="text-align:center;padding:60px;color:#a0aab1;">Could not load. Try again.</div>', false); }
+        }
+        function close() { panel.style.display = 'none'; }
+        return { toggle: () => (panel.style.display === 'none' ? open() : close()), close, reset: close };
     }
     return { init };
 })();
