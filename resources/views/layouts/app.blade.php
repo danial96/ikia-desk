@@ -1769,6 +1769,36 @@ window.msgImgMosaic = function (urls, galKey) {
         };
     };
 
+    // Drag & drop: dropping files anywhere on a chat / task-chat opens the same popup (Bitrix style)
+    const DROP_ZONES = [
+        { sel: '#cp-right',   ta: 'cp-textarea',     ok: () => typeof _cpActiveConvId !== 'undefined' && !!_cpActiveConvId },
+        { sel: '#chat-right', ta: 'chat-textarea',   ok: () => typeof _activeConvId !== 'undefined' && !!_activeConvId },
+        { sel: '#tp-right',   ta: 'tp-comment-text', ok: () => !!document.getElementById('tp-comment-text') },
+    ];
+    const zoneOf = t => { for (const z of DROP_ZONES) { const el = t && t.closest && t.closest(z.sel); if (el && z.ok() && document.getElementById(z.ta)) return { z, el }; } return null; };
+    const hasFiles = e => e.dataTransfer && Array.from(e.dataTransfer.types || []).includes('Files');
+    let lit = null;
+    const unlight = () => { if (lit) { lit.style.outline = ''; lit.style.outlineOffset = ''; lit = null; } };
+    document.addEventListener('dragover', function (e) {
+        if (!hasFiles(e)) return;
+        const hit = zoneOf(e.target);
+        if (!hit) { unlight(); return; }
+        e.preventDefault(); e.dataTransfer.dropEffect = 'copy';
+        if (lit !== hit.el) { unlight(); lit = hit.el; lit.style.outline = '3px dashed rgba(255,255,255,.85)'; lit.style.outlineOffset = '-6px'; }
+    }, true);
+    document.addEventListener('dragleave', function (e) { if (!e.relatedTarget) unlight(); }, true);
+    document.addEventListener('drop', function (e) {
+        unlight();
+        if (!e.dataTransfer || !e.dataTransfer.files || !e.dataTransfer.files.length) return;
+        if (window._pasteModalAdd && e.target.closest && e.target.closest('#paste-modal')) { e.preventDefault(); e.stopPropagation(); window._pasteModalAdd(Array.from(e.dataTransfer.files)); return; }
+        const hit = zoneOf(e.target);
+        if (!hit) return;
+        e.preventDefault(); e.stopPropagation();
+        ['cp-drop-overlay', 'tp-drop-overlay'].forEach(id => { const o = document.getElementById(id); if (o) o.style.display = 'none'; });
+        const files = Array.from(e.dataTransfer.files);
+        if (window._pasteModalAdd) window._pasteModalAdd(files); else openPasteModal(files, hit.z.ta);
+    }, true);
+
     // any pasted file (screenshot, image, document) in a chat / comment box opens the popup;
     // pasting again while it is open adds to the selection
     function pastedFiles(e) {
