@@ -36,6 +36,7 @@ class Task extends Model
         static::saved($bump);
         static::deleted($bump);
         static::restored($bump);
+        static::forceDeleted($bump);
     }
 
     public function creator() { return $this->belongsTo(User::class, 'created_by'); }

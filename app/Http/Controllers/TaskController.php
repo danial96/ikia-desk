@@ -355,6 +355,19 @@ class TaskController extends Controller
         return view('tasks.trash', compact('tasks', 'deleters'));
     }
 
+    /** Permanent delete — only from the Trash, only the owner or an admin. Comments, files, checklists… go with it (FK cascade). */
+    public function forceDestroy($id)
+    {
+        $user = Auth::user();
+        $task = Task::onlyTrashed()->findOrFail($id);
+        if (!$user->isAdmin() && $task->created_by !== $user->id) {
+            abort(403, 'Only the task owner or an admin can delete this task permanently.');
+        }
+        $title = $task->title;
+        $task->forceDelete();
+        return redirect()->route('tasks.trash')->with('success', '"' . $title . '" deleted permanently.');
+    }
+
     public function restore($id)
     {
         $user = Auth::user();

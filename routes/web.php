@@ -52,6 +52,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/tasks/kanban/load-completed', [TaskController::class, 'loadCompleted'])->name('tasks.kanban.completed');
     Route::get('/tasks/kanban/version', [TaskController::class, 'kanbanVersion'])->name('tasks.kanban.version');
     Route::get('/tasks/trash', [TaskController::class, 'trash'])->name('tasks.trash');
+    Route::delete('/tasks/{id}/force', [TaskController::class, 'forceDestroy'])->whereNumber('id')->name('tasks.force');
     Route::post('/tasks/{id}/restore', [TaskController::class, 'restore'])->whereNumber('id')->name('tasks.restore');
     Route::resource('tasks', TaskController::class)->except(['create', 'edit']);
 

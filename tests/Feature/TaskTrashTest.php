@@ -73,4 +73,32 @@ class TaskTrashTest extends TestCase
         $this->actingAs($admin)->get(route('dashboard'))->assertSee(route('tasks.trash'), false);
         $this->actingAs($nobody)->get(route('dashboard'))->assertDontSee(route('tasks.trash'), false);
     }
+
+    public function test_permanent_delete_removes_the_task_and_its_data_for_owner_and_admin_only(): void
+    {
+        $owner = User::factory()->create(['role' => 'employee', 'is_active' => true]);
+        $other = User::factory()->create(['role' => 'employee', 'is_active' => true]);
+        $admin = User::factory()->create(['role' => 'admin', 'is_active' => true]);
+
+        $t = $this->task($owner, 'Gone for good');
+        $t->comments()->create(['user_id' => $owner->id, 'content' => 'hello']);
+        $t->delete();
+
+        $this->actingAs($other)->delete(route('tasks.force', $t->id))->assertStatus(403);
+        $this->assertNotNull(Task::onlyTrashed()->find($t->id));
+
+        $this->actingAs($owner)->delete(route('tasks.force', $t->id))->assertRedirect(route('tasks.trash'));
+        $this->assertNull(Task::withTrashed()->find($t->id));
+        $this->assertSame(0, \DB::table('task_comments')->where('task_id', $t->id)->count());
+
+        // a task that is NOT in the trash can't be force-deleted through this route
+        $live = $this->task($owner, 'Still alive');
+        $this->actingAs($admin)->delete(route('tasks.force', $live->id))->assertStatus(404);
+        $this->assertNotNull(Task::find($live->id));
+
+        $t2 = $this->task($owner, 'Admin removes');
+        $t2->delete();
+        $this->actingAs($admin)->delete(route('tasks.force', $t2->id))->assertRedirect();
+        $this->assertNull(Task::withTrashed()->find($t2->id));
+    }
 }

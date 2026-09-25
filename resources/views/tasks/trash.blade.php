@@ -17,9 +17,9 @@
         </div>
         <p style="margin:0 0 16px;font-size:13px;color:#7d8790;">
             @if(auth()->user()->isAdmin())
-                Deleted tasks from everyone. Restoring one puts it back exactly as it was.
+                Deleted tasks from everyone. Restore puts a task back exactly as it was; “Delete forever” removes it for good.
             @else
-                Tasks you created and deleted. Restoring one puts it back exactly as it was.
+                Tasks you created and deleted. Restore puts a task back exactly as it was; “Delete forever” removes it for good.
             @endif
         </p>
 
@@ -46,6 +46,15 @@
                         </span>
                     </div>
                 </div>
+                <form method="POST" action="{{ route('tasks.force', $task->id) }}"
+                      onsubmit="return confirm('Delete &quot;{{ addslashes($task->title) }}&quot; forever?
+
+Its comments, files and checklist are removed too. This cannot be undone.');">
+                    @csrf @method('DELETE')
+                    <button type="submit" style="background:none;border:1.5px solid #e3b1b0;color:#c0392b;border-radius:8px;padding:8px 14px;font-size:14px;font-weight:500;cursor:pointer;display:inline-flex;align-items:center;gap:7px;">
+                        <i class="far fa-trash-can" style="font-size:12px;"></i>Delete forever
+                    </button>
+                </form>
                 <form method="POST" action="{{ route('tasks.restore', $task->id) }}">
                     @csrf
                     <button type="submit" style="background:#0075fd;border:none;color:#fff;border-radius:8px;padding:9px 18px;font-size:14px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:7px;">
