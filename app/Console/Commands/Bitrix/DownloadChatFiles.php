@@ -9,11 +9,15 @@ use App\Models\User;
 class DownloadChatFiles extends BitrixCommand
 {
     protected $signature = 'bitrix:download-chat-files
-                            {--fresh : Re-download already downloaded files}';
+                            {--fresh : Re-download already downloaded files}
+                            {--webhook= : Read the chats through this user own webhook (only their chats are reachable)}
+                            {--only-notes : Only the webhook user private Notes chat}';
 
     protected $description = 'Download Bitrix IM file/image attachments and update message content';
 
     private array $userMap = [];
+    private int   $webhookBxId = 0;
+    private ?int  $webhookLocalId = null;
     private int   $adminId;
     private string $dir;
     private string $urlBase = '/uploads/bitrix/chat';
@@ -27,8 +31,22 @@ class DownloadChatFiles extends BitrixCommand
             mkdir($this->dir, 0755, true);
         }
 
-        $conversations = Conversation::whereNotNull('bitrix_chat_id')->get();
-        $this->info("Found {$conversations->count()} conversations to process...");
+        if ($custom = $this->option('webhook')) {
+            $this->webhook = rtrim($custom, '/') . '/';
+        }
+        preg_match('#/rest/(\d+)/#', $this->webhook, $wm);
+        $this->webhookBxId    = (int)($wm[1] ?? 0);
+        $this->webhookLocalId = $this->userMap[$this->webhookBxId] ?? null;
+        if (!$this->webhookLocalId) { $this->error('Webhook user is not a known local user.'); return 1; }
+
+        // Only chats the webhook user is a member of can be read through their webhook
+        $conversations = Conversation::whereHas('members', fn($q) => $q->where('users.id', $this->webhookLocalId))
+            ->with('members')
+            ->where(fn($q) => $this->option('only-notes')
+                ? $q->where('type', 'notes')
+                : $q->whereNotNull('bitrix_chat_id')->orWhere('type', 'notes'))
+            ->get();
+        $this->info("Webhook user bitrix_id={$this->webhookBxId}: {$conversations->count()} conversations to process...");
 
         $bar = $this->output->createProgressBar($conversations->count());
         $bar->start();
@@ -36,12 +54,16 @@ class DownloadChatFiles extends BitrixCommand
         $totalDone = $totalFailed = 0;
 
         foreach ($conversations as $conv) {
-            $parts    = explode(':', $conv->bitrix_chat_id);
-            $type     = $parts[0];
-            // For direct chats the key can be "direct:{otherId}" or "direct:{webhookUserId}:{otherId}"
-            // — always take the last segment as the actual Bitrix user ID
-            $rawId    = $type === 'direct' ? end($parts) : ($parts[1] ?? '');
-            $dialogId = $type === 'direct' ? $rawId : 'chat' . $rawId;
+            if ($conv->type === 'notes') {
+                $dialogId = (string)$this->webhookBxId;                       // dialog with yourself = Notes
+            } elseif ($conv->type === 'direct') {
+                // the other member's Bitrix id, whoever's perspective created the row
+                $other = $conv->members->first(fn($u) => $u->id !== $this->webhookLocalId);
+                $dialogId = (string)($other?->bitrix_id ?? '');
+                if ($dialogId === '') { $bar->advance(); continue; }
+            } else {
+                $dialogId = 'chat' . (explode(':', (string)$conv->bitrix_chat_id)[1] ?? '');
+            }
 
             [$done, $failed] = $this->processDialog($conv, $dialogId);
             $totalDone   += $done;
@@ -129,7 +151,7 @@ class DownloadChatFiles extends BitrixCommand
                 $text    = trim($m['text'] ?? '');
                 if ($text) $content .= "\n" . $text;
 
-                Message::updateOrCreate(
+                Message::withTrashed()->updateOrCreate(
                     ['bitrix_id' => $bitrixMsgId],
                     [
                         'conversation_id' => $conv->id,
