@@ -139,10 +139,6 @@
 
                     {{-- Edit mode: the real form --}}
                     <div id="pf-edit" style="display:none;">
-                        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
-                            <button type="submit" style="padding:11px 24px;background:#0075fd;border:none;color:#fff;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;">Save</button>
-                            <button type="button" onclick="pfEdit(false)" style="padding:11px 18px;background:none;border:none;color:#333;font-size:15px;cursor:pointer;">Cancel</button>
-                        </div>
         {{-- ── Two-column body ── --}}
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;">
 
@@ -369,6 +365,11 @@
             </div>
         </div>
 
+                        {{-- Save / Cancel stay at the bottom, sticky so they are always in reach --}}
+                        <div style="position:sticky;bottom:0;z-index:5;display:flex;align-items:center;gap:14px;background:#fff;border-radius:11px;box-shadow:0 -2px 14px rgba(0,0,0,.12);padding:14px 20px;margin-top:12px;">
+                            <button type="submit" style="padding:11px 28px;background:#0075fd;border:none;color:#fff;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;">Save</button>
+                            <button type="button" onclick="pfEdit(false)" style="padding:11px 18px;background:none;border:none;color:#333;font-size:15px;cursor:pointer;">Cancel</button>
+                        </div>
                     </div>{{-- /pf-edit --}}
                 </div>
             </div>
