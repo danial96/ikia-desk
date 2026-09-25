@@ -20,6 +20,7 @@ class CompareTasks extends BitrixCommand
 
     public function handle(): int
     {
+        ini_set('memory_limit', '1024M');
         if ($w = $this->option('webhook')) $this->webhook = rtrim($w, '/') . '/';
 
         $users    = User::whereNotNull('bitrix_id')->pluck('id', 'bitrix_id')->all();

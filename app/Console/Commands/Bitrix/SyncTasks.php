@@ -27,6 +27,7 @@ class SyncTasks extends BitrixCommand
 
     public function handle(): int
     {
+        ini_set('memory_limit', '1536M');   // every Bitrix task (with descriptions) is held in memory at once
         if ($w = $this->option('webhook')) $this->webhook = rtrim($w, '/') . '/';
         $dry = (bool) $this->option('dry-run');
 
@@ -94,7 +95,8 @@ class SyncTasks extends BitrixCommand
                 $changes = [];
                 foreach ($want as $field => $new) {
                     $old = $row->$field;
-                    $norm = fn($v) => trim(str_replace("
+                    $norm = fn($v) => trim(str_replace("
+
 ", "
 ", (string)$v));
                     $same = $field === 'deadline' || $field === 'closed_date'
