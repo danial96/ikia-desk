@@ -1756,27 +1756,46 @@ window.msgImgMosaic = function (urls, galKey) {
             const raw = $('pm-raw').checked, caption = $('pm-text').value.trim();
             const files2 = list.slice();
             close();
-            // Bitrix-style pending bubble: the photos appear at once with an "Uploading…" veil
+            // Bitrix-style queue: the photos show at once; they upload ONE BY ONE, each with its own
+            // state (waiting / uploading / done) and a × to drop it before its turn comes.
             let pending = null;
             try {
                 const area = tgt.area && tgt.area();
-                const imgs = files2.filter(isImg);
-                if (area && imgs.length) {
-                    const veil = '<div style="position:absolute;inset:0;background:rgba(0,0,0,.28);display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-size:12px;gap:4px;"><span style="width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;font-size:20px;">&times;</span>Uploading…</div>';
+                const q = files2.map(f => ({ f, st: 'wait', url: isImg(f) ? URL.createObjectURL(f) : null }));
+                const imgsQ = () => q.filter(it => it.url && it.st !== 'cancel');
+                const veil = it => it.st === 'done' ? '' :
+                    '<div style="position:absolute;inset:0;background:rgba(0,0,0,.30);display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-size:12px;gap:4px;">' +
+                    '<span data-cancel="' + q.indexOf(it) + '" title="Don\'t send this one" style="width:38px;height:38px;border-radius:50%;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;font-size:20px;cursor:pointer;pointer-events:auto;">&times;</span>' +
+                    (it.st === 'up' ? '<span><i class="fas fa-spinner fa-spin" style="margin-right:4px;"></i>Uploading…</span>' : '<span>Waiting…</span>') + '</div>';
+                const paint = () => {
+                    if (!pending) return;
+                    const list = imgsQ();
+                    const tile = it => '<img src="' + it.url + '" style="width:100%;height:100%;object-fit:cover;display:block;">' + veil(it);
+                    pending.firstElementChild.innerHTML = list.length === 1
+                        ? '<div style="position:relative;width:280px;max-width:100%;border-radius:8px;overflow:hidden;"><img src="' + list[0].url + '" style="width:100%;display:block;">' + veil(list[0]) + '</div>'
+                        : imgMosaic(list.map(tile));
+                    pending.querySelectorAll('[data-cancel]').forEach(x => x.onclick = () => { const it = q[+x.dataset.cancel]; if (it && it.st !== 'up') { it.st = 'cancel'; paint(); } });
+                };
+                if (area && imgsQ().length) {
                     pending = document.createElement('div');
                     pending.setAttribute('data-pending-upload', '1');
                     pending.style.cssText = 'display:flex;justify-content:flex-end;margin:4px 0;';
-                    pending.innerHTML = '<div style="background:#e3f9c9;border-radius:14px 4px 14px 14px;padding:6px;">' +
-                        (imgs.length === 1 ? '<div style="position:relative;width:280px;max-width:100%;border-radius:8px;overflow:hidden;"><img src="' + URL.createObjectURL(imgs[0]) + '" style="width:100%;display:block;">' + veil + '</div>'
-                                           : imgMosaic(imgs.map(f => '<img src="' + URL.createObjectURL(f) + '" style="width:100%;height:100%;object-fit:cover;display:block;">' + veil))) + '</div>';
-                    area.appendChild(pending);
-                    area.parentElement && (area.parentElement.scrollTop = area.parentElement.scrollHeight + 9999);
+                    pending.innerHTML = '<div style="background:#e3f9c9;border-radius:14px 4px 14px 14px;padding:6px;"></div>';
+                    area.appendChild(pending); paint();
+                    if (area.parentElement) area.parentElement.scrollTop = area.parentElement.scrollHeight + 9999;
                     if (area.scrollHeight > area.clientHeight) area.scrollTop = area.scrollHeight + 9999;
                 }
-                for (const f of files2) await window.uploadFileDirect(raw ? f : await shrink(f), textareaId, tgt.preview);
+                let sent = 0;
+                for (const it of q) {
+                    if (it.st === 'cancel') continue;
+                    it.st = 'up'; paint();
+                    await window.uploadFileDirect(raw ? it.f : await shrink(it.f), textareaId, tgt.preview);
+                    it.st = 'done'; sent++; paint();
+                }
+                if (pending) { pending.remove(); pending = null; }
+                if (!sent && !caption) return;                       // everything was cancelled
                 const keep = ta.value;
                 ta.value = caption || keep;
-                if (pending) { pending.remove(); pending = null; }
                 tgt.send();
             } catch (e) { if (pending) pending.remove(); if (window.showToast) showToast('Upload failed.'); }
         };
@@ -3006,15 +3025,25 @@ window.ChatAbout = (function () {
                 '<div data-m="' + l.messageId + '" style="font-size:12px;color:#a0aab1;margin-top:3px;cursor:pointer;">' + esc(l.author) + ' · ' + esc(l.date) + ' · show in chat</div></div>').join('') : '<div style="text-align:center;padding:60px;color:#a0aab1;">No links yet.</div>', true);
             panel.querySelectorAll('[data-m]').forEach(el => el.onclick = () => jumpTo(+el.dataset.m));
         }
+        let mediaTab = null;
         function mediaView() {
             const M = data.media || [], imgs = M.filter(m => m.type === 'img'), files = M.filter(m => m.type === 'file');
-            let h = '';
-            if (imgs.length) h += '<div style="padding:0 10px 10px;display:grid;grid-template-columns:repeat(3,1fr);gap:6px;">' + imgs.map(m => '<img data-open="' + esc(m.url) + '" src="' + esc(m.url) + '" loading="lazy" title="' + esc(m.author + ' · ' + m.date) + '" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;cursor:zoom-in;display:block;" alt="">').join('') + '</div>';
-            if (files.length) h += files.map(f => '<a href="' + esc(f.url) + '" target="_blank" style="' + card + 'padding:10px 14px;display:flex;align-items:center;gap:12px;text-decoration:none;color:#333;"><i class="fas fa-file" style="color:#6b7680;font-size:20px;"></i><span style="min-width:0;flex:1;"><span style="display:block;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + esc(f.name) + '</span><span style="font-size:12px;color:#a0aab1;">' + esc(f.author) + ' · ' + esc(f.date) + '</span></span></a>').join('');
-            wrap('Files and media', h || '<div style="text-align:center;padding:60px;color:#a0aab1;">Nothing here yet.</div>', true);
+            if (!mediaTab || (mediaTab === 'media' && !imgs.length && files.length)) mediaTab = imgs.length || !files.length ? 'media' : 'files';
+            const tab = (k, label, n) => '<button type="button" data-tab="' + k + '" style="flex:1;border:none;cursor:pointer;padding:9px 0;font-size:14px;font-weight:600;border-radius:8px;' +
+                (mediaTab === k ? 'background:#fff;color:#1a8fbf;box-shadow:0 1px 3px rgba(0,0,0,.12);' : 'background:transparent;color:#7d8790;') + '">' + label + ' <span style="font-weight:500;opacity:.7;">' + n + '</span></button>';
+            let h = '<div style="display:flex;gap:4px;background:#e4e9ec;border-radius:10px;padding:4px;margin:0 10px 12px;">' + tab('media', 'Media', imgs.length) + tab('files', 'Files', files.length) + '</div>';
+            if (mediaTab === 'media') {
+                h += imgs.length ? '<div style="padding:0 10px 10px;display:grid;grid-template-columns:repeat(3,1fr);gap:6px;">' + imgs.map(m => '<img data-open="' + esc(m.url) + '" src="' + esc(m.url) + '" loading="lazy" title="' + esc(m.author + ' · ' + m.date) + '" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;cursor:zoom-in;display:block;" alt="">').join('') + '</div>'
+                                 : '<div style="text-align:center;padding:60px;color:#a0aab1;">No photos yet.</div>';
+            } else {
+                h += files.length ? files.map(f => '<a href="' + esc(f.url) + '" target="_blank" style="' + card + 'padding:10px 14px;display:flex;align-items:center;gap:12px;text-decoration:none;color:#333;"><i class="fas fa-file" style="color:#6b7680;font-size:20px;"></i><span style="min-width:0;flex:1;"><span style="display:block;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + esc(f.name) + '</span><span style="font-size:12px;color:#a0aab1;">' + esc(f.author) + ' · ' + esc(f.date) + '</span></span></a>').join('')
+                                   : '<div style="text-align:center;padding:60px;color:#a0aab1;">No files yet.</div>';
+            }
+            wrap('Files and media', h, true);
             panel.querySelectorAll('[data-open]').forEach(el => el.onclick = () => openImg(el.dataset.open));
+            panel.querySelectorAll('[data-tab]').forEach(el => el.onclick = () => { mediaTab = el.dataset.tab; mediaView(); });
         }
-        function show(v) { view = v; ({ main, links: linksView, media: mediaView })[v](); }
+        function show(v) { if (v === 'main') mediaTab = null; view = v; ({ main, links: linksView, media: mediaView })[v](); }
 
         async function open() {
             panel.style.display = 'flex'; dockSidePanel(right, panel, true);
