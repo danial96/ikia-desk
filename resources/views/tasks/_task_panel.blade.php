@@ -598,6 +598,7 @@ window.tpOpen = function(type, id) {
     }
 };
 
+window.tpFilesMore = function(){ const r=document.getElementById('tp-files-row'); if(r){ r.style.flexWrap='wrap'; r.style.maxHeight='none'; } const f=document.getElementById('tp-files-fade'); if(f) f.remove(); };
 window.tpSideUrl = function(){ return location.origin + location.pathname + '?task=' + _currentTaskId + (_currentTaskType==='b24' ? '&src=b24' : ''); };
 window.tpSideCopyLink = function(){
     const u = tpSideUrl();
@@ -1211,27 +1212,32 @@ function tpRenderLocal(data) {
         const icons2={pdf:'fa-file-pdf',jpg:'fa-file-image',jpeg:'fa-file-image',png:'fa-file-image',gif:'fa-file-image',doc:'fa-file-word',docx:'fa-file-word',xls:'fa-file-excel',xlsx:'fa-file-excel',zip:'fa-file-archive',rar:'fa-file-archive'};
         const fileClr2={pdf:'#ef4444',doc:'#2563eb',docx:'#2563eb',xls:'#16a34a',xlsx:'#16a34a',ppt:'#ea580c',pptx:'#ea580c',zip:'#ca8a04',rar:'#ca8a04'};
         const fileBg2={pdf:'#fee2e2',doc:'#dbeafe',docx:'#dbeafe',xls:'#dcfce7',xlsx:'#dcfce7',ppt:'#ffedd5',pptx:'#ffedd5',zip:'#fef9c3',rar:'#fef9c3'};
-        const localFileHtml = localFiles.length
-            ? localFiles.map(f=>{
-                const ext=(f.name||'').split('.').pop().toLowerCase();
-                const ic=icons2[ext]||'fa-file';
-                const clr=fileClr2[ext]||'#6b7280';
-                const bg2=fileBg2[ext]||'#f1f5f9';
-                const sz=f.size?(f.size>=1048576?(f.size/1048576).toFixed(1)+' MB':Math.round(f.size/1024)+' KB'):'';
-                return`<a href="${f.downloadUrl||'#'}" target="_blank" rel="noopener"
-                    style="display:flex;flex-direction:column;align-items:center;gap:5px;padding:10px 8px 8px;background:#fff;border:1px solid #e9ecef;border-radius:10px;text-decoration:none;width:90px;flex-shrink:0;transition:border-color .15s,box-shadow .15s;"
-                    onmouseover="this.style.borderColor='${clr}';this.style.boxShadow='0 2px 8px rgba(0,0,0,.08)'"
-                    onmouseout="this.style.borderColor='#e9ecef';this.style.boxShadow='none'">
-                    <div style="width:48px;height:58px;background:${bg2};border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                        <i class="fas ${ic}" style="color:${clr};font-size:22px;"></i>
-                    </div>
-                    <p style="color:#374151;font-size:10.5px;font-weight:500;margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:82px;width:100%;text-align:center;">${esc(f.name)}</p>
-                    ${sz?`<p style="color:#9ca3af;font-size:9.5px;margin:0;">${sz}</p>`:''}
-                </a>`;
-            }).join('')
-            : '';
+        const isImgF = f => /^image\//.test(f.mime||'') || /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(f.name||'');
+        const localFileHtml = localFiles.map(f=>{
+            const ext=(f.name||'').split('.').pop().toLowerCase();
+            const ic=icons2[ext]||'fa-file';
+            const clr=fileClr2[ext]||'#6b7280';
+            const bg2=fileBg2[ext]||'#f1f5f9';
+            const thumb = isImgF(f) && f.downloadUrl
+                ? `<img src="${f.downloadUrl}" loading="lazy" alt="" style="width:100%;height:100%;object-fit:cover;object-position:top center;display:block;" onerror="this.replaceWith(Object.assign(document.createElement('i'),{className:'fas fa-file-image',style:'color:#6b7280;font-size:26px;'}))">`
+                : `<i class="fas ${ic}" style="color:${clr};font-size:26px;"></i>`;
+            return`<a href="${f.downloadUrl||'#'}" target="_blank" rel="noopener" title="${esc(f.name)}"
+                style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:0 0 8px;background:#fff;border:1px solid #e5e9ec;border-radius:10px;text-decoration:none;width:108px;flex:0 0 108px;overflow:hidden;">
+                <div style="width:100%;height:96px;background:${isImgF(f)?'#fff':bg2};display:flex;align-items:center;justify-content:center;overflow:hidden;">${thumb}</div>
+                <p style="color:#5b6670;font-size:11px;margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:96px;width:100%;text-align:center;">${esc(f.name)}</p>
+            </a>`;
+        }).join('');
         const localFilesSec = localFiles.length
-            ? sec(`${sLabel('fa-paperclip',`Files (${localFiles.length})`)}<div style="display:flex;flex-wrap:wrap;gap:8px;">${localFileHtml}</div>`)
+            ? `<div class="tp-card" style="padding:14px 16px 12px;overflow:hidden;">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:15px;font-weight:500;color:#333;">
+                    <i class="fas fa-paperclip" style="color:#2b8fd6;font-size:14px;"></i>Files: ${localFiles.length}
+                    <span style="margin-left:auto;color:#9aa5ad;cursor:pointer;font-size:18px;line-height:1;" title="Attach file" onclick="document.getElementById('tp-file-input')&&document.getElementById('tp-file-input').click()">+</span>
+                </div>
+                <div id="tp-files-strip" style="position:relative;">
+                    <div id="tp-files-row" style="display:flex;gap:8px;overflow:hidden;flex-wrap:nowrap;max-height:140px;">${localFileHtml}</div>
+                    ${localFiles.length>5?`<div id="tp-files-fade" style="position:absolute;right:0;top:0;bottom:0;width:90px;background:linear-gradient(90deg,rgba(255,255,255,0),#fff 75%);display:flex;align-items:flex-end;justify-content:flex-end;padding-bottom:4px;"><span class="tp-lnk" onclick="tpFilesMore()" style="font-size:14px;">more</span></div>`:''}
+                </div>
+            </div>`
             : '';
         const hasFiles = !!(attachSec||localFiles.length);
         const filesSection=`<div id="tp-files-section" style="display:${hasFiles?'block':'none'};">
