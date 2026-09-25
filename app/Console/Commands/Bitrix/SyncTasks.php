@@ -46,7 +46,7 @@ class SyncTasks extends BitrixCommand
         $remote = [];
         foreach ($this->bxAll('tasks.task.list', [
             'order'  => ['ID' => 'ASC'],
-            'select' => ['ID', 'TITLE', 'DESCRIPTION', 'STATUS', 'PRIORITY', 'DEADLINE', 'CREATED_BY', 'RESPONSIBLE_ID', 'GROUP_ID', 'ACCOMPLICES', 'AUDITORS', 'CHANGED_DATE', 'CLOSED_DATE'],
+            'select' => ['ID', 'TITLE', 'DESCRIPTION', 'STATUS', 'PRIORITY', 'DEADLINE', 'CREATED_BY', 'RESPONSIBLE_ID', 'GROUP_ID', 'ACCOMPLICES', 'AUDITORS', 'CHANGED_DATE', 'CLOSED_DATE', 'CREATED_DATE'],
         ]) as $t) {
             $id = (int)($t['id'] ?? $t['ID'] ?? 0);
             if ($id && (!$only || in_array($id, $only, true))) $remote[$id] = $t;
@@ -133,6 +133,35 @@ class SyncTasks extends BitrixCommand
                 if ($activity) DB::table('tasks')->where('id', $task->id)->update(['updated_at' => $activity]);
             }
         });
+
+        // Bitrix tasks the desk has never seen (created in Bitrix after the last import) → create them
+        $known = Task::withTrashed()->whereNotNull('bitrix_id')->pluck('bitrix_id')->flip()->all();
+        $created = 0;
+        foreach ($remote as $bid => $r) {
+            if (isset($known[$bid])) continue;
+            $stats['created_missing_in_desk'] = ($stats['created_missing_in_desk'] ?? 0) + 1;
+            fwrite($log, json_encode(['task' => null, 'bitrix' => $bid, 'field' => 'created', 'old' => null, 'new' => $r['title'] ?? '', 'desk_edited' => false]) . "
+");
+            if ($dry) continue;
+            $g = (int)($r['groupId'] ?? 0);
+            $task = Task::create([
+                'bitrix_id'   => $bid,
+                'title'       => (string)($r['title'] ?? "Task #$bid"),
+                'description' => $r['description'] ?? null,
+                'status'      => $statusMap[(string)($r['status'] ?? '')] ?? 'new',
+                'priority'    => $priorityMap[(string)($r['priority'] ?? '1')] ?? 'medium',
+                'deadline'    => $parse($r['deadline'] ?? null),
+                'closed_date' => $parse($r['closedDate'] ?? null),
+                'created_by'  => $users[(int)($r['createdBy'] ?? 0)] ?? User::where('role', 'super_admin')->value('id'),
+                'assigned_to' => $users[(int)($r['responsibleId'] ?? 0)] ?? null,
+                'project_id'  => $g ? ($projects[$g] ?? null) : null,
+            ]);
+            $created = $parse($r['createdDate'] ?? null);
+            $activity = $parse($r['changedDate'] ?? null);
+            DB::table('tasks')->where('id', $task->id)->update(array_filter(['created_at' => $created, 'updated_at' => $activity]));
+            $task->members()->sync(collect((array)($r['accomplices'] ?? []))->map(fn($b) => $users[(int)$b] ?? null)->filter()->all());
+            $task->observers()->sync(collect((array)($r['auditors'] ?? []))->map(fn($b) => $users[(int)$b] ?? null)->filter()->all());
+        }
 
         fclose($log);
         $this->newLine();
