@@ -508,10 +508,10 @@ function renderContent(text, isMine) {
             const _ext = (_fn.split('.').pop()||'').toLowerCase();
             const _ic = {pdf:['fa-file-pdf','#ef4444'],doc:['fa-file-word','#2563eb'],docx:['fa-file-word','#2563eb'],xls:['fa-file-excel','#16a34a'],xlsx:['fa-file-excel','#16a34a'],ppt:['fa-file-powerpoint','#ea580c'],pptx:['fa-file-powerpoint','#ea580c'],zip:['fa-file-archive','#ca8a04'],rar:['fa-file-archive','#ca8a04'],txt:['fa-file-alt','#64748b']};
             const [_ico, _bg] = _ic[_ext] || ['fa-file','#0ea5e9'];
-            out += `<a href="${esc(_url)}" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.13);border-radius:10px;padding:10px 14px;text-decoration:none;margin:4px 0;min-width:190px;max-width:280px;">
+            out += `<a href="${esc(_url)}" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.65);border:1px solid rgba(0,0,0,.1);border-radius:10px;padding:10px 14px;text-decoration:none;margin:4px 0;min-width:190px;max-width:280px;">
                 <div style="width:40px;height:40px;border-radius:8px;background:${_bg};display:flex;align-items:center;justify-content:center;flex-shrink:0;"><i class="fas ${_ico}" style="color:#fff;font-size:18px;"></i></div>
-                <div style="min-width:0;flex:1;overflow:hidden;"><p style="font-size:12.5px;font-weight:600;color:rgba(255,255,255,.9);margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(_fn)}</p><p style="font-size:10.5px;color:rgba(255,255,255,.4);margin:2px 0 0;letter-spacing:.4px;">${_ext.toUpperCase()}</p></div>
-                <i class="fas fa-download" style="color:rgba(255,255,255,.3);font-size:11px;flex-shrink:0;"></i>
+                <div style="min-width:0;flex:1;overflow:hidden;"><p style="font-size:13px;font-weight:600;color:#1e293b;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(_fn)}</p><p style="font-size:11px;color:rgba(0,0,0,.5);margin:2px 0 0;letter-spacing:.4px;">${_ext.toUpperCase()}</p></div>
+                <i class="fas fa-download" style="color:rgba(0,0,0,.4);font-size:12px;flex-shrink:0;"></i>
             </a>`;
         } else if (voiceM) {
             out += window.voiceBubbleHtml ? window.voiceBubbleHtml(voiceM[2]||'', voiceM[1]||'0:00', !!isMine) : '';
@@ -539,8 +539,8 @@ function bubble(m) {
     if (isDeleted) {
         const align = isMine ? 'flex-end' : 'flex-start';
         return `<div ${dataAttrs} style="display:flex;justify-content:${align};margin-bottom:2px;user-select:none;">
-            <div style="max-width:70%;background:rgba(255,255,255,.06);border-radius:10px;padding:8px 13px;border:1px dashed rgba(255,255,255,.15);">
-                <span style="font-size:12.5px;color:rgba(255,255,255,.3);font-style:italic;"><i class="fas fa-ban" style="font-size:10px;margin-right:5px;"></i>This message was deleted</span>
+            <div style="max-width:70%;background:rgba(255,255,255,.28);border-radius:10px;padding:8px 14px;border:1px solid rgba(255,255,255,.35);">
+                <span style="font-size:13.5px;color:#123c36;font-style:italic;"><i class="fas fa-ban" style="font-size:10px;margin-right:5px;"></i>This message was deleted</span>
             </div>
         </div>`;
     }
