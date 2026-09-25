@@ -892,6 +892,8 @@ window.cpSend = async function() {
     const _inner = document.getElementById('cp-msg-inner') || el;
 
     _inner.insertAdjacentHTML('beforeend', bubble({isMine:true, name:'Me', avatar:'', text:fullText, time:timeStr, showName:false}));
+    const _echo = _inner.lastElementChild;
+    if (_echo) { _echo.dataset.local = '1'; _echo.dataset.echoText = fullText; }   // lets the poll recognise it instead of adding it twice
     el.scrollTop = el.scrollHeight;
     _cpMsgCount++;
     _cpSending = true;
@@ -902,7 +904,10 @@ window.cpSend = async function() {
             body: JSON.stringify({content:fullText}),
         });
         const d = await r.json();
-        if (d.message?.id) _cpLastMsgId = Math.max(_cpLastMsgId, d.message.id);
+        if (d.message?.id) {
+            _cpLastMsgId = Math.max(_cpLastMsgId, d.message.id);
+            if (_echo && _echo.dataset.local === '1') { _echo.dataset.msgId = d.message.id; _echo.dataset.mine = '1'; _echo.dataset.createdTs = d.message.createdTs || ''; delete _echo.dataset.local; }
+        }
         cpLoad();
     } catch(e) {} finally { _cpSending = false; }
 };
@@ -1038,6 +1043,12 @@ function cpAppendMsgs(msgs) {
     if (!inner) { cpRenderMsgs(msgs, true); return; }
     const wasNearBottom = (el.scrollHeight - el.scrollTop) < (el.clientHeight + 140);
     msgs.forEach(m => {
+        // already on screen (sent from this tab)? then don't add it a second time
+        if (inner.querySelector('[data-msg-id="' + m.id + '"]')) return;
+        if (m.isMine) {
+            const echo = [...inner.querySelectorAll('[data-local="1"]')].find(x => x.dataset.echoText === (m.text || ''));
+            if (echo) { echo.dataset.msgId = m.id; echo.dataset.mine = '1'; echo.dataset.createdTs = m.createdTs; delete echo.dataset.local; return; }
+        }
         inner.insertAdjacentHTML('beforeend', bubble({
             isMine: m.isMine, name: m.author.name, avatar: m.author.avatar,
             text: m.text || '', time: m.time, showName: _cpConvType !== 'direct' && !m.isMine && _cpLastAuthorId !== m.author.id,

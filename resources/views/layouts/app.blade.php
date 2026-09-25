@@ -1577,7 +1577,10 @@ window.chatSend = async function() {
     const now = new Date();
     const timeStr = now.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true,timeZone:'Asia/Karachi'}).toLowerCase();
     const el = document.getElementById('chat-msg-area');
-    (document.getElementById('chat-msg-inner') || el).insertAdjacentHTML('beforeend', chatBubble({isMine:true, name:'Me', avatar:'', text: fullText, time:timeStr, showName:false}));
+    const _cInner = document.getElementById('chat-msg-inner') || el;
+    _cInner.insertAdjacentHTML('beforeend', chatBubble({isMine:true, name:'Me', avatar:'', text: fullText, time:timeStr, showName:false}));
+    const _cEcho = _cInner.lastElementChild;
+    if (_cEcho) { _cEcho.dataset.local = '1'; _cEcho.dataset.echoText = fullText; }   // lets the poll recognise it instead of adding it twice
     el.scrollTop = el.scrollHeight;
 
     try {
@@ -1588,7 +1591,10 @@ window.chatSend = async function() {
         });
         const d = await r.json();
         // Advance _lastMsgId so the next poll skips this just-sent message
-        if (d.message?.id) _lastMsgId = Math.max(_lastMsgId, d.message.id);
+        if (d.message?.id) {
+            _lastMsgId = Math.max(_lastMsgId, d.message.id);
+            if (_cEcho && _cEcho.dataset.local === '1') { _cEcho.dataset.msgId = d.message.id; _cEcho.dataset.mine = '1'; _cEcho.dataset.createdTs = d.message.createdTs || ''; delete _cEcho.dataset.local; }
+        }
         chatLoadConvs(); // refresh conv list for last message
     } catch(e) {}
 };
@@ -2020,6 +2026,12 @@ function chatAppendMsgs(msgs) {
     const inner = document.getElementById('chat-msg-inner');
     if (!inner) { chatRenderMsgs(msgs); return; }
     msgs.forEach(m => {
+        // already on screen (sent from this tab)? then don't add it a second time
+        if (inner.querySelector('[data-msg-id="' + m.id + '"]')) return;
+        if (m.isMine) {
+            const echo = [...inner.querySelectorAll('[data-local="1"]')].find(x => x.dataset.echoText === (m.text || ''));
+            if (echo) { echo.dataset.msgId = m.id; echo.dataset.mine = '1'; echo.dataset.createdTs = m.createdTs; delete echo.dataset.local; return; }
+        }
         inner.insertAdjacentHTML('beforeend', chatBubble({
             isMine: m.isMine, name: m.author.name, avatar: m.author.avatar,
             text: m.text, time: m.time, showName: _chatConvType !== 'direct' && !m.isMine && _chatLastAuthor !== m.author.id, msgId: m.id, createdTs: m.createdTs||0,
