@@ -18,15 +18,17 @@ class AvatarsToWebp extends Command
         $saved = 0; $done = 0;
         foreach (User::whereNotNull('avatar')->where('avatar', '!=', '')->get() as $u) {
             if (str_ends_with($u->avatar, '.webp') || !$disk->exists($u->avatar)) continue;
-            $old = $disk->get($u->avatar);
+            $oldPath = $u->avatar;
+            $old = $disk->get($oldPath);
             $webp = AvatarImage::toWebp($old);
             if (!$webp) { $this->warn("skip #{$u->id} {$u->avatar}"); continue; }
             $new = 'avatars/' . $u->id . '-' . substr(md5($webp), 0, 8) . '.webp';   // new name → browsers refetch, not stale cache
             $this->line("#{$u->id} {$u->avatar} " . round(strlen($old) / 1024) . "KB -> {$new} " . round(strlen($webp) / 1024) . 'KB');
             if (!$this->option('dry-run')) {
                 $disk->put($new, $webp);
+                if (!$disk->exists($new)) { $this->error("write failed for #{$u->id}"); continue; }
                 $u->forceFill(['avatar' => $new])->save();
-                $disk->delete($u->avatar);
+                $disk->delete($oldPath);
             }
             $saved += strlen($old) - strlen($webp); $done++;
         }
