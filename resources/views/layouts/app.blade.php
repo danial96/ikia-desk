@@ -717,6 +717,7 @@
                 <p style="margin:0;display:flex;align-items:baseline;gap:8px;min-width:0;"><span id="chat-rh-name" style="color:#000;font-size:16px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></span><span id="chat-rh-online" style="color:#a0a8ae;font-size:14px;font-style:italic;flex-shrink:0;"></span></p>
                 <p id="chat-rh-sub" style="margin:0;color:#6b7680;font-size:13.5px;"></p>
             </div>
+                <button type="button" onclick="window._popupSearch&&_popupSearch.toggle()" title="Search in this chat" style="background:none;border:none;color:#20a0e0;font-size:18px;cursor:pointer;padding:8px 10px;border-radius:8px;flex-shrink:0;" onmouseover="this.style.background='#eef6fb'" onmouseout="this.style.background='none'"><i class="fas fa-search"></i></button>
         </div>
 
         {{-- Messages --}}
@@ -1196,6 +1197,7 @@ window.chatFilterConvs = function(q) {
 
 /* ── Select conversation ── */
 window.chatSelectConv = async function(id) {
+    if (window._popupSearch) _popupSearch.reset();
     // Per-chat draft: save the draft of the conversation we're leaving before switching
     const _prevTa = document.getElementById('chat-textarea');
     if (_activeConvId && _prevTa) {
@@ -2065,6 +2067,7 @@ async function chatLoadOlder() {
 document.addEventListener('DOMContentLoaded', function () {
     const a = document.getElementById('chat-msg-area');
     if (a) a.addEventListener('scroll', function () { if (this.scrollTop < 80) chatLoadOlder(); });
+    if (window.ChatSearch) window._popupSearch = ChatSearch.init({ rightId: 'chat-right', areaId: 'chat-msg-area', convId: () => _activeConvId, hasMore: () => _chatHasMore, loadOlder: () => chatLoadOlder() });
 });
 
 /* ── Polling ── */
@@ -2846,6 +2849,92 @@ document.addEventListener('load', function (e) {
     document.addEventListener('scroll', update, true);
     window.addEventListener('resize', update);
     setInterval(update, 600);
+})();
+
+/* ── In-chat search (Bitrix style): magnifier in the chat header → side panel with the matches ── */
+window.ChatSearch = (function () {
+    const esc = s => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    const mark = (text, q) => {
+        const t = esc(text); if (!q) return t;
+        const re = new RegExp('(' + esc(q).replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'ig');
+        return t.replace(re, '<mark style="background:#ffe45c;color:inherit;border-radius:3px;padding:0 1px;">$1</mark>');
+    };
+
+    // cfg: { rightId, areaId, convId:()=>id, hasMore:()=>bool, loadOlder:()=>Promise, bubbleSel }
+    function init(cfg) {
+        const right = document.getElementById(cfg.rightId);
+        if (!right || right._csWired) return;
+        right._csWired = true;
+        if (getComputedStyle(right).position === 'static') right.style.position = 'relative';
+
+        const panel = document.createElement('div');
+        panel.style.cssText = 'display:none;position:absolute;top:0;right:0;bottom:0;width:380px;max-width:100%;background:#fff;z-index:30;box-shadow:-6px 0 24px rgba(0,0,0,.18);flex-direction:column;';
+        panel.innerHTML =
+            '<div style="display:flex;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px solid #eef1f3;">' +
+              '<button type="button" data-back title="Close search" style="background:none;border:none;color:#7d8790;font-size:18px;cursor:pointer;padding:4px 8px;"><i class="fas fa-chevron-left"></i></button>' +
+              '<div style="flex:1;display:flex;align-items:center;gap:8px;border:1.5px solid #20b0e8;border-radius:20px;padding:0 12px;height:38px;">' +
+                '<i class="fas fa-search" style="color:#9aa5ad;font-size:13px;"></i>' +
+                '<input data-q type="text" placeholder="Search in this chat" style="border:none;outline:none;box-shadow:none;flex:1;font-size:14.5px;background:none;min-width:0;">' +
+                '<button type="button" data-clear title="Clear" style="display:none;background:#20b0e8;border:none;color:#fff;width:18px;height:18px;border-radius:50%;font-size:10px;cursor:pointer;line-height:1;">&times;</button>' +
+              '</div>' +
+            '</div>' +
+            '<div data-body style="flex:1;overflow-y:auto;"></div>';
+        right.appendChild(panel);
+        const $ = sel => panel.querySelector(sel), input = $('[data-q]'), body = $('[data-body]'), clear = $('[data-clear]');
+
+        const empty = (icon, msg) => { body.innerHTML = '<div style="text-align:center;padding:60px 24px;color:#a0aab1;font-size:14px;"><div style="width:46px;height:46px;border-radius:50%;background:#f3f6f7;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;"><i class="fas ' + icon + '" style="color:#b3bcc2;"></i></div>' + msg + '</div>'; };
+        empty('fa-search', 'This view will show found messages.');
+
+        let timer = null, seq = 0;
+        async function run() {
+            const q = input.value.trim(); clear.style.display = input.value ? 'block' : 'none';
+            if (q.length < 2) { empty('fa-search', 'This view will show found messages.'); return; }
+            const my = ++seq, id = cfg.convId();
+            if (!id) return;
+            body.innerHTML = '<div style="text-align:center;padding:40px;color:#9aa5ad;"><i class="fas fa-spinner fa-spin"></i></div>';
+            try {
+                const r = await fetch(API_BASE + '/api/chat/convs/' + id + '/search?q=' + encodeURIComponent(q));
+                const d = await r.json();
+                if (my !== seq) return;
+                if (!d.results || !d.results.length) { empty('fa-face-frown', 'Nothing found.'); return; }
+                body.innerHTML = '<div style="padding:8px 14px;font-size:12px;color:#9aa5ad;">' + d.results.length + (d.results.length >= 80 ? '+' : '') + ' found</div>' + d.results.map(m =>
+                    '<div data-id="' + m.id + '" style="display:flex;gap:10px;padding:11px 14px;cursor:pointer;border-top:1px solid #f1f3f5;" onmouseover="this.style.background=\'#f4f8fa\'" onmouseout="this.style.background=\'\'">' +
+                      '<img src="' + esc(m.avatar) + '" style="width:34px;height:34px;border-radius:50%;object-fit:cover;flex-shrink:0;" alt="">' +
+                      '<div style="min-width:0;flex:1;"><div style="display:flex;justify-content:space-between;gap:8px;"><span style="font-size:13.5px;font-weight:600;color:#333;">' + esc(m.isMine ? 'You' : m.author) + '</span><span style="font-size:11.5px;color:#a3acb3;flex-shrink:0;">' + esc(m.date) + ', ' + esc(m.time) + '</span></div>' +
+                      '<div style="font-size:13.5px;color:#525c69;margin-top:2px;line-height:1.4;overflow-wrap:anywhere;">' + mark(m.text, q) + '</div></div></div>').join('');
+                body.querySelectorAll('[data-id]').forEach(el => el.onclick = () => jump(+el.dataset.id));
+            } catch (e) { empty('fa-triangle-exclamation', 'Search failed. Try again.'); }
+        }
+
+        // scroll to a message; if it's older than what is loaded, load older pages until it shows up
+        async function jump(id) {
+            const area = document.getElementById(cfg.areaId);
+            for (let i = 0; i < 60; i++) {
+                const el = area.querySelector('[data-msg-id="' + id + '"]');
+                if (el) {
+                    el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+                    const b = el.querySelector('[class$="-bubble-bg"]') || el;
+                    const old = b.style.boxShadow; b.style.transition = 'box-shadow .3s'; b.style.boxShadow = '0 0 0 4px #ffe45c';
+                    setTimeout(() => { b.style.boxShadow = old; }, 1800);
+                    return;
+                }
+                if (!cfg.hasMore()) break;
+                await cfg.loadOlder();
+                await new Promise(r => setTimeout(r, 80));
+            }
+            if (window.showToast) showToast('Could not find that message in the loaded history.', 'info');
+        }
+
+        input.addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(run, 300); });
+        input.addEventListener('keydown', e => { if (e.key === 'Enter') { clearTimeout(timer); run(); } if (e.key === 'Escape') close(); });
+        clear.onclick = () => { input.value = ''; run(); input.focus(); };
+        function open() { panel.style.display = 'flex'; input.focus(); }
+        function close() { panel.style.display = 'none'; }
+        $('[data-back]').onclick = close;
+
+        return { toggle: () => (panel.style.display === 'none' ? open() : close()), close, reset: () => { input.value = ''; empty('fa-search', 'This view will show found messages.'); close(); } };
+    }
+    return { init };
 })();
 
 /* ── CSRF self-healing: a stale token (login in another tab, long-idle tab) no longer breaks actions ── */

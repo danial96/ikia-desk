@@ -480,6 +480,45 @@ Route::middleware('auth')->group(function () {
         return response()->json(['convs'=>$list]);
     });
 
+    // ── Search inside one conversation (Bitrix-style side panel) ──
+    Route::get('/api/chat/convs/{id}/search', function ($id, \Illuminate\Http\Request $request) {
+        $user = auth()->user();
+        $conv = \App\Models\Conversation::with('members')->findOrFail($id);
+        if ($conv->type !== 'general' && !$conv->members->contains('id', $user->id))
+            return response()->json(['error' => 'Forbidden'], 403);
+
+        $q = trim((string) $request->query('q', ''));
+        if (mb_strlen($q) < 2) return response()->json(['results' => [], 'q' => $q]);
+
+        $like = '%' . addcslashes($q, '\\%_') . '%';
+        $rows = $conv->messages()->with('user')->reorder()
+            ->where('content', 'like', $like)
+            ->orderByDesc('created_at')->orderByDesc('id')
+            ->limit(80)->get()
+            ->reject(fn($m) => in_array($user->id, (array) ($m->deleted_for ?? [])));
+
+        $plain = function (string $t): string {
+            $t = preg_replace('/\[img\].*?\[\/img\]/s', '📷 Photo', $t);
+            $t = preg_replace('/\[file name="([^"]*)"\].*?\[\/file\]/s', '📎 $1', $t);
+            $t = preg_replace('/\[voice[^\]]*\].*?\[\/voice\]/s', '🎤 Voice message', $t);
+            return trim(preg_replace('/\s+/u', ' ', $t));
+        };
+
+        return response()->json([
+            'q' => $q,
+            'results' => $rows->map(fn($m) => [
+                'id'        => $m->id,
+                'text'      => mb_substr($plain((string) $m->content), 0, 300),
+                'author'    => $m->user?->name ?? '',
+                'avatar'    => $m->user?->avatar_url ?? '',
+                'isMine'    => $m->user_id === $user->id,
+                'date'      => $m->created_at->format('j M Y'),
+                'time'      => $m->created_at->format('g:i a'),
+                'createdTs' => $m->created_at->timestamp,
+            ])->values(),
+        ]);
+    });
+
     Route::get('/api/chat/convs/{id}/msgs', function ($id, \Illuminate\Http\Request $request) {
         $user   = auth()->user();
         $conv   = \App\Models\Conversation::with('members')->findOrFail($id);

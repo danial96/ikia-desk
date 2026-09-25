@@ -74,6 +74,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <p style="margin:0;display:flex;align-items:baseline;gap:8px;min-width:0;"><span id="cp-rh-name" style="color:#000;font-size:16px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></span><span id="cp-rh-online" style="color:#a0a8ae;font-size:14px;font-style:italic;flex-shrink:0;"></span></p>
                 <p id="cp-rh-sub" style="margin:0;color:#6b7680;font-size:13.5px;"></p>
             </div>
+                <button type="button" onclick="window._cpSearch&&_cpSearch.toggle()" title="Search in this chat" style="background:none;border:none;color:#20a0e0;font-size:18px;cursor:pointer;padding:8px 10px;border-radius:8px;flex-shrink:0;" onmouseover="this.style.background='#eef6fb'" onmouseout="this.style.background='none'"><i class="fas fa-search"></i></button>
         </div>
 
         {{-- Messages --}}
@@ -708,6 +709,7 @@ window.cpFilterConvs = function(q) {
 
 /* ── Select conversation ── */
 window.cpSelect = async function(id) {
+    if (window._cpSearch) _cpSearch.reset();
     _cpSelecting    = true;
     _cpActiveConvId = id;
     _cpMsgCount     = 0;
@@ -1139,6 +1141,8 @@ document.addEventListener('DOMContentLoaded', function() {
         if (toOpen) setTimeout(() => cpSelect(toOpen), 100);
     });
     _cpPollTimer = setInterval(cpPoll, 3000);
+
+    window._cpSearch = ChatSearch.init({ rightId: 'cp-right', areaId: 'cp-msg-area', convId: () => _cpActiveConvId, hasMore: () => _cpHasMore, loadOlder: () => cpLoadOlderMsgs() });
 
     // Scroll-up listener for loading older messages
     const msgArea = document.getElementById('cp-msg-area');
