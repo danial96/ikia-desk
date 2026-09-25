@@ -155,6 +155,17 @@
             transition: box-shadow .18s;
         }
 
+
+        /* message actions (Bitrix look): grey "…" circle + "like" circle, picker, and the menu */
+        .cp-msg-actions, .chat-msg-actions { flex-direction: column !important; gap: 6px !important; }
+        .cp-action-btn, .chat-action-btn { width: 30px !important; height: 30px !important; background: rgba(0,0,0,.32) !important; color: #fff !important; font-size: 13px !important; }
+        .cp-action-btn:hover, .chat-action-btn:hover { background: rgba(0,0,0,.5) !important; }
+        .cp-action-btn.like, .chat-action-btn.like { background: #fff !important; color: #1f9df0 !important; box-shadow: 0 1px 4px rgba(0,0,0,.25); }
+        #cp-ctx-menu, #chat-msg-ctx { border: none !important; border-radius: 16px !important; padding: 8px !important; min-width: 250px !important; box-shadow: 0 10px 36px rgba(0,0,0,.28) !important; }
+        .cp-ctx-item, .chat-ctx-item { justify-content: space-between !important; padding: 11px 14px !important; font-size: 15px !important; border-radius: 8px !important; }
+        .cp-ctx-item i, .chat-ctx-item i { opacity: .42 !important; width: auto !important; font-size: 15px !important; }
+        .cp-ctx-del, .chat-ctx-del { color: #ef4444 !important; }
+        .ctx-divider { height: 1px; background: #eef1f3; margin: 6px 8px; }
         /* long lines / code in a message wrap inside the bubble instead of running out of it */
         #cp-msg-area, #chat-msg-area, #tp-messages { overflow-x: hidden; }
         .cp-bubble-bg, .chat-bubble-bg, [data-msg-text] { overflow-wrap: anywhere; min-width: 0; }
@@ -1378,12 +1389,8 @@ function renderMsgContent(text, isMine) {
 }
 
 function chatRxnBadge(reactions, myReactions, msgId) {
-    if (!reactions || !Object.keys(reactions).length) return `<div id="chat-rxn-${msgId}" style="min-height:0;"></div>`;
-    const badges = Object.entries(reactions).map(([emoji, ids]) => {
-        const mine = myReactions && myReactions.includes(emoji);
-        return `<span onclick="chatLikeClick(event,null,${msgId},'${emoji}')" style="display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:20px;background:${mine?'rgba(8,145,178,.18)':'rgba(0,0,0,.09)'};border:1px solid ${mine?'rgba(8,145,178,.4)':'rgba(0,0,0,.1)'};font-size:12px;cursor:pointer;user-select:none;">${emoji}${ids.length>1?`<span style="font-size:10px;color:#64748b;">${ids.length}</span>`:''}</span>`;
-    }).join('');
-    return `<div id="chat-rxn-${msgId}" style="display:flex;flex-wrap:wrap;gap:3px;margin-top:3px;">${badges}</div>`;
+    const pills = MsgUX.pills(reactions, {{ auth()->id() }}, 'chatLikeClick', msgId);
+    return `<div id="chat-rxn-${msgId}" style="${pills ? 'display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;' : 'min-height:0;'}">${pills}</div>`;
 }
 
 function chatBubble({isMine, name, avatar, text, time, showName=true, msgId=null, createdTs=0, reactions=null, myReactions=null}) {
@@ -1391,8 +1398,8 @@ function chatBubble({isMine, name, avatar, text, time, showName=true, msgId=null
     if (isMine) {
         const rawEsc = text.replace(/&/g,'&amp;').replace(/"/g,'&quot;');
         const actions = msgId ? `<div class="chat-msg-actions">
-            <button class="chat-action-btn" onclick="chatLikeClick(event,this,${msgId},'👍')" title="Like">👍</button>
-            <button class="chat-action-btn" onclick="chatDotsClick(event,this,${msgId},true,${createdTs})" title="More">⋯</button>
+            <button class="chat-action-btn like" onclick="MsgUX.pick(event,this,'chat',${msgId})" title="React"><i class="far fa-thumbs-up"></i></button>
+            <button class="chat-action-btn" onclick="chatDotsClick(event,this,${msgId},true,${createdTs})" title="More"><i class="fas fa-ellipsis"></i></button>
         </div>` : '';
         const rxn = msgId ? chatRxnBadge(reactions, myReactions, msgId) : '';
         return `<div data-msg-id="${msgId||''}" data-mine="1" data-created-ts="${createdTs}" data-sender="You" class="chat-msg-outer" style="display:flex;justify-content:flex-end;align-items:center;gap:4px;margin-bottom:2px;">
@@ -1416,8 +1423,8 @@ function chatBubble({isMine, name, avatar, text, time, showName=true, msgId=null
             ? `<span style="font-size:13px;color:#4f7f76;font-weight:600;display:block;margin-bottom:2px;">${escH(name)}</span>`
             : '';
         const actionsOther = msgId ? `<div class="chat-msg-actions">
-            <button class="chat-action-btn" onclick="chatLikeClick(event,this,${msgId},'👍')" title="Like">👍</button>
-            <button class="chat-action-btn" onclick="chatDotsClick(event,this,${msgId},false,${createdTs})" title="More">⋯</button>
+            <button class="chat-action-btn like" onclick="MsgUX.pick(event,this,'chat',${msgId})" title="React"><i class="far fa-thumbs-up"></i></button>
+            <button class="chat-action-btn" onclick="chatDotsClick(event,this,${msgId},false,${createdTs})" title="More"><i class="fas fa-ellipsis"></i></button>
         </div>` : '';
         const rxnOther = msgId ? chatRxnBadge(reactions, myReactions, msgId) : '';
         return `<div data-msg-id="${msgId||''}" data-mine="0" data-created-ts="${createdTs}" data-sender="${escH(name)}" class="chat-msg-outer" style="display:flex;align-items:center;gap:4px;margin-bottom:2px;${showName?'margin-top:6px':''}">
@@ -1443,10 +1450,12 @@ window.chatDotsClick = function(e, btn, msgId, isMine, createdTs) {
     const canEdit = isMine && (Date.now()/1000 - createdTs) < 86400;
     const menu = document.getElementById('chat-msg-ctx');
     menu.innerHTML =
-        `<div class="chat-ctx-item" onclick="chatCtxReply()"><i class="fas fa-reply" style="font-size:11px;opacity:.7;width:14px;"></i>Reply</div>` +
-        `<div class="chat-ctx-item" onclick="chatCtxCopy()"><i class="fas fa-copy" style="font-size:11px;opacity:.7;width:14px;"></i>Copy</div>` +
-        (canEdit ? `<div class="chat-ctx-item" onclick="chatCtxEdit()"><i class="fas fa-pen" style="font-size:11px;opacity:.7;width:14px;"></i>Edit</div>` : '') +
-        (isMine ? `<div class="chat-ctx-item chat-ctx-del" onclick="chatCtxDelete()"><i class="fas fa-trash-alt" style="font-size:11px;opacity:.7;width:14px;"></i>Delete</div>` : '');
+        `<div class="chat-ctx-item" onclick="chatCtxReply()"><span>Reply</span><i class="fas fa-quote-right"></i></div>` +
+        `<div class="chat-ctx-item" onclick="chatCtxCopy()"><span>Copy</span><i class="far fa-copy"></i></div>` +
+        (canEdit ? `<div class="chat-ctx-item" onclick="chatCtxEdit()"><span>Edit</span><i class="fas fa-pen"></i></div>` : '') +
+        `<div class="chat-ctx-item" onclick="chatCtxForward()"><span>Forward</span><i class="fas fa-share"></i></div>` +
+        `<div class="chat-ctx-item" onclick="chatCtxTask()"><span>Create task</span><i class="far fa-square-check"></i></div>` +
+        (isMine ? `<div class="ctx-divider"></div><div class="chat-ctx-item chat-ctx-del" onclick="chatCtxDelete()"><span>Delete</span><i class="far fa-trash-can"></i></div>` : '');
 
     /* position:fixed — menu stays in original DOM, never moved into message area */
     menu.style.display = 'block';
@@ -1477,10 +1486,7 @@ window.chatLikeClick = async function(e, btn, msgId, emoji) {
             const rxns = d.reactions || {};
             const myId = {{ auth()->id() }};
             const myR  = Object.keys(rxns).filter(k => (rxns[k]||[]).includes(myId));
-            const badges = Object.entries(rxns).map(([emo, ids]) => {
-                const mine = myR.includes(emo);
-                return `<span onclick="chatLikeClick(event,null,${msgId},'${emo}')" style="display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:20px;background:${mine?'rgba(8,145,178,.18)':'rgba(0,0,0,.09)'};border:1px solid ${mine?'rgba(8,145,178,.4)':'rgba(0,0,0,.1)'};font-size:12px;cursor:pointer;user-select:none;">${emo}${ids.length>1?`<span style="font-size:10px;color:#64748b;">${ids.length}</span>`:''}</span>`;
-            }).join('');
+            const badges = MsgUX.pills(rxns, myId, 'chatLikeClick', msgId);
             rxnEl.style.display = badges ? 'flex' : 'none';
             rxnEl.innerHTML = badges;
             rxnEl.style.flexWrap = 'wrap';
@@ -1515,6 +1521,20 @@ window.chatCtxCopy = function() {
     const row = document.querySelector(`[data-msg-id="${_chatCtxMsgId}"]`);
     const raw = row ? (row.querySelector('[data-raw]')?.dataset.raw || '') : '';
     if (navigator.clipboard) navigator.clipboard.writeText(raw).catch(()=>{});
+};
+window.chatCtxForward = function() {
+    document.getElementById('chat-msg-ctx').style.display = 'none';
+    if (!_chatCtxMsgId) return;
+    const row = document.querySelector(`[data-msg-id="${_chatCtxMsgId}"]`);
+    const raw = row ? (row.querySelector('[data-raw]')?.dataset.raw || row.querySelector('[data-msg-text]')?.dataset.raw || '') : '';
+    if (raw) MsgUX.forward(raw, _allConvs, _activeConvId);
+};
+window.chatCtxTask = function() {
+    document.getElementById('chat-msg-ctx').style.display = 'none';
+    if (!_chatCtxMsgId) return;
+    const row = document.querySelector(`[data-msg-id="${_chatCtxMsgId}"]`);
+    const raw = row ? (row.querySelector('[data-raw]')?.dataset.raw || '') : '';
+    MsgUX.task(raw);
 };
 window.chatCtxEdit = function() {
     document.getElementById('chat-msg-ctx').style.display = 'none';
@@ -3060,6 +3080,114 @@ window.ChatAbout = (function () {
         return { toggle: () => (panel.style.display === 'none' ? open() : close()), close, reset: close };
     }
     return { init };
+})();
+
+/* ── Message actions, Bitrix style: reaction picker, reaction pills, "…" menu (forward / create task) ── */
+window.MsgUX = (function () {
+    const esc = s => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    const QUICK = ['👍', '😂', '❤️', '😐', '🔥', '😢'];
+    const MORE  = ['😀', '😍', '😮', '😡', '🎉', '🙏', '👏', '💯', '🤝', '👀', '✅', '❌'];
+
+    // employee avatars for the reaction pills (loaded once, best effort)
+    let avatars = null;
+    function loadAvatars() {
+        if (avatars) return;
+        avatars = {};
+        fetch(API_BASE + '/api/employees-list', { headers: { 'Accept': 'application/json' } }).then(r => r.json())
+            .then(list => { (Array.isArray(list) ? list : []).forEach(u => { avatars[u.id] = u.avatar || u.avatar_url || ''; }); }).catch(() => {});
+    }
+
+    const likeGlyph = '<i class="fas fa-thumbs-up" style="font-size:13px;"></i>';
+    const glyph = e => e === '👍'
+        ? '<span style="width:22px;height:22px;border-radius:50%;background:#1f9df0;color:#fff;display:inline-flex;align-items:center;justify-content:center;">' + likeGlyph + '</span>'
+        : '<span style="font-size:17px;line-height:1;">' + esc(e) + '</span>';
+
+    // pills under a message: [emoji + avatars], click toggles that reaction
+    function pills(reactions, myId, fnName, msgId) {
+        if (!reactions) return '';
+        loadAvatars();
+        return Object.entries(reactions).filter(([, ids]) => (ids || []).length).map(([emoji, ids]) => {
+            const mine = (ids || []).includes(myId);
+            const av = ids.slice(0, 2).map(id => avatars && avatars[id]
+                ? '<img src="' + esc(avatars[id]) + '" style="width:20px;height:20px;border-radius:50%;object-fit:cover;border:1.5px solid #fff;margin-left:-6px;" alt="">' : '').join('');
+            const more = ids.length > 2 ? '<span style="font-size:11px;font-weight:700;margin-left:4px;">' + ids.length + '</span>' : (!av ? '<span style="font-size:11px;font-weight:700;margin-left:2px;">' + ids.length + '</span>' : '');
+            return '<span onclick="' + fnName + '(event,null,' + msgId + ',\'' + emoji + '\')" title="' + (mine ? 'Remove your reaction' : 'React too') + '" style="display:inline-flex;align-items:center;gap:6px;padding:3px 9px 3px 5px;border-radius:16px;cursor:pointer;user-select:none;background:' + (mine ? '#35b8f5' : '#5cc4f7') + ';color:#fff;">' +
+                glyph(emoji).replace('#1f9df0', '#fff').replace('color:#fff', 'color:#1f9df0') + '<span style="display:inline-flex;align-items:center;padding-left:6px;">' + av + more + '</span></span>';
+        }).join('');
+    }
+
+    // ── picker popover ──
+    let pop = null;
+    function closePicker() { if (pop) { pop.remove(); pop = null; } document.removeEventListener('mousedown', outside, true); }
+    function outside(e) { if (pop && !pop.contains(e.target)) closePicker(); }
+    function openPicker(anchor, onPick) {
+        closePicker();
+        pop = document.createElement('div');
+        pop.style.cssText = 'position:fixed;z-index:100002;background:#fff;border-radius:26px;box-shadow:0 8px 30px rgba(0,0,0,.28);padding:8px 10px;display:flex;flex-direction:column;gap:6px;';
+        const row = QUICK.map(e => '<button type="button" data-e="' + e + '" style="width:44px;height:44px;border-radius:50%;border:none;background:' + (e === '👍' ? '#1f9df0' : 'transparent') + ';cursor:pointer;font-size:26px;line-height:1;display:flex;align-items:center;justify-content:center;color:#fff;transition:transform .1s;" onmouseover="this.style.transform=\'scale(1.18)\'" onmouseout="this.style.transform=\'\'">' + (e === '👍' ? '<i class="fas fa-thumbs-up" style="font-size:20px;"></i>' : e) + '</button>').join('') +
+            '<button type="button" data-more style="width:44px;height:44px;border-radius:50%;border:none;background:#eef2f4;color:#7d8790;cursor:pointer;font-size:14px;"><i class="fas fa-chevron-down"></i></button>';
+        pop.innerHTML = '<div style="display:flex;gap:4px;align-items:center;">' + row + '</div><div data-grid style="display:none;flex-wrap:wrap;gap:2px;max-width:340px;">' +
+            MORE.map(e => '<button type="button" data-e="' + e + '" style="width:44px;height:44px;border:none;background:transparent;font-size:24px;cursor:pointer;border-radius:10px;">' + e + '</button>').join('') + '</div>';
+        document.body.appendChild(pop);
+        const r = anchor.getBoundingClientRect(), w = pop.offsetWidth, h = pop.offsetHeight;
+        let x = Math.min(Math.max(8, r.left + r.width / 2 - w / 2), window.innerWidth - w - 8);
+        let y = r.top - h - 8; if (y < 8) y = r.bottom + 8;
+        pop.style.left = x + 'px'; pop.style.top = y + 'px';
+        pop.querySelectorAll('[data-e]').forEach(b => b.onclick = () => { const e = b.dataset.e; closePicker(); onPick(e); });
+        pop.querySelector('[data-more]').onclick = function () { const g = pop.querySelector('[data-grid]'); g.style.display = g.style.display === 'none' ? 'flex' : 'none'; };
+        setTimeout(() => document.addEventListener('mousedown', outside, true), 0);
+    }
+    // like button on a message → picker → the page's own react function
+    function pick(e, btn, prefix, msgId) {
+        if (e) e.stopPropagation();
+        openPicker(btn, emoji => window[prefix + 'LikeClick'](null, null, msgId, emoji));
+    }
+
+    // ── forward ──
+    function forward(rawText, convs, currentId) {
+        const old = document.getElementById('fwd-modal'); if (old) old.remove();
+        const ov = document.createElement('div');
+        ov.id = 'fwd-modal';
+        ov.style.cssText = 'position:fixed;inset:0;z-index:100003;background:rgba(15,23,42,.4);display:flex;align-items:center;justify-content:center;';
+        ov.innerHTML = '<div style="width:420px;max-width:92vw;max-height:80vh;background:#fff;border-radius:14px;box-shadow:0 12px 40px rgba(0,0,0,.3);display:flex;flex-direction:column;overflow:hidden;">' +
+            '<div style="display:flex;align-items:center;justify-content:space-between;padding:18px 20px 10px;"><span style="font-size:18px;font-weight:600;color:#333;">Forward to…</span><button type="button" data-x style="background:none;border:none;font-size:22px;color:#9aa5ad;cursor:pointer;">&times;</button></div>' +
+            '<div style="padding:0 16px 8px;"><input data-q type="text" placeholder="Find employee or chat" style="width:100%;border:1.5px solid #dfe5e8;border-radius:20px;padding:9px 14px;font-size:14px;outline:none;box-sizing:border-box;"></div>' +
+            '<div data-list style="overflow-y:auto;padding:4px 8px 12px;"></div></div>';
+        document.body.appendChild(ov);
+        const list = ov.querySelector('[data-list]');
+        const draw = q => { list.innerHTML = convs.filter(c => (c.name || '').toLowerCase().includes((q || '').toLowerCase())).map(c =>
+            '<div data-id="' + c.id + '" style="display:flex;align-items:center;gap:12px;padding:8px 12px;border-radius:10px;cursor:pointer;" onmouseover="this.style.background=\'#f1f6f8\'" onmouseout="this.style.background=\'\'">' +
+            (window.convAvatar ? window.convAvatar(c, 38, true) : '') + '<span style="font-size:14.5px;color:#333;">' + esc(c.name) + (c.id === currentId ? ' <span style="color:#a0aab1;font-size:12px;">(this chat)</span>' : '') + '</span></div>').join('') || '<div style="padding:24px;text-align:center;color:#a0aab1;">No chats found.</div>';
+            list.querySelectorAll('[data-id]').forEach(el => el.onclick = async () => {
+                const id = +el.dataset.id;
+                el.style.opacity = '.5';
+                try {
+                    const r = await fetch(API_BASE + '/api/chat/convs/' + id + '/send', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' }, body: JSON.stringify({ content: rawText }) });
+                    const d = await r.json();
+                    ov.remove();
+                    if (d.ok && window.showToast) showToast('Message forwarded.', 'success'); else if (window.showToast) showToast('Could not forward the message.');
+                } catch (e) { ov.remove(); if (window.showToast) showToast('Could not forward the message.'); }
+            }); };
+        draw('');
+        ov.querySelector('[data-q]').oninput = e => draw(e.target.value);
+        ov.querySelector('[data-x]').onclick = () => ov.remove();
+        ov.addEventListener('mousedown', e => { if (e.target === ov) ov.remove(); });
+        setTimeout(() => ov.querySelector('[data-q]').focus(), 30);
+    }
+
+    // ── create task from a message ──
+    function task(rawText) {
+        const plain = String(rawText || '').replace(/\[img\].*?\[\/img\]/gs, '').replace(/\[file name="([^"]*)"\].*?\[\/file\]/gs, '$1').replace(/\[voice[^\]]*\].*?\[\/voice\]/gs, '').trim();
+        const title = (plain.split('\n')[0] || 'New task').slice(0, 120);
+        if (window.openTaskModal && document.getElementById('nt-overlay')) { fillTask(title, plain); return; }
+        location.href = '/tasks/kanban?newtask=1&title=' + encodeURIComponent(title) + '&desc=' + encodeURIComponent(plain.slice(0, 4000));
+    }
+    function fillTask(title, desc) {
+        openTaskModal();
+        setTimeout(() => { const t = document.getElementById('nt-title-input'), d = document.getElementById('nt-desc-ta'); if (t) t.value = title; if (d) d.value = desc; if (window.ntSaveDraft) ntSaveDraft(); }, 120);
+    }
+
+    return { pills, pick, openPicker, forward, task, fillTask };
 })();
 
 /* ── CSRF self-healing: a stale token (login in another tab, long-idle tab) no longer breaks actions ── */

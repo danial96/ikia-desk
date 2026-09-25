@@ -526,6 +526,15 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 })();
 
+// ── "Create task" from a chat message: /tasks/kanban?newtask=1&title=…&desc=… opens the new-task window prefilled
+document.addEventListener('DOMContentLoaded', function () {
+    const q = new URLSearchParams(location.search);
+    if (q.get('newtask') !== '1' || !window.MsgUX) return;
+    MsgUX.fillTask(q.get('title') || '', q.get('desc') || '');
+    ['newtask', 'title', 'desc'].forEach(k => q.delete(k));
+    history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q.toString() : ''));
+});
+
 // ── Client-side card renderer ─────────────────────────────────────────────────
 function kbH(s) {
     return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');

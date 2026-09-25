@@ -334,10 +334,12 @@ function cpShowCtxAt(btn, msgId, isMine, canEdit) {
     const menu = document.getElementById('cp-ctx-menu');
     if (!menu) return;
     menu.innerHTML =
-        `<div class="cp-ctx-item" data-action="reply"><i class="fas fa-reply"></i>Reply</div>` +
-        `<div class="cp-ctx-item" data-action="copy"><i class="fas fa-copy"></i>Copy</div>` +
-        (canEdit ? `<div class="cp-ctx-item" data-action="edit"><i class="fas fa-pen"></i>Edit</div>` : '') +
-        (isMine ? `<div class="cp-ctx-item cp-ctx-del" data-action="delete"><i class="fas fa-trash"></i>Delete</div>` : '');
+        `<div class="cp-ctx-item" data-action="reply"><span>Reply</span><i class="fas fa-quote-right"></i></div>` +
+        `<div class="cp-ctx-item" data-action="copy"><span>Copy</span><i class="far fa-copy"></i></div>` +
+        (canEdit ? `<div class="cp-ctx-item" data-action="edit"><span>Edit</span><i class="fas fa-pen"></i></div>` : '') +
+        `<div class="cp-ctx-item" data-action="forward"><span>Forward</span><i class="fas fa-share"></i></div>` +
+        `<div class="cp-ctx-item" data-action="task"><span>Create task</span><i class="far fa-square-check"></i></div>` +
+        (isMine ? `<div class="ctx-divider"></div><div class="cp-ctx-item cp-ctx-del" data-action="delete"><span>Delete</span><i class="far fa-trash-can"></i></div>` : '');
 
     menu.style.display = 'block';
 
@@ -404,6 +406,11 @@ document.addEventListener('DOMContentLoaded', function() {
             const textEl = row ? row.querySelector('[data-msg-text]') : null;
             const raw = textEl ? textEl.dataset.raw || '' : '';
             if (navigator.clipboard) navigator.clipboard.writeText(raw).catch(()=>{});
+        } else if (action === 'forward' || action === 'task') {
+            const row = document.querySelector(`[data-msg-id="${msgId}"]`);
+            const raw = row?.querySelector('[data-msg-text]')?.dataset.raw || '';
+            if (!raw) return;
+            if (action === 'forward') MsgUX.forward(raw, _cpAllConvs, _cpActiveConvId); else MsgUX.task(raw);
         } else if (action === 'delete') {
             cpAskDelete(msgId);
         }
@@ -524,13 +531,8 @@ function renderContent(text, isMine) {
 }
 
 function reactionBadge(reactions, myReactions, msgId) {
-    if (!reactions || !Object.keys(reactions).length) return `<div id="cp-rxn-${msgId}" style="min-height:0;"></div>`;
-    const badges = Object.entries(reactions).map(([emoji, ids]) => {
-        const count = ids.length;
-        const mine  = myReactions && myReactions.includes(emoji);
-        return `<span onclick="cpLikeClick(event,null,${msgId},'${emoji}')" style="display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:20px;background:${mine?'rgba(8,145,178,.18)':'rgba(0,0,0,.09)'};border:1px solid ${mine?'rgba(8,145,178,.4)':'rgba(0,0,0,.1)'};font-size:13px;cursor:pointer;user-select:none;transition:background .12s;" title="${mine?'Remove reaction':'React'}">${emoji}${count>1?`<span style="font-size:11px;color:#64748b;">${count}</span>`:''}</span>`;
-    }).join('');
-    return `<div id="cp-rxn-${msgId}" style="display:flex;flex-wrap:wrap;gap:3px;margin-top:3px;">${badges}</div>`;
+    const pills = MsgUX.pills(reactions, ME_ID, 'cpLikeClick', msgId);
+    return `<div id="cp-rxn-${msgId}" style="${pills ? 'display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;' : 'min-height:0;'}">${pills}</div>`;
 }
 
 function bubble(m) {
@@ -550,8 +552,8 @@ function bubble(m) {
     const content = renderContent(text, isMine);
 
     const actions = msgId ? `<div class="cp-msg-actions">
-        <button class="cp-action-btn" onclick="cpLikeClick(event,this,${msgId})" title="Like">👍</button>
-        <button class="cp-action-btn" onclick="cpDotsClick(event,this,${msgId},${isMine?'true':'false'},${createdTs||0})" title="More">⋯</button>
+        <button class="cp-action-btn like" onclick="MsgUX.pick(event,this,'cp',${msgId})" title="React"><i class="far fa-thumbs-up"></i></button>
+        <button class="cp-action-btn" onclick="cpDotsClick(event,this,${msgId},${isMine?'true':'false'},${createdTs||0})" title="More"><i class="fas fa-ellipsis"></i></button>
     </div>` : '';
 
     if (isMine) {
@@ -615,10 +617,7 @@ window.cpLikeClick = async function(e, btn, msgId, emoji) {
         if (rxnEl) {
             const rxns = d.reactions || {};
             const myR  = Object.keys(rxns).filter(k => (rxns[k]||[]).includes({{ auth()->id() }}));
-            const badges = Object.entries(rxns).map(([emo, ids]) => {
-                const mine = myR.includes(emo);
-                return `<span onclick="cpLikeClick(event,null,${msgId},'${emo}')" style="display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:20px;background:${mine?'rgba(8,145,178,.18)':'rgba(0,0,0,.09)'};border:1px solid ${mine?'rgba(8,145,178,.4)':'rgba(0,0,0,.1)'};font-size:13px;cursor:pointer;user-select:none;transition:background .12s;">${emo}${ids.length>1?`<span style="font-size:11px;color:#64748b;">${ids.length}</span>`:''}</span>`;
-            }).join('');
+            const badges = MsgUX.pills(rxns, ME_ID, 'cpLikeClick', msgId);
             rxnEl.style.display = badges ? 'flex' : 'none';
             rxnEl.innerHTML = badges;
             rxnEl.style.flexWrap = 'wrap';
