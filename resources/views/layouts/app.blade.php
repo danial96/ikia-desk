@@ -738,13 +738,13 @@
             </div>
             {{-- Normal input --}}
             <div id="chat-normal-input" style="display:flex;align-items:stretch;">
-                <div style="flex:1;position:relative;background:#fff;border-radius:10px;box-shadow:0 1px 3px rgba(0,0,0,.12);min-height:190px;">
+                <div style="flex:1;position:relative;background:#fff;border-radius:10px;box-shadow:0 1px 3px rgba(0,0,0,.12);height:190px;display:flex;flex-direction:column;">
                     <button type="button" onclick="document.getElementById('chat-file-input').click()" title="Attach file"
                             style="position:absolute;left:14px;top:16px;background:none;border:none;color:#9aa5ad;cursor:pointer;padding:0;font-size:16px;line-height:1;"><i class="fas fa-paperclip"></i></button>
                     <textarea id="chat-textarea" rows="5" placeholder="Type @ or + to mention a person, a chat or AI"
-                              style="display:block;width:100%;background:none;border:none;color:#1e293b;font-size:15px;padding:16px 16px 50px 46px;outline:none;resize:none;font-family:inherit;line-height:1.5;max-height:260px;min-height:120px;overflow-y:auto;box-sizing:border-box;"
+                              style="display:block;width:100%;background:none;border:none;color:#1e293b;font-size:15px;padding:16px 16px 50px 46px;outline:none;resize:none;font-family:inherit;line-height:1.5;flex:1;min-height:0;overflow-y:auto;box-sizing:border-box;"
                               onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();chatSend();}"
-                              oninput="this.style.height='auto';this.style.height='auto';this.style.height=Math.min(this.scrollHeight,260)+'px';var b=document.getElementById('chat-send-btn');if(b)b.style.background=this.value.trim()?'#12b0f0':'#c5cad0';if(window.chatDraftSave)chatDraftSave();"></textarea>
+                              oninput="var b=document.getElementById('chat-send-btn');if(b)b.style.background=this.value.trim()?'#12b0f0':'#c5cad0';if(window.chatDraftSave)chatDraftSave();"></textarea>
                     <div style="position:absolute;right:14px;bottom:10px;display:flex;align-items:center;gap:14px;">
                         <button type="button" onclick="emojiToggle('chat-textarea',this)" title="Emoji" style="background:none;border:none;color:#9aa5ad;cursor:pointer;padding:0;font-size:18px;line-height:1;"><i class="far fa-face-smile"></i></button>
                         <button type="button" onclick="vnStart('chat')" title="Voice note" style="background:none;border:none;color:#9aa5ad;cursor:pointer;padding:0;font-size:17px;line-height:1;"><i class="fas fa-microphone"></i></button>
@@ -1237,8 +1237,6 @@ window.chatSelectConv = async function(id) {
         const _ta = document.getElementById('chat-textarea');
         if (_ta) {
             try { _ta.value = localStorage.getItem('chat_draft_' + id) || ''; } catch(e) { _ta.value = ''; }
-            _ta.style.height = 'auto';
-            if (_ta.value) _ta.style.height = Math.min(_ta.scrollHeight, 120) + 'px';
             _ta.focus();
         }
     } catch(e) {

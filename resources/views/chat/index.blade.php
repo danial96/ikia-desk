@@ -95,13 +95,13 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
             {{-- Normal input --}}
             <div id="cp-normal-input" style="display:flex;align-items:stretch;">
-                <div style="flex:1;position:relative;background:#fff;border-radius:10px;box-shadow:0 1px 3px rgba(0,0,0,.12);min-height:190px;">
+                <div style="flex:1;position:relative;background:#fff;border-radius:10px;box-shadow:0 1px 3px rgba(0,0,0,.12);height:190px;display:flex;flex-direction:column;">
                     <button type="button" onclick="document.getElementById('cp-file-input').click()" title="Attach file"
                             style="position:absolute;left:14px;top:16px;background:none;border:none;color:#9aa5ad;cursor:pointer;padding:0;font-size:16px;line-height:1;"><i class="fas fa-paperclip"></i></button>
                     <textarea id="cp-textarea" rows="5" placeholder="Type @ or + to mention a person, a chat or AI"
-                              style="display:block;width:100%;background:none;border:none;color:#1e293b;font-size:15px;padding:16px 16px 50px 46px;outline:none;resize:none;font-family:inherit;line-height:1.5;max-height:260px;min-height:120px;overflow-y:auto;box-sizing:border-box;"
+                              style="display:block;width:100%;background:none;border:none;color:#1e293b;font-size:15px;padding:16px 16px 50px 46px;outline:none;resize:none;font-family:inherit;line-height:1.5;flex:1;min-height:0;overflow-y:auto;box-sizing:border-box;"
                               onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();cpSend();}"
-                              oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,260)+'px';var b=document.getElementById('cp-send-btn');if(b)b.style.background=this.value.trim()?'#12b0f0':'#c5cad0'"></textarea>
+                              oninput="var b=document.getElementById('cp-send-btn');if(b)b.style.background=this.value.trim()?'#12b0f0':'#c5cad0'"></textarea>
                     <div style="position:absolute;right:14px;bottom:10px;display:flex;align-items:center;gap:14px;">
                         <button type="button" onclick="emojiToggle('cp-textarea',this)" title="Emoji" style="background:none;border:none;color:#9aa5ad;cursor:pointer;padding:0;font-size:18px;line-height:1;"><i class="far fa-face-smile"></i></button>
                         <button type="button" onclick="vnStart('cp')" title="Voice note" style="background:none;border:none;color:#9aa5ad;cursor:pointer;padding:0;font-size:17px;line-height:1;"><i class="fas fa-microphone"></i></button>
@@ -383,8 +383,6 @@ document.addEventListener('DOMContentLoaded', function() {
             _editingMsgId = msgId;
             const ta = document.getElementById('cp-textarea');
             ta.value = textEl ? textEl.dataset.raw || '' : '';
-            ta.style.height = 'auto';
-            ta.style.height = Math.min(ta.scrollHeight, 140) + 'px';
             ta.focus();
             document.getElementById('cp-edit-bar').style.display = 'flex';
         } else if (action === 'reply') {
