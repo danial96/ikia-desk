@@ -272,6 +272,7 @@ let _cpSelecting      = false;
 let _cpSending        = false;
 let _cpOtherLastReadTs = 0;
 let _cpConvType       = '';
+let _cpLastAuthorId   = 0;
 
 function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function linkify(text) {
@@ -817,12 +818,13 @@ function cpRenderMsgs(msgs, scrollToBottom) {
             </div>`;
             prevDate = m.date; prevAuthor = null;
         }
-        const showName = !m.isMine && prevAuthor !== m.author.id;
+        const showName = _cpConvType !== 'direct' && !m.isMine && prevAuthor !== m.author.id;
         html += bubble({isMine:m.isMine, name:m.author.name, avatar:m.author.avatar,
             text:m.text||'', time:m.time, showName, msgId:m.id,
             editedAt:m.editedAt, createdTs:m.createdTs, isDeleted,
             reactions:m.reactions, myReactions:m.myReactions});
         prevAuthor = m.author.id;
+        _cpLastAuthorId = m.author.id;
     });
 
     el.innerHTML = `<div id="cp-msg-inner" style="display:flex;flex-direction:column;gap:3px;margin:auto auto 0;width:100%;max-width:860px;">${html}</div>`;
@@ -1035,11 +1037,12 @@ function cpAppendMsgs(msgs) {
     msgs.forEach(m => {
         inner.insertAdjacentHTML('beforeend', bubble({
             isMine: m.isMine, name: m.author.name, avatar: m.author.avatar,
-            text: m.text || '', time: m.time, showName: !m.isMine,
+            text: m.text || '', time: m.time, showName: _cpConvType !== 'direct' && !m.isMine && _cpLastAuthorId !== m.author.id,
             msgId: m.id, editedAt: m.editedAt, createdTs: m.createdTs,
             isDeleted: Array.isArray(m.deletedFor) && m.deletedFor.includes(ME_ID),
             reactions: m.reactions, myReactions: m.myReactions,
         }));
+        _cpLastAuthorId = m.author.id;
     });
     _cpMsgCount += msgs.length;
     if (wasNearBottom) el.scrollTop = el.scrollHeight + 9999;

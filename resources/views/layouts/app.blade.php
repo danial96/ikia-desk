@@ -154,6 +154,8 @@
             box-shadow: 0 0 0 2.5px rgba(0,212,232,.4);
             transition: box-shadow .18s;
         }
+        /* message boxes sit inside a white card — no extra focus ring */
+        #chat-textarea:focus, #cp-textarea:focus, #tp-comment-text:focus, #nt-title-input:focus { box-shadow: none !important; outline: none !important; }
 
         /* ─── Layout skeleton ─── */
         #app-shell {
@@ -894,6 +896,7 @@ let _chatBaselineSet = false;
 let _allEmps   = [];
 let _pollTimer = null;
 let _lastMsgId = 0;
+let _chatConvType = '', _chatLastAuthor = 0;   // sender names are only shown in group chats
 const ME_ID = {{ auth()->id() }};
 
 /* ── Open / Close ── */
@@ -1216,6 +1219,7 @@ window.chatSelectConv = async function(id) {
 };
 
 function chatUpdateHeader(conv) {
+    _chatConvType = conv.type || '';
     const avatarEl = document.getElementById('chat-rh-avatar');
     const nameEl   = document.getElementById('chat-rh-name');
     const subEl    = document.getElementById('chat-rh-sub');
@@ -1275,9 +1279,10 @@ function chatRenderMsgs(msgs) {
             prevAuthorId = null;
         }
 
-        const showName = !m.isMine && prevAuthorId !== m.author.id;
+        const showName = _chatConvType !== 'direct' && !m.isMine && prevAuthorId !== m.author.id;
         html += chatBubble({isMine: m.isMine, name: m.author.name, avatar: m.author.avatar, text: m.text, time: m.time, showName, msgId: m.id, createdTs: m.createdTs||0, reactions: m.reactions, myReactions: m.myReactions});
         prevAuthorId = m.author.id;
+        _chatLastAuthor = m.author.id;
     });
 
     el.innerHTML = `<div id="chat-msg-inner" style="margin:auto auto 0;width:100%;max-width:900px;display:flex;flex-direction:column;gap:3px;">${html}</div>`;
@@ -1953,9 +1958,10 @@ function chatAppendMsgs(msgs) {
     msgs.forEach(m => {
         inner.insertAdjacentHTML('beforeend', chatBubble({
             isMine: m.isMine, name: m.author.name, avatar: m.author.avatar,
-            text: m.text, time: m.time, showName: !m.isMine, msgId: m.id, createdTs: m.createdTs||0,
+            text: m.text, time: m.time, showName: _chatConvType !== 'direct' && !m.isMine && _chatLastAuthor !== m.author.id, msgId: m.id, createdTs: m.createdTs||0,
             reactions: m.reactions, myReactions: m.myReactions,
         }));
+        _chatLastAuthor = m.author.id;
     });
     el.scrollTop = el.scrollHeight + 9999;
 }
