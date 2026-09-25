@@ -1166,6 +1166,7 @@ window.chatSelectConv = async function(id) {
     msgArea.style.display = 'flex';
     document.getElementById('chat-right-empty').style.display = 'none';
     document.getElementById('chat-right-head').style.display  = 'flex';
+    try { const _c0 = _allConvs.find(c => c.id === id); if (_c0) chatUpdateHeader(_c0); } catch(e) {}
     document.getElementById('chat-input-area').style.display  = 'block';
 
     try {
@@ -1209,15 +1210,16 @@ function chatUpdateHeader(conv) {
     } else {
         // Direct — find conv in list for avatar
         const c = _allConvs.find(x => x.id === conv.id);
-        if (c && c.avatar) {
-            avatarEl.innerHTML = `<img src="${c.avatar}" style="width:100%;height:100%;object-fit:cover;">`;
+        const _av = conv.avatar || (c && c.avatar);
+        if (_av) {
+            avatarEl.innerHTML = `<img src="${_av}" style="width:100%;height:100%;object-fit:cover;">`;
             avatarEl.style.background = 'transparent';
         } else {
             const initials = (conv.name||'?').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
             avatarEl.innerHTML = `<span style="font-size:13px;font-weight:700;color:#60a5fa;">${initials}</span>`;
             avatarEl.style.background = 'rgba(27,114,232,.2)';
         }
-        subEl.textContent = 'Direct message';
+        subEl.textContent = conv.position || (c && c.position) || 'Direct message';
         if (onlEl) onlEl.textContent = conv.online ? 'Online' : (conv.last_seen ? 'Last seen ' + conv.last_seen : 'Offline');
     }
 }

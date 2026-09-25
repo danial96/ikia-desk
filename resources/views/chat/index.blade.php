@@ -720,6 +720,7 @@ window.cpSelect = async function(id) {
     msgArea.innerHTML = '<div style="flex:1 0 auto;display:flex;align-items:center;justify-content:center;"><i class="fas fa-spinner fa-spin" style="font-size:22px;color:rgba(255,255,255,.3);"></i></div>';
     document.getElementById('cp-right-empty').style.display = 'none';
     document.getElementById('cp-right-head').style.display  = 'flex';
+    try { const _c0 = _cpAllConvs.find(c => c.id === id); if (_c0) cpUpdateHeader(_c0); } catch(e) {}
     msgArea.style.display        = 'flex';
     msgArea.style.flexDirection  = 'column';
     document.getElementById('cp-input-area').style.display  = 'block';
@@ -767,15 +768,16 @@ function cpUpdateHeader(conv) {
         subEl.innerHTML = conv.members + ' members';
     } else {
         const c = _cpAllConvs.find(x => x.id === conv.id);
-        if (c && c.avatar) {
-            avEl.innerHTML = `<img src="${c.avatar}" style="width:100%;height:100%;object-fit:cover;">`;
+        const _av = conv.avatar || (c && c.avatar);
+        if (_av) {
+            avEl.innerHTML = `<img src="${_av}" style="width:100%;height:100%;object-fit:cover;">`;
             avEl.style.background = 'transparent';
         } else {
             const ini = (conv.name||'?').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
             avEl.innerHTML = `<span style="font-size:14px;font-weight:700;color:#60a5fa;">${ini}</span>`;
             avEl.style.background = 'rgba(27,114,232,.2)';
         }
-        subEl.innerHTML = 'Direct message';
+        subEl.textContent = conv.position || (c && c.position) || 'Direct message';
         const onl = document.getElementById('cp-rh-online');
         if (onl) onl.textContent = conv.online ? 'Online' : (conv.last_seen ? 'Last seen ' + conv.last_seen : 'Offline');
     }
