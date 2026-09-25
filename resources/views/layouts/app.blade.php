@@ -2854,6 +2854,13 @@ document.addEventListener('load', function (e) {
     setInterval(update, 600);
 })();
 
+/* The chat column makes room for a side panel (docked, like Bitrix) instead of hiding under it */
+window.dockSidePanel = function (right, panel, on) {
+    if (on) { right.style.transition = 'padding-right .18s ease'; right.style.paddingRight = '380px'; return; }
+    const other = Array.from(right.querySelectorAll('[data-side-panel]')).some(p => p !== panel && p.style.display !== 'none');
+    if (!other) right.style.paddingRight = '';
+};
+
 /* ── In-chat search (Bitrix style): magnifier in the chat header → side panel with the matches ── */
 window.ChatSearch = (function () {
     const esc = s => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -2871,7 +2878,8 @@ window.ChatSearch = (function () {
         if (getComputedStyle(right).position === 'static') right.style.position = 'relative';
 
         const panel = document.createElement('div');
-        panel.style.cssText = 'display:none;position:absolute;top:0;right:0;bottom:0;width:380px;max-width:100%;background:#fff;z-index:30;box-shadow:-6px 0 24px rgba(0,0,0,.18);flex-direction:column;';
+        panel.setAttribute('data-side-panel', '1');
+        panel.style.cssText = 'display:none;position:absolute;top:0;right:0;bottom:0;width:380px;max-width:100%;background:#fff;z-index:30;border-left:1px solid #e3e8ea;flex-direction:column;';
         panel.innerHTML =
             '<div style="display:flex;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px solid #eef1f3;">' +
               '<button type="button" data-back title="Close search" style="background:none;border:none;color:#7d8790;font-size:18px;cursor:pointer;padding:4px 8px;"><i class="fas fa-chevron-left"></i></button>' +
@@ -2931,8 +2939,8 @@ window.ChatSearch = (function () {
         input.addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(run, 300); });
         input.addEventListener('keydown', e => { if (e.key === 'Enter') { clearTimeout(timer); run(); } if (e.key === 'Escape') close(); });
         clear.onclick = () => { input.value = ''; run(); input.focus(); };
-        function open() { panel.style.display = 'flex'; input.focus(); }
-        function close() { panel.style.display = 'none'; }
+        function open() { panel.style.display = 'flex'; dockSidePanel(right, panel, true); input.focus(); }
+        function close() { panel.style.display = 'none'; dockSidePanel(right, panel, false); }
         $('[data-back]').onclick = close;
 
         return { toggle: () => (panel.style.display === 'none' ? open() : close()), close, reset: () => { input.value = ''; empty('fa-search', 'This view will show found messages.'); close(); } };
@@ -2954,7 +2962,8 @@ window.ChatAbout = (function () {
         if (getComputedStyle(right).position === 'static') right.style.position = 'relative';
 
         const panel = document.createElement('div');
-        panel.style.cssText = 'display:none;position:absolute;top:0;right:0;bottom:0;width:380px;max-width:100%;background:#f2f5f6;z-index:30;box-shadow:-6px 0 24px rgba(0,0,0,.18);flex-direction:column;';
+        panel.setAttribute('data-side-panel', '1');
+        panel.style.cssText = 'display:none;position:absolute;top:0;right:0;bottom:0;width:380px;max-width:100%;background:#f2f5f6;z-index:30;border-left:1px solid #e3e8ea;flex-direction:column;';
         right.appendChild(panel);
         let data = null, view = 'main';
 
@@ -3008,13 +3017,13 @@ window.ChatAbout = (function () {
         function show(v) { view = v; ({ main, links: linksView, media: mediaView })[v](); }
 
         async function open() {
-            panel.style.display = 'flex';
+            panel.style.display = 'flex'; dockSidePanel(right, panel, true);
             panel.innerHTML = '<div style="padding:60px;text-align:center;color:#9aa5ad;"><i class="fas fa-spinner fa-spin"></i></div>';
             const id = cfg.convId(); if (!id) return;
             try { const r = await fetch(API_BASE + '/api/chat/convs/' + id + '/about'); data = await r.json(); show('main'); }
             catch (e) { wrap('About chat', '<div style="text-align:center;padding:60px;color:#a0aab1;">Could not load. Try again.</div>', false); }
         }
-        function close() { panel.style.display = 'none'; }
+        function close() { panel.style.display = 'none'; dockSidePanel(right, panel, false); }
         return { toggle: () => (panel.style.display === 'none' ? open() : close()), close, reset: close };
     }
     return { init };
