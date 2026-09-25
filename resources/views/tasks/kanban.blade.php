@@ -30,22 +30,22 @@
 
         {{-- Left arrow — pinned to the edge of the columns, vertically centered, light circle like Bitrix --}}
         <button id="kb-left"
-                style="position:absolute;left:30px;top:50%;transform:translateY(-50%);z-index:99;width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.55);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,.3);color:#64748b;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .2s,color .2s,opacity .2s;opacity:0;pointer-events:none;box-shadow:0 2px 12px rgba(0,0,0,.25);"
+                style="position:absolute;left:30px;top:50%;transform:translateY(-50%);z-index:99;width:52px;height:52px;border-radius:50%;background:rgba(255,255,255,.95);box-shadow:0 4px 16px rgba(0,0,0,.35);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);border:none;color:#1e293b;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .2s,color .2s,opacity .2s;opacity:0;pointer-events:none;box-shadow:0 2px 12px rgba(0,0,0,.25);"
                 onclick="document.getElementById('kb-scroll').scrollBy({left:-280,behavior:'smooth'})"
-                onmouseover="this.style.background='rgba(255,255,255,.8)';this.style.color='#1e293b'"
-                onmouseout="this.style.background='rgba(255,255,255,.55)';this.style.color='#64748b'">
-            <svg style="width:16px;height:16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                onmouseover="this.style.background='#fff';this.style.color='#0075fd'"
+                onmouseout="this.style.background='rgba(255,255,255,.95)';this.style.color='#1e293b'">
+            <svg style="width:24px;height:24px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/>
             </svg>
         </button>
 
         {{-- Right arrow — pinned to the edge of the columns, vertically centered, light circle like Bitrix --}}
         <button id="kb-right"
-                style="position:absolute;right:30px;top:50%;transform:translateY(-50%);z-index:99;width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.55);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,.3);color:#64748b;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .2s,color .2s,opacity .2s;box-shadow:0 2px 12px rgba(0,0,0,.25);"
+                style="position:absolute;right:30px;top:50%;transform:translateY(-50%);z-index:99;width:52px;height:52px;border-radius:50%;background:rgba(255,255,255,.95);box-shadow:0 4px 16px rgba(0,0,0,.35);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);border:none;color:#1e293b;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .2s,color .2s,opacity .2s;box-shadow:0 2px 12px rgba(0,0,0,.25);"
                 onclick="document.getElementById('kb-scroll').scrollBy({left:280,behavior:'smooth'})"
-                onmouseover="this.style.background='rgba(255,255,255,.8)';this.style.color='#1e293b'"
-                onmouseout="this.style.background='rgba(255,255,255,.55)';this.style.color='#64748b'">
-            <svg style="width:16px;height:16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                onmouseover="this.style.background='#fff';this.style.color='#0075fd'"
+                onmouseout="this.style.background='rgba(255,255,255,.95)';this.style.color='#1e293b'">
+            <svg style="width:24px;height:24px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/>
             </svg>
         </button>
