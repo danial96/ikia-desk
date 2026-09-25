@@ -150,7 +150,7 @@
 
             {{-- Messages --}}
             <div id="tp-messages"
-                 style="flex:1;overflow-y:auto;padding:14px max(18px,calc((100% - 760px)/2));display:flex;flex-direction:column;gap:8px;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.35) transparent;background:transparent;">
+                 style="flex:1;overflow-y:auto;padding:14px max(18px,calc((100% - 760px)/2)) 28px;display:flex;flex-direction:column;gap:8px;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.35) transparent;background:transparent;">
             </div>
 
             {{-- Comment footer --}}

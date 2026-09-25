@@ -77,7 +77,7 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
 
         {{-- Messages --}}
-        <div id="cp-msg-area" style="display:none;flex:1;overflow-y:auto;padding:20px 24px 12px;background:#5a9e96 url('{{ asset('pattern-chat-teal.svg') }}') center/cover no-repeat;flex-direction:column;"></div>
+        <div id="cp-msg-area" style="display:none;flex:1;overflow-y:auto;padding:20px 24px 28px;background:#5a9e96 url('{{ asset('pattern-chat-teal.svg') }}') center/cover no-repeat;flex-direction:column;"></div>
 
         {{-- Input --}}
         <div id="cp-input-area" style="display:none;padding:0 24px 22px;background:#5a9e96 url('{{ asset('pattern-chat-teal.svg') }}') center bottom/cover no-repeat;flex-shrink:0;">
@@ -557,7 +557,7 @@ function bubble(m) {
         const rxn = msgId ? reactionBadge(reactions, myReactions, msgId) : '';
         return `<div ${dataAttrs} class="cp-msg-outer" style="display:flex;justify-content:flex-end;align-items:center;gap:5px;margin-bottom:2px;">
             ${actions}
-            <div style="max-width:85%;">
+            <div style="max-width:85%;min-width:0;">
                 <div class="cp-bubble-bg" style="background:#e3f9c9;border-radius:14px 4px 14px 14px;padding:10px 14px 7px;cursor:default;">
                     <div data-msg-text data-raw="${esc(text)}" style="font-size:15.5px;color:#173a20;line-height:1.5;">${content}</div>
                     <div style="display:flex;align-items:center;justify-content:flex-end;gap:4px;margin-top:3px;">
@@ -577,7 +577,7 @@ function bubble(m) {
     const rxnOther = msgId ? reactionBadge(reactions, myReactions, msgId) : '';
     return `<div ${dataAttrs} class="cp-msg-outer" style="display:flex;align-items:center;gap:5px;margin-bottom:2px;${showName?'margin-top:6px':''}">
         ${av}
-        <div style="max-width:85%;">
+        <div style="max-width:85%;min-width:0;">
             ${nm}
             <div class="cp-bubble-bg" style="background:#ffffff;border-radius:4px 14px 14px 14px;padding:10px 14px 7px;cursor:default;">
                 <div data-msg-text data-raw="${esc(text)}" style="font-size:15.5px;color:#1e293b;line-height:1.5;">${content}</div>

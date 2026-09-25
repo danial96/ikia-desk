@@ -155,6 +155,9 @@
             transition: box-shadow .18s;
         }
 
+        /* long lines / code in a message wrap inside the bubble instead of running out of it */
+        #cp-msg-area, #chat-msg-area, #tp-messages { overflow-x: hidden; }
+        .cp-bubble-bg, .chat-bubble-bg, [data-msg-text] { overflow-wrap: anywhere; min-width: 0; }
         /* Chat scrollbars: wider + clearly visible on the teal wallpaper */
         #cp-msg-area, #chat-msg-area, #tp-messages { scrollbar-width: auto; scrollbar-color: rgba(255,255,255,.55) rgba(0,0,0,.12); }
         #cp-msg-area::-webkit-scrollbar, #chat-msg-area::-webkit-scrollbar, #tp-messages::-webkit-scrollbar { width: 12px !important; }
@@ -706,7 +709,7 @@
         </div>
 
         {{-- Messages --}}
-        <div id="chat-msg-area" style="flex:1;overflow-y:auto;padding:16px 24px 12px;display:none;flex-direction:column;gap:2px;background:#5a9e96 url('{{ asset('pattern-chat-teal.svg') }}') center/cover no-repeat;"></div>
+        <div id="chat-msg-area" style="flex:1;overflow-y:auto;padding:16px 24px 28px;display:none;flex-direction:column;gap:2px;background:#5a9e96 url('{{ asset('pattern-chat-teal.svg') }}') center/cover no-repeat;"></div>
 
         {{-- Input --}}
         <div id="chat-input-area" style="display:none;padding:0 24px 22px;background:#5a9e96 url('{{ asset('pattern-chat-teal.svg') }}') center bottom/cover no-repeat;flex-shrink:0;">
@@ -1374,7 +1377,7 @@ function chatBubble({isMine, name, avatar, text, time, showName=true, msgId=null
         const rxn = msgId ? chatRxnBadge(reactions, myReactions, msgId) : '';
         return `<div data-msg-id="${msgId||''}" data-mine="1" data-created-ts="${createdTs}" data-sender="You" class="chat-msg-outer" style="display:flex;justify-content:flex-end;align-items:center;gap:4px;margin-bottom:2px;">
             ${actions}
-            <div style="max-width:85%;">
+            <div style="max-width:85%;min-width:0;">
                 <div class="chat-bubble-bg" style="background:#e3f9c9;border-radius:14px 4px 14px 14px;padding:10px 14px 7px;">
                     <div data-raw="${rawEsc}" style="font-size:15.5px;color:#173a20;line-height:1.5;">${content}</div>
                     <div style="display:flex;align-items:center;justify-content:flex-end;gap:4px;margin-top:3px;">
@@ -1399,7 +1402,7 @@ function chatBubble({isMine, name, avatar, text, time, showName=true, msgId=null
         const rxnOther = msgId ? chatRxnBadge(reactions, myReactions, msgId) : '';
         return `<div data-msg-id="${msgId||''}" data-mine="0" data-created-ts="${createdTs}" data-sender="${escH(name)}" class="chat-msg-outer" style="display:flex;align-items:center;gap:4px;margin-bottom:2px;${showName?'margin-top:6px':''}">
             ${avatarHtml}
-            <div style="max-width:85%;">
+            <div style="max-width:85%;min-width:0;">
                 ${nameHtml}
                 <div class="chat-bubble-bg" style="background:#fff;border-radius:4px 14px 14px 14px;padding:10px 14px 7px;">
                     <div style="font-size:15.5px;color:#1e293b;line-height:1.5;">${content}</div>
