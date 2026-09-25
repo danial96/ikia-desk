@@ -216,6 +216,9 @@
                     {{-- Attachment preview strip (below description card) --}}
                     <div id="nt-desc-attachments"
                          style="display:none;flex-wrap:wrap;gap:8px;margin-top:10px;"></div>
+                </div>
+
+                <div class="nt-card">
                 <div class="nt-sec">
                     <div class="nt-lbl"><span>Task owner:</span></div>
                     <div class="nt-owner"><img src="{{ auth()->user()->avatar_url }}" alt=""><span>{{ auth()->user()->name }}</span></div>
@@ -345,9 +348,6 @@
                     </div>
                 </div>
 
-                </div>
-
-                <div class="nt-card">
                 {{-- Participants --}}
                 <div class="nt-sec" id="nt-row-participants" style="display:none;">
                     <div class="nt-lbl"><i class="fas fa-users"></i><span>Participants:</span></div>
