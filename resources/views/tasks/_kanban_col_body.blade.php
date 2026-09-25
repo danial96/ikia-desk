@@ -17,7 +17,7 @@
 
     @if($task->members->count())
     <div style="font-size:10.5px;color:#9aa0a6;line-height:1.3;margin-bottom:2px;">Participants</div>
-    <div style="font-size:11.5px;color:#2067b0;line-height:1.35;margin-bottom:8px;">{{ $task->members->pluck('name')->implode(', ') }}</div>
+    <div style="font-size:11.5px;font-weight:600;color:#2067b0;line-height:1.35;margin-bottom:8px;">{{ $task->members->pluck('name')->implode(', ') }}</div>
     @endif
 
     @if($thumbUrl)
@@ -32,21 +32,21 @@
 
     @php
         $dlInfo = $task->kanbanDeadline();
-        $pill = ['overdue' => ['#e0413a', '#e0413a', '#fdecea'], 'today' => ['#c9930a', '#f5dd8a', '#fff8dc'], 'normal' => ['#2067b0', '#2067b0', '#fff'], 'done' => ['#7d858c', '#d5d9dd', '#fff']];
+        $pill = ['overdue' => ['#e0413a', '#e0413a', '#fdecea'], 'today' => ['#e08a00', '#fde8c4', '#fde8c4'], 'normal' => ['#2067b0', '#2067b0', '#fff'], 'done' => ['#7d858c', '#d5d9dd', '#fff']];
     @endphp
     <div style="margin-bottom:8px;">
         @if($dlInfo)
         @php [$pc, $pb, $pg] = $pill[$dlInfo['kind']]; @endphp
-        <span style="display:inline-block;font-size:11.5px;color:{{ $pc }};border:1px solid {{ $pb }};background:{{ $pg }};border-radius:11px;padding:0 9px;line-height:20px;">{{ $dlInfo['label'] }}</span>
+        <span style="display:inline-block;font-size:11.5px;color:{{ $pc }};border:1px solid {{ $pb }};background:{{ $pg }};border-radius:12px;padding:0 10px;line-height:22px;">{{ $dlInfo['label'] }}</span>
         @else
-        <span style="display:inline-block;font-size:11.5px;color:#7d858c;border:1px solid #d5d9dd;border-radius:11px;padding:0 9px;line-height:20px;">No deadline</span>
+        <span style="display:inline-block;font-size:11.5px;color:#7d858c;border:1px solid #d5d9dd;border-radius:12px;padding:0 10px;line-height:22px;">No deadline</span>
         @endif
     </div>
 
     <div style="display:flex;align-items:center;gap:4px;">
-        @if($task->creator)<img src="{{ $task->creator->avatar_url }}" title="{{ $task->creator->name }}" alt="" style="width:20px;height:20px;border-radius:50%;object-fit:cover;">@endif
+        @if($task->creator)<img src="{{ $task->creator->avatar_url }}" title="{{ $task->creator->name }}" alt="" style="width:22px;height:22px;border-radius:50%;object-fit:cover;">@endif
         <i class="fas fa-chevron-right" style="font-size:8px;color:#c0c6cc;"></i>
-        @if($task->assignee)<img src="{{ $task->assignee->avatar_url }}" title="{{ $task->assignee->name }}" alt="" style="width:20px;height:20px;border-radius:50%;object-fit:cover;">@endif
+        @if($task->assignee)<img src="{{ $task->assignee->avatar_url }}" title="{{ $task->assignee->name }}" alt="" style="width:22px;height:22px;border-radius:50%;object-fit:cover;">@endif
     </div>
 </div>
 @empty

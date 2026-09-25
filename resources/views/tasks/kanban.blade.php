@@ -59,7 +59,7 @@
             #kb-scroll{padding-bottom:14px;-webkit-overflow-scrolling:touch;}
         }
         @media (max-width:640px){
-            #kb-scroll > div[style*="width:260px"]{width:82vw !important;}
+            #kb-scroll > div[style*="width:240px"]{width:82vw !important;}
         }
         .kb-drag-ghost { opacity:.4; background:#e0f7ff !important; border:2px dashed #00D4E8 !important; border-radius:10px; }
         .kb-drag-chosen { box-shadow:0 8px 24px rgba(0,212,232,.35) !important; transform:rotate(1.5deg) scale(1.02) !important; }
@@ -75,7 +75,7 @@
         </style>
         @foreach($colConfig as $key => $col)
         @php $tasks = $columns[$key] ?? collect(); @endphp
-        <div style="flex-shrink:0;width:260px;display:flex;flex-direction:column;">
+        <div style="flex-shrink:0;width:240px;display:flex;flex-direction:column;">
 
             {{-- Column header --}}
             <div style="background:{{ $col['bg'] }};border-radius:10px 10px 0 0;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;">
@@ -542,16 +542,16 @@ function kbRenderCard(t) {
         : '';
     const flame = t.hot ? ` <i class="fas fa-fire" style="color:#f5a623;font-size:11px;margin-left:3px;" title="High priority"></i>` : '';
     const parts = (t.members && t.members.length)
-        ? `<div style="font-size:10.5px;color:#9aa0a6;line-height:1.3;margin-bottom:2px;">Participants</div><div style="font-size:11.5px;color:#2067b0;line-height:1.35;margin-bottom:8px;">${kbH(t.members.join(', '))}</div>` : '';
+        ? `<div style="font-size:10.5px;color:#9aa0a6;line-height:1.3;margin-bottom:2px;">Participants</div><div style="font-size:11.5px;font-weight:600;color:#2067b0;line-height:1.35;margin-bottom:8px;">${kbH(t.members.join(', '))}</div>` : '';
     const thumb = t.cover_image
         ? `<div style="margin:2px 0 8px;overflow:hidden;border-radius:4px;background:#111;text-align:center;"><img src="${kbH(t.cover_image)}" loading="lazy" style="max-width:100%;max-height:120px;object-fit:contain;display:inline-block;" onerror="this.parentElement.style.display='none'"></div>` : '';
     const files = t.files_count
         ? `<div style="margin-bottom:8px;"><span style="display:inline-flex;align-items:center;gap:4px;font-size:10.5px;color:#9aa0a6;border:1px solid #e3e6e9;border-radius:9px;padding:0 6px;line-height:16px;"><i class="fas fa-paperclip" style="font-size:9px;"></i>${t.files_count}</span></div>` : '';
-    const pill = { overdue:['#e0413a','#e0413a','#fdecea'], today:['#c9930a','#f5dd8a','#fff8dc'], normal:['#2067b0','#2067b0','#fff'], done:['#7d858c','#d5d9dd','#fff'] };
+    const pill = { overdue:['#e0413a','#e0413a','#fdecea'], today:['#e08a00','#fde8c4','#fde8c4'], normal:['#2067b0','#2067b0','#fff'], done:['#7d858c','#d5d9dd','#fff'] };
     let dl;
-    if (t.dl) { const [c,bc,bg] = pill[t.dl.kind] || pill.normal; dl = `<span style="display:inline-block;font-size:11.5px;color:${c};border:1px solid ${bc};background:${bg};border-radius:11px;padding:0 9px;line-height:20px;">${kbH(t.dl.label)}</span>`; }
-    else dl = `<span style="display:inline-block;font-size:11.5px;color:#7d858c;border:1px solid #d5d9dd;border-radius:11px;padding:0 9px;line-height:20px;">No deadline</span>`;
-    const av = u => u ? `<img src="${kbH(u.avatar)}" title="${kbH(u.name)}" alt="" style="width:20px;height:20px;border-radius:50%;object-fit:cover;">` : '';
+    if (t.dl) { const [c,bc,bg] = pill[t.dl.kind] || pill.normal; dl = `<span style="display:inline-block;font-size:11.5px;color:${c};border:1px solid ${bc};background:${bg};border-radius:12px;padding:0 10px;line-height:22px;">${kbH(t.dl.label)}</span>`; }
+    else dl = `<span style="display:inline-block;font-size:11.5px;color:#7d858c;border:1px solid #d5d9dd;border-radius:12px;padding:0 10px;line-height:22px;">No deadline</span>`;
+    const av = u => u ? `<img src="${kbH(u.avatar)}" title="${kbH(u.name)}" alt="" style="width:22px;height:22px;border-radius:50%;object-fit:cover;">` : '';
 
     return `<div id="kb-task-${t.id}" data-task-id="${t.id}" data-can-move="${t.can_move ? '1' : '0'}" onclick="tpOpen('local',${t.id})"
         style="position:relative;background:#fff;border-radius:10px;padding:10px 12px 12px;cursor:pointer;transition:box-shadow .15s;box-shadow:0 1px 2px rgba(0,0,0,.12)${hasUnseen ? ';border-left:3px solid #ef4444' : ''};"
