@@ -2,7 +2,7 @@
     Shared task filter bar — include in both list and kanban views.
     Expects: $formAction (string URL), $activeView ('list'|'kanban'), $projects, $employees
 --}}
-<div style="background:rgba(255,255,255,.12);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.18);border-radius:14px;padding:10px 16px;margin-bottom:16px;">
+<div style="border:1px solid rgba(255,255,255,.18);border-radius:14px;padding:10px 16px;margin-bottom:16px;">
     <div style="display:flex;align-items:center;gap:10px;">
 
         {{-- View toggle --}}
