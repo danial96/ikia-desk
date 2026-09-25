@@ -2282,7 +2282,7 @@ window.clearAttachments = function(textareaId, previewId) {
     </button>
 
     <img id="img-lightbox-img" src="" alt=""
-         style="max-width:88vw;max-height:86vh;object-fit:contain;border-radius:10px;box-shadow:0 24px 64px rgba(0,0,0,.7);pointer-events:none;z-index:1;transition:opacity .12s ease;">
+         style="max-width:88vw;max-height:86vh;object-fit:contain;border-radius:10px;box-shadow:0 24px 64px rgba(0,0,0,.7);pointer-events:auto;z-index:1;transition:opacity .12s ease;">
 
     {{-- Next --}}
     <button id="lb-next" onclick="lbNav(1)"
@@ -2293,6 +2293,11 @@ window.clearAttachments = function(textareaId, previewId) {
 
     {{-- Counter --}}
     <div id="lb-counter" style="display:none;position:absolute;bottom:22px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.55);color:rgba(255,255,255,.8);font-size:12px;font-weight:600;padding:5px 16px;border-radius:20px;letter-spacing:.5px;white-space:nowrap;"></div>
+
+    {{-- Copy image --}}
+    <button onclick="lbCopy()" title="Copy image"
+            style="position:absolute;top:18px;right:118px;background:rgba(255,255,255,.12);border:none;color:#fff;width:38px;height:38px;border-radius:50%;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;"
+            onmouseover="this.style.background='rgba(255,255,255,.24)'" onmouseout="this.style.background='rgba(255,255,255,.12)'"><i class="far fa-copy"></i></button>
 
     {{-- Download --}}
     <button onclick="lbDownload()"
@@ -2343,6 +2348,21 @@ function _lbRefresh(animate) {
     ctr.textContent    = (_igCurIdx + 1) + ' / ' + urls.length;
 }
 
+window.lbCopy = async function () {
+    const img = document.getElementById('img-lightbox-img');
+    if (!img || !img.src) return;
+    try {
+        // Clipboard only takes PNG: draw the picture on a canvas first
+        const blob = await new Promise(function (resolve, reject) {
+            const c = document.createElement('canvas');
+            const i2 = new Image(); i2.crossOrigin = 'anonymous';
+            i2.onload = function () { c.width = i2.naturalWidth; c.height = i2.naturalHeight; c.getContext('2d').drawImage(i2, 0, 0); c.toBlob(function (b) { b ? resolve(b) : reject(); }, 'image/png'); };
+            i2.onerror = reject; i2.src = img.src;
+        });
+        await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+        if (window.showToast) showToast('Image copied.', 'success');
+    } catch (e) { if (window.showToast) showToast('Could not copy the image — right-click it and choose "Copy image".'); }
+};
 window.imgLightbox = function(key, idx) {
     _igCurKey = key;
     _igCurIdx = idx || 0;
