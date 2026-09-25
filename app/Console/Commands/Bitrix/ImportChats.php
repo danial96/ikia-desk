@@ -14,7 +14,7 @@ class ImportChats extends BitrixCommand
                             {--webhook= : Use a custom webhook URL instead of BITRIX_WEBHOOK env}
                             {--offset=0 : Skip the first N chats in the recent list}
                             {--skip-with-messages : Skip importMessages for convs that already have messages}
-                            {--only-notes : Import only the webhook user's own "Notes" (saved messages) chat}
+                            {--only-notes : Import only the webhook user own Notes (saved messages) chat}
                             {--incremental : Read each chat newest-first and stop once a whole page is already imported (much faster than re-reading the full history of every chat)}';
 
     protected $description = 'Import Bitrix24 direct and group chats into the local messenger';
