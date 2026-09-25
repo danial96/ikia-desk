@@ -249,10 +249,11 @@ document.addEventListener('DOMContentLoaded', function() {
 document.addEventListener('DOMContentLoaded', function() {
     const editBar = document.createElement('div');
     editBar.id = 'cp-edit-bar';
-    editBar.style.cssText = 'display:none;align-items:center;gap:8px;padding:6px 16px 4px;background:rgba(0,212,232,.08);border-top:1px solid rgba(0,212,232,.2);';
-    editBar.innerHTML = '<i class="fas fa-pen" style="font-size:11px;color:#00D4E8;"></i><span style="flex:1;color:rgba(255,255,255,.6);font-size:12px;">Editing message</span><button onclick="cpCancelEdit()" style="background:none;border:none;color:rgba(255,255,255,.4);cursor:pointer;font-size:13px;padding:2px 6px;"><i class="fas fa-times"></i></button>';
+    editBar.style.cssText = 'display:none;align-items:center;gap:10px;padding:9px 14px;margin-bottom:8px;background:#fff;border-radius:10px;border-left:4px solid #20a0e0;box-shadow:0 1px 3px rgba(0,0,0,.12);';
+    editBar.innerHTML = '<i class="fas fa-pen" style="font-size:13px;color:#20a0e0;"></i><span style="flex:1;min-width:0;"><span style="display:block;font-size:12.5px;font-weight:600;color:#20a0e0;">Editing message</span><span id="cp-edit-snip" style="display:block;font-size:13px;color:#6b7680;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span></span><button type="button" onclick="cpCancelEdit()" title="Cancel" style="background:none;border:none;color:#9aa5ad;font-size:20px;cursor:pointer;line-height:1;">&times;</button>';
     const inputArea = document.getElementById('cp-input-area');
-    inputArea.insertBefore(editBar, inputArea.firstChild);
+    const _wrap = inputArea.firstElementChild || inputArea;
+    _wrap.insertBefore(editBar, _wrap.firstChild);
 
 });
 </script>
@@ -328,6 +329,7 @@ function cpHideCtx() {
 }
 function cpShowCtxAt(btn, msgId, isMine, canEdit) {
     cpHideCtx();
+    { const _r = document.querySelector(`[data-msg-id="${msgId}"] [data-msg-text]`); const raw = _r ? (_r.dataset.raw || '') : ''; if (/\[(img|file|voice)/i.test(raw)) canEdit = false; }
     _ctxMsgId = msgId;
     _ctxIsMine = isMine;
 
@@ -389,6 +391,7 @@ document.addEventListener('DOMContentLoaded', function() {
             ta.value = textEl ? textEl.dataset.raw || '' : '';
             ta.focus();
             document.getElementById('cp-edit-bar').style.display = 'flex';
+            const _sn = document.getElementById('cp-edit-snip'); if (_sn) _sn.textContent = (ta.value || '').replace(/\s+/g, ' ').slice(0, 120);
         } else if (action === 'reply') {
             const row = document.querySelector(`[data-msg-id="${msgId}"]`);
             if (!row) return;
@@ -486,14 +489,18 @@ window.cpAskDelete = function(msgId) {
     document.getElementById('cp-del-cancel').onclick   = () => { dlg.style.display='none'; };
 };
 async function cpDoDelete(msgId, scope) {
-    await fetch(API_BASE + '/api/chat/msgs/' + msgId + '?scope=' + scope, {
-        method:'DELETE', headers:{'X-CSRF-TOKEN':CSRF,'Accept':'application/json'}
-    });
-    if (_cpActiveConvId) {
-        const r = await fetch(API_BASE + '/api/chat/convs/' + _cpActiveConvId + '/msgs');
-        const d = await r.json();
-        cpRenderMsgs(d.messages || [], false);
-    }
+    const row = document.querySelector(`[data-msg-id="${msgId}"]`);
+    if (row) row.style.opacity = '.35';
+    let ok = false;
+    try {
+        const r = await fetch(API_BASE + '/api/chat/msgs/' + msgId + '?scope=' + scope, {
+            method:'DELETE', headers:{'X-CSRF-TOKEN':CSRF,'Accept':'application/json'}
+        });
+        ok = r.ok;
+    } catch (e) {}
+    if (!ok) { if (row) row.style.opacity = ''; if (window.showToast) showToast('Could not delete the message.'); return; }
+    if (row) row.remove();
+    cpLoad();
 }
 
 function renderContent(text, isMine) {
@@ -868,15 +875,22 @@ window.cpSend = async function() {
     // Handle edit mode
     if (_editingMsgId) {
         if (!text) return;
+        const _id = _editingMsgId;
         cpCancelEdit();
-        await fetch(API_BASE + '/api/chat/msgs/' + _editingMsgId, {
+        const _r = await fetch(API_BASE + '/api/chat/msgs/' + _id, {
             method:'PATCH',
             headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF},
             body: JSON.stringify({content:text}),
         });
-        const r = await fetch(API_BASE + '/api/chat/convs/' + _cpActiveConvId + '/msgs');
-        const d = await r.json();
-        cpRenderMsgs(d.messages||[], false);
+        if (!_r.ok) { if (window.showToast) showToast('Could not edit the message.'); return; }
+        const _row = document.querySelector(`[data-msg-id="${_id}"]`);
+        const _t = _row && _row.querySelector('[data-msg-text]');
+        if (_t) {
+            _t.dataset.raw = text;
+            _t.innerHTML = renderContent(text, true);
+            const _meta = _t.nextElementSibling;
+            if (_meta && !_meta.querySelector('.cp-edited')) _meta.insertAdjacentHTML('afterbegin', '<span class="cp-edited" style="font-size:11px;color:rgba(0,0,0,.4);margin-right:4px;font-style:italic;">edited</span>');
+        }
         return;
     }
 

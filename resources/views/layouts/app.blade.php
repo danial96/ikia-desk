@@ -1447,7 +1447,8 @@ window.chatDotsClick = function(e, btn, msgId, isMine, createdTs) {
     e.stopPropagation();
     _chatCtxMsgId = msgId;
     _chatCtxIsMine = isMine;
-    const canEdit = isMine && (Date.now()/1000 - createdTs) < 86400;
+    let canEdit = isMine && (Date.now()/1000 - createdTs) < 86400;
+    { const _r = document.querySelector(`[data-msg-id="${msgId}"] [data-raw]`); const raw = _r ? (_r.dataset.raw || '') : ''; if (/\[(img|file|voice)/i.test(raw)) canEdit = false; }
     const menu = document.getElementById('chat-msg-ctx');
     menu.innerHTML =
         `<div class="chat-ctx-item" onclick="chatCtxReply()"><span>Reply</span><i class="fas fa-quote-right"></i></div>` +
@@ -1536,44 +1537,46 @@ window.chatCtxTask = function() {
     const raw = row ? (row.querySelector('[data-raw]')?.dataset.raw || '') : '';
     MsgUX.task(raw);
 };
+let _chatEditingId = null;
 window.chatCtxEdit = function() {
     document.getElementById('chat-msg-ctx').style.display = 'none';
     if (!_chatCtxMsgId || !_chatCtxIsMine) return;
     const row = document.querySelector(`[data-msg-id="${_chatCtxMsgId}"]`);
-    if (!row) return;
-    const bubble = row.querySelector('.chat-bubble-bg');
-    const textDiv = row.querySelector('[data-raw]');
-    const raw = textDiv ? textDiv.dataset.raw : '';
-    bubble.innerHTML = `
-        <div style="display:flex;flex-direction:column;gap:6px;">
-            <textarea id="chat-edit-ta" style="width:100%;min-width:180px;padding:6px 8px;border:1px solid #0891b2;border-radius:8px;font-size:13px;color:#1e293b;background:#fff;resize:none;outline:none;line-height:1.5;" rows="3">${raw.replace(/</g,'&lt;')}</textarea>
-            <div style="display:flex;gap:6px;justify-content:flex-end;">
-                <button onclick="chatCancelEdit()" style="padding:4px 12px;border-radius:6px;border:1px solid #cbd5e1;background:#fff;color:#64748b;font-size:12px;cursor:pointer;">Cancel</button>
-                <button onclick="chatSaveEdit()" style="padding:4px 12px;border-radius:6px;border:none;background:#0891b2;color:#fff;font-size:12px;cursor:pointer;">Save</button>
-            </div>
-        </div>`;
-    const ta = document.getElementById('chat-edit-ta');
-    ta.focus();
-    ta.selectionStart = ta.selectionEnd = ta.value.length;
+    const raw = row ? (row.querySelector('[data-raw]')?.dataset.raw || '') : '';
+    if (!raw || /\[(img|file|voice)/i.test(raw)) return;
+    _chatEditingId = _chatCtxMsgId;
+    const ta = document.getElementById('chat-textarea');
+    ta.value = raw;
+    let bar = document.getElementById('chat-edit-bar');
+    if (!bar) {
+        bar = document.createElement('div');
+        bar.id = 'chat-edit-bar';
+        bar.style.cssText = 'display:none;align-items:center;gap:10px;padding:9px 14px;margin-bottom:8px;background:#fff;border-radius:10px;border-left:4px solid #20a0e0;box-shadow:0 1px 3px rgba(0,0,0,.12);';
+        bar.innerHTML = '<i class="fas fa-pen" style="font-size:13px;color:#20a0e0;"></i><span style="flex:1;min-width:0;"><span style="display:block;font-size:12.5px;font-weight:600;color:#20a0e0;">Editing message</span><span id="chat-edit-snip" style="display:block;font-size:13px;color:#6b7680;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span></span><button type="button" onclick="chatCancelEdit()" title="Cancel" style="background:none;border:none;color:#9aa5ad;font-size:20px;cursor:pointer;line-height:1;">&times;</button>';
+        const area = document.getElementById('chat-input-area');
+        const wrap = area.firstElementChild || area;
+        wrap.insertBefore(bar, wrap.firstChild);
+    }
+    bar.style.display = 'flex';
+    document.getElementById('chat-edit-snip').textContent = raw.replace(/\s+/g, ' ').slice(0, 120);
+    ta.focus(); ta.selectionStart = ta.selectionEnd = ta.value.length;
 };
-window.chatCancelEdit = function() { if (_activeConvId) chatSelectConv(_activeConvId); };
-window.chatSaveEdit = async function() {
-    const ta = document.getElementById('chat-edit-ta');
-    const newText = ta ? ta.value.trim() : '';
-    if (!newText) return;
-    const r = await fetch(API_BASE + '/api/chat/msgs/' + _chatCtxMsgId, {
-        method:'PATCH', headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF},
-        body: JSON.stringify({content: newText})
-    });
-    if (!r.ok) { const e = await r.json().catch(()=>({})); showToast((e&&e.error)||'Edit failed'); return; }
-    if (_activeConvId) chatSelectConv(_activeConvId);
+window.chatCancelEdit = function() {
+    _chatEditingId = null;
+    const ta = document.getElementById('chat-textarea'); if (ta) ta.value = '';
+    const bar = document.getElementById('chat-edit-bar'); if (bar) bar.style.display = 'none';
 };
+document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && _chatEditingId) chatCancelEdit(); });
 window.chatCtxDelete = async function() {
     document.getElementById('chat-msg-ctx').style.display = 'none';
     if (!_chatCtxMsgId) return;
-    await fetch(API_BASE + '/api/chat/msgs/' + _chatCtxMsgId, {
-        method:'DELETE', headers:{'X-CSRF-TOKEN':CSRF}
-    });
+    const id = _chatCtxMsgId;
+    const row = document.querySelector(`[data-msg-id="${id}"]`);
+    if (row) row.style.opacity = '.35';
+    let ok = false;
+    try { const r = await fetch(API_BASE + '/api/chat/msgs/' + id, { method:'DELETE', headers:{'X-CSRF-TOKEN':CSRF,'Accept':'application/json'} }); ok = r.ok; } catch (e) {}
+    if (!ok) { if (row) row.style.opacity = ''; if (window.showToast) showToast('Could not delete the message.'); return; }
+    if (row) row.remove();
     chatLoadConvs();
 };
 document.addEventListener('click', function(e) {
@@ -1594,6 +1597,24 @@ window.chatSend = async function() {
     const text = ta.value.trim();
     const mentions = window._mentionCollect ? window._mentionCollect('chat-textarea') : [];
     const attachTags = window.getAttachmentTags ? window.getAttachmentTags('chat-textarea') : '';
+
+    if (_chatEditingId) {
+        if (!text) return;
+        const id = _chatEditingId;
+        chatCancelEdit();
+        const r = await fetch(API_BASE + '/api/chat/msgs/' + id, { method:'PATCH', headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF,'Accept':'application/json'}, body: JSON.stringify({content: text}) });
+        if (!r.ok) { if (window.showToast) showToast('Could not edit the message.'); return; }
+        const row = document.querySelector(`[data-msg-id="${id}"]`);
+        const t = row && row.querySelector('[data-raw]');
+        if (t) {
+            t.dataset.raw = text;
+            t.innerHTML = renderMsgContent(text, true);
+            const meta = t.nextElementSibling;
+            if (meta && !meta.querySelector('.chat-edited')) meta.insertAdjacentHTML('afterbegin', '<span class="chat-edited" style="font-size:11px;color:rgba(0,0,0,.4);margin-right:4px;font-style:italic;">edited</span>');
+        }
+        return;
+    }
+
     if (!text && !attachTags) return;
 
     ta.value = '';
