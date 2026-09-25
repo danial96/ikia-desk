@@ -69,6 +69,9 @@
 .tp-btn-ghost { background:#fff; border:1px solid #d8dde1; color:#333; font-weight:500; }
 .tp-btn-ghost:hover { background:#f4f6f7; }
 
+.tp-side-btn{width:58px;height:34px;border-radius:17px;background:#2b8fd6;border:none;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:flex-start;padding-left:14px;font-size:14px;box-shadow:0 2px 8px rgba(0,0,0,.25);transition:background .15s;}
+.tp-side-btn:hover{background:#1f7dc0;}
+
 /* Phones/tablets: stack the two columns so the 660px detail column fits */
 @media (max-width:768px){
     #tp-panel{ left:0 !important; top:46px !important; flex-direction:column !important; overflow-y:auto !important; border-radius:0 !important; }
@@ -82,12 +85,13 @@
 <div id="tp-overlay"
      style="display:none;opacity:0;position:fixed;inset:0;z-index:3000;background:rgba(15,23,42,.55);backdrop-filter:blur(4px);overflow:hidden;">
 
-    {{-- Close button — floats in the left gap (outside panel) --}}
-    <button onclick="tpClose()"
-            style="position:absolute;left:8px;top:8px;width:42px;height:42px;border-radius:50%;background:#0ea5e9;border:none;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(14,165,233,.4);transition:background .15s;z-index:10;"
-            onmouseover="this.style.background='#0284c7'" onmouseout="this.style.background='#0ea5e9'">
-        <i class="fas fa-times" style="font-size:14px;"></i>
-    </button>
+    {{-- Side action pills (Bitrix style) — tucked half under the panel edge --}}
+    <div id="tp-side-actions" style="position:absolute;left:14px;top:10px;z-index:10;display:flex;flex-direction:column;gap:10px;">
+        <button class="tp-side-btn" onclick="tpClose()" title="Close"><i class="fas fa-times"></i></button>
+        <button class="tp-side-btn" onclick="tpSideCopyLink()" title="Copy link"><i class="fas fa-link"></i></button>
+        <button class="tp-side-btn" onclick="tpSideOpenFull()" title="Open as full page"><i class="fas fa-arrow-down" style="transform:rotate(-45deg);"></i></button>
+        <button class="tp-side-btn" onclick="tpSideOpenTab()" title="Open in new tab"><i class="far fa-window-restore"></i></button>
+    </div>
 
     {{-- Two-column panel --}}
     <div id="tp-panel"
@@ -594,6 +598,16 @@ window.tpOpen = function(type, id) {
         }
     }
 };
+
+window.tpSideUrl = function(){ return location.origin + location.pathname + '?task=' + _currentTaskId + (_currentTaskType==='b24' ? '&src=b24' : ''); };
+window.tpSideCopyLink = function(){
+    const u = tpSideUrl();
+    const done = () => (window.showToast ? showToast('Link copied', 'success') : null);
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(u).then(done, ()=>{});
+    else { const t=document.createElement('textarea'); t.value=u; document.body.appendChild(t); t.select(); try{document.execCommand('copy'); done();}catch(e){} t.remove(); }
+};
+window.tpSideOpenFull = function(){ if (_currentTaskType==='local') location.href = '/tasks/' + _currentTaskId; else window.open(tpSideUrl(), '_self'); };
+window.tpSideOpenTab = function(){ window.open(tpSideUrl(), '_blank', 'noopener'); };
 
 window.tpClose = function(updateUrl=true) {
     tpStopChatPoll();
