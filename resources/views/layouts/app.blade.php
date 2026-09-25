@@ -184,41 +184,32 @@
             border-bottom: 1px solid rgba(255,255,255,0.06);
         }
 
-        .nav-section {
-            font-size: 9.5px;
-            font-weight: 700;
-            letter-spacing: .1em;
-            text-transform: uppercase;
-            color: rgba(255,255,255,.35);
-            padding: 14px 16px 4px;
-        }
+        /* Bitrix-style menu: no section headings, roomy rows, soft translucent active pill */
+        .nav-section { display: none; }
 
         .nav-link {
             display: flex;
             align-items: center;
-            gap: 9px;
-            padding: 8px 12px;
-            margin: 1px 6px;
-            border-radius: 8px;
-            color: rgba(255,255,255,.85);
-            font-size: 13px;
-            font-weight: 500;
+            gap: 14px;
+            padding: 10px 14px;
+            margin: 2px 10px;
+            border-radius: 10px;
+            color: #fff;
+            font-size: 15px;
+            font-weight: 400;
             text-decoration: none;
-            transition: background .15s, color .15s;
+            transition: background .15s;
             cursor: pointer;
         }
-        .nav-link:hover {
-            background: rgba(255,255,255,.08);
-            color: rgba(255,255,255,.9);
-        }
+        .nav-link:hover { background: rgba(255,255,255,.12); color: #fff; }
         .nav-link.active {
-            background: rgba(0,212,232,.12);
-            color: #00D4E8;
-            border-left: 2px solid #00D4E8;
-            margin-left: 6px;
-            padding-left: 10px;
+            background: rgba(255,255,255,.26);
+            color: #fff;
+            border-left: none;
+            margin-left: 10px;
+            padding-left: 14px;
         }
-        .nav-link svg { width: 16px; height: 16px; flex-shrink: 0; }
+        .nav-link svg { width: 22px; height: 22px; flex-shrink: 0; stroke-width: 1.5; opacity: .92; }
 
         /* ─── RIGHT USER PANEL ─── */
         #right-panel {
@@ -285,9 +276,8 @@
             #main-content.sidebar-collapsed { margin-left: 64px; }
             #sidebar.hidden-sidebar .sidebar-logo { padding: 14px 0 12px; display:flex; justify-content:center; }
             #sidebar.hidden-sidebar .sidebar-logo img { width: 34px; height: 34px; object-fit: cover; object-position: left center; }
-            #sidebar.hidden-sidebar .nav-section { font-size: 0; height: 1px; padding: 0; margin: 10px 14px; background: rgba(255,255,255,.08); }
-            #sidebar.hidden-sidebar .nav-link { font-size: 0; gap: 0; justify-content: center; padding: 10px 0; margin: 2px 8px; }
-            #sidebar.hidden-sidebar .nav-link.active { padding-left: 0; border-left: none; }
+                        #sidebar.hidden-sidebar .nav-link { font-size: 0; gap: 0; justify-content: center; padding: 10px 0; margin: 2px 8px; }
+            #sidebar.hidden-sidebar .nav-link.active { padding-left: 0; }
             #sidebar.hidden-sidebar .nav-link svg { width: 20px; height: 20px; }
             #sidebar.hidden-sidebar .sb-user { padding: 12px 0 !important; }
             #sidebar.hidden-sidebar .sb-user > div { justify-content: center; }
