@@ -170,6 +170,58 @@ Route::middleware('auth')->group(function () {
         ]);
     })->name('api.local.task');
 
+    // ── "Download all": several attachments as one .zip ──
+    $zipOut = function (array $files, string $zipName) {
+        // $files: list of [display name, absolute path]; names are made unique inside the archive
+        if (!$files) abort(404, 'Nothing to download.');
+        $total = array_sum(array_map(fn($f) => (int) @filesize($f[1]), $files));
+        if ($total > 600 * 1024 * 1024) abort(413, 'These files are too large to zip together.');
+        $tmp = tempnam(sys_get_temp_dir(), 'dz');
+        $zip = new \ZipArchive();
+        if ($zip->open($tmp, \ZipArchive::OVERWRITE) !== true) abort(500, 'Could not create the zip.');
+        $used = [];
+        foreach ($files as [$name, $path]) {
+            $name = preg_replace('/[\\\\\/:*?"<>|\x00-\x1f]/', '_', (string) $name) ?: 'file';
+            $base = pathinfo($name, PATHINFO_FILENAME); $ext = pathinfo($name, PATHINFO_EXTENSION);
+            $final = $name; $i = 1;
+            while (isset($used[strtolower($final)])) { $final = $base . ' (' . $i++ . ')' . ($ext !== '' ? '.' . $ext : ''); }
+            $used[strtolower($final)] = true;
+            $zip->addFile($path, $final);
+            $zip->setCompressionName($final, \ZipArchive::CM_STORE);      // photos/PDFs are already compressed — store, don't waste CPU
+        }
+        $zip->close();
+        return response()->download($tmp, preg_replace('/[^A-Za-z0-9._ -]/', '_', $zipName) . '.zip', ['Content-Type' => 'application/zip'])->deleteFileAfterSend(true);
+    };
+
+    // every file attached to a task (the ones shown in its "Files" card)
+    Route::get('/api/local-task/{id}/files-zip', function ($id) use ($zipOut) {
+        $task = \App\Models\Task::with(['comments', 'files'])->findOrFail($id);
+        if (!\App\Models\Task::visibleTo(auth()->user())->whereKey($task->id)->exists()) abort(403);
+        $commentFileIds = $task->comments->flatMap(fn($c) => $c->files ?? [])->unique()->all();
+
+        $files = [];
+        foreach ($task->files->reject(fn($f) => in_array($f->id, $commentFileIds)) as $f) {
+            $rel = preg_replace('#^(?:.*?/)?uploads/#', '', (string) $f->disk_path);
+            $abs = $rel !== '' ? \App\Support\Uploads::resolve($rel) : null;
+            if ($abs) $files[] = [$f->name ?: basename($abs), $abs];
+        }
+        return $zipOut($files, 'Task ' . $task->id . ' files');
+    })->name('api.local.task.files.zip');
+
+    // any list of uploaded files (used for the attachments of one comment / message)
+    Route::post('/api/download-zip', function (\Illuminate\Http\Request $request) use ($zipOut) {
+        $request->validate(['urls' => 'required|array|min:1|max:200', 'urls.*' => 'string|max:500', 'name' => 'nullable|string|max:80']);
+        $files = [];
+        foreach ($request->input('urls') as $u) {
+            if (!preg_match('#/uploads/(.+)$#', parse_url($u, PHP_URL_PATH) ?: $u, $m)) continue;
+            $abs = \App\Support\Uploads::resolve(rawurldecode($m[1]));
+            if (!$abs) continue;
+            // drop the import prefixes (chat_123_, tatt_456_ …) so people get the original file name
+            $files[] = [preg_replace('/^(?:chat|tatt|tdirect|disk)_\d+_/', '', basename($abs)), $abs];
+        }
+        return $zipOut($files, $request->input('name') ?: 'attachments');
+    })->name('api.download.zip');
+
     // ── Serve uploaded/imported files (private storage, auth required) ──
     Route::get('/uploads/{path}', function ($path) {
         $full = \App\Support\Uploads::resolve($path);

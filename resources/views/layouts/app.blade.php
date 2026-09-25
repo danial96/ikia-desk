@@ -1412,6 +1412,7 @@ function chatBubble({isMine, name, avatar, text, time, showName=true, msgId=null
                         <i class="fas fa-check-double" style="font-size:9px;color:rgba(0,120,80,.5);"></i>
                     </div>
                 </div>
+                ${MsgUX.dlAllHtml(text)}
                 ${rxn}
             </div>
         </div>`;
@@ -1435,6 +1436,7 @@ function chatBubble({isMine, name, avatar, text, time, showName=true, msgId=null
                     <div style="font-size:15.5px;color:#1e293b;line-height:1.5;">${content}</div>
                     <span style="font-size:11.5px;color:rgba(0,0,0,.4);display:block;margin-top:3px;text-align:right;">${time}</span>
                 </div>
+                ${MsgUX.dlAllHtml(text)}
                 ${rxnOther}
             </div>
             ${actionsOther}
@@ -3208,7 +3210,31 @@ window.MsgUX = (function () {
         setTimeout(() => { const t = document.getElementById('nt-title-input'), d = document.getElementById('nt-desc-ta'); if (t) t.value = title; if (d) d.value = desc; if (window.ntSaveDraft) ntSaveDraft(); }, 120);
     }
 
-    return { pills, pick, openPicker, forward, task, fillTask };
+    // ── "Download all" for several attachments of one comment / message ──
+    const upl = raw => { const out = []; String(raw || '').replace(/\[img\](.*?)\[\/img\]/gs, (m, u) => out.push(u)); String(raw || '').replace(/\[file name="[^"]*"\](.*?)\[\/file\]/gs, (m, u) => out.push(u)); return out.filter(u => /\/uploads\//.test(u)); };
+    function postZip(urls, name) {
+        const f = document.createElement('form');
+        f.method = 'POST'; f.action = '/api/download-zip'; f.style.display = 'none';
+        const add = (k, v) => { const i = document.createElement('input'); i.type = 'hidden'; i.name = k; i.value = v; f.appendChild(i); };
+        add('_token', (document.querySelector('meta[name="csrf-token"]') || {}).content || '');
+        add('name', name || 'attachments');
+        urls.forEach(u => add('urls[]', u));
+        document.body.appendChild(f); f.submit(); setTimeout(() => f.remove(), 3000);
+    }
+    const linkStyle = 'display:inline-flex;align-items:center;gap:6px;margin-top:6px;font-size:12.5px;color:#1a6fa8;text-decoration:none;cursor:pointer;font-weight:500;';
+    // from message text (tags) — returns '' when there are fewer than two attachments
+    function dlAllHtml(raw) {
+        const urls = upl(raw); if (urls.length < 2) return '';
+        return '<a href="#" onclick="MsgUX.downloadAll(this);return false;" data-urls="' + esc(JSON.stringify(urls)) + '" style="' + linkStyle + '"><i class="fas fa-file-zipper"></i>Download all (' + urls.length + ')</a>';
+    }
+    // from a list of file objects ({downloadUrl}) — used by task comments
+    function dlAllFiles(files) {
+        const urls = (files || []).map(f => f.downloadUrl || f.url).filter(u => u && /\/uploads\//.test(u)); if (urls.length < 2) return '';
+        return '<a href="#" onclick="MsgUX.downloadAll(this);return false;" data-urls="' + esc(JSON.stringify(urls)) + '" style="' + linkStyle + '"><i class="fas fa-file-zipper"></i>Download all (' + urls.length + ')</a>';
+    }
+    function downloadAll(el) { try { postZip(JSON.parse(el.dataset.urls), 'attachments'); } catch (e) {} }
+
+    return { pills, pick, openPicker, forward, task, fillTask, dlAllHtml, dlAllFiles, downloadAll };
 })();
 
 /* ── CSRF self-healing: a stale token (login in another tab, long-idle tab) no longer breaks actions ── */

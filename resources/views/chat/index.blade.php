@@ -575,6 +575,7 @@ function bubble(m) {
                         <i class="fas fa-check-double" style="font-size:9px;color:rgba(0,140,90,.6);"></i>
                     </div>
                 </div>
+                ${MsgUX.dlAllHtml(text)}
                 ${rxn}
             </div>
         </div>`;
@@ -595,6 +596,7 @@ function bubble(m) {
                     ${editedHtmlOther}<span style="font-size:11.5px;color:rgba(0,0,0,.4);">${time}</span>
                 </div>
             </div>
+            ${MsgUX.dlAllHtml(text)}
             ${rxnOther}
         </div>
         ${actions}

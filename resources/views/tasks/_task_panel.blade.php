@@ -486,7 +486,7 @@ const chatDayLabel = v => {
 const chatDivider = iso => `<div style="display:flex;align-items:center;justify-content:center;margin:12px 0 8px;"><span style="background:#538b7f;color:#fff;font-size:13px;font-weight:600;padding:3px 14px;border-radius:12px;">${chatDayLabel(iso)}</span></div>`;
 
 /* build a chat bubble — isMine = right green, else left white */
-const chatBubble = ({isMine, name, nameColor, text, time, showName=true, isSystem=false, files=[]}) => {
+const chatBubble = ({isMine, name, nameColor, text, time, showName=true, isSystem=false, files=[], raw=''}) => {
     if(isSystem) return `
         <div style="display:flex;justify-content:center;margin:5px 0;">
             <div style="max-width:90%;text-align:center;line-height:1.45;background:rgba(255,255,255,.34);border-radius:10px;padding:6px 14px;">
@@ -522,6 +522,7 @@ const chatBubble = ({isMine, name, nameColor, text, time, showName=true, isSyste
                 ${nameHtml}
                 ${text ? `<div style="color:${tc};font-size:15.5px;line-height:1.5;word-break:break-word;">${text}</div>` : ''}
                 ${filesHtml}
+                ${window.MsgUX ? (MsgUX.dlAllFiles(files) || MsgUX.dlAllHtml(raw)) : ''}
                 <div style="text-align:right;margin-top:3px;">
                     <span style="color:${timec};font-size:11.5px;">${time}${tick}</span>
                 </div>
@@ -1235,7 +1236,8 @@ function tpRenderLocal(data) {
             ? `<div class="tp-card" style="padding:14px 16px 12px;overflow:hidden;">
                 <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:15px;font-weight:500;color:#333;">
                     <i class="fas fa-paperclip" style="color:#2b8fd6;font-size:14px;"></i>Files: ${localFiles.length}
-                    <span style="margin-left:auto;color:#9aa5ad;cursor:pointer;font-size:18px;line-height:1;" title="Attach file" onclick="document.getElementById('tp-file-input')&&document.getElementById('tp-file-input').click()">+</span>
+                    ${localFiles.length>1?`<a href="/api/local-task/${taskId}/files-zip" style="margin-left:auto;display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:500;color:#1a6fa8;text-decoration:none;" title="Download every file as one .zip"><i class="fas fa-file-zipper"></i>Download all</a>`:''}
+                    <span style="${localFiles.length>1?'margin-left:14px;':'margin-left:auto;'}color:#9aa5ad;cursor:pointer;font-size:18px;line-height:1;" title="Attach file" onclick="document.getElementById('tp-file-input')&&document.getElementById('tp-file-input').click()">+</span>
                 </div>
                 <div id="tp-files-strip" style="position:relative;">
                     <div id="tp-files-row" style="display:flex;gap:8px;overflow:hidden;flex-wrap:nowrap;max-height:140px;">${localFileHtml}</div>
@@ -1585,7 +1587,7 @@ window.tpRenderLocalFeed = function(data, taskId) {
             const isMine = u.id ? parseInt(u.id) === ME_LOCAL_ID : false;
             const showName = !isMine && u.name !== lastAuthor2;
             lastAuthor2 = u.name;
-            return div + chatBubble({isMine, name:u.name||'?', nameColor:localColor(u.name||''), text:parseMsg(f.text||f.content||''), time, showName, files:f.files||[]});
+            return div + chatBubble({isMine, name:u.name||'?', nameColor:localColor(u.name||''), text:parseMsg(f.text||f.content||''), raw:f.text||f.content||'', time, showName, files:f.files||[]});
         }).join('');
     } else {
         $('tp-messages').innerHTML = _spacer + `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 0;"><i class="fas fa-comment-slash" style="font-size:28px;color:rgba(255,255,255,.55);margin-bottom:10px;"></i><p style="color:rgba(255,255,255,.85);font-size:13px;margin:0;">No comments yet — be the first!</p></div>`;
@@ -1852,7 +1854,7 @@ window.tpSubmitComment=function(taskId){
         if(window.clearAttachments) window.clearAttachments('tp-comment-text','tp-attach-preview');
         const now=new Date(), time=fmtTimeOnly(now); // app-timezone, same as the feed re-render
         const el=document.createElement('div');
-        el.innerHTML=chatBubble({isMine:true, text:parseMsg(fullContent), time, showName:false});
+        el.innerHTML=chatBubble({isMine:true, text:parseMsg(fullContent), raw:fullContent, time, showName:false});
         const msgs=$('tp-messages');
         // remove "no comments" placeholder if present
         const ph=msgs.querySelector('[style*="comment-slash"]'); if(ph) ph.closest('div').remove();
