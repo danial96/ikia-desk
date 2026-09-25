@@ -29,6 +29,15 @@ class Task extends Model
     ];
 
     public function project() { return $this->belongsTo(Project::class); }
+    /** Any change to a task invalidates the 30s server-side kanban page cache (see TaskController::kanban). */
+    protected static function booted(): void
+    {
+        $bump = fn() => \Illuminate\Support\Facades\Cache::put('kanban_ver', microtime(true), 3600);
+        static::saved($bump);
+        static::deleted($bump);
+        static::restored($bump);
+    }
+
     public function creator() { return $this->belongsTo(User::class, 'created_by'); }
     public function assignee() { return $this->belongsTo(User::class, 'assigned_to'); }
     public function members() { return $this->belongsToMany(User::class, 'task_members'); }

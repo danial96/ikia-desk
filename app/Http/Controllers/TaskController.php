@@ -669,7 +669,7 @@ class TaskController extends Controller
         if ($request->ajax()) {
             [$columns, $completedTotal] = $buildColumns();
         } else {
-            $cacheKey = 'kanban_' . $user->id . '_' . md5(json_encode($request->only(
+            $cacheKey = 'kanban_' . Cache::get('kanban_ver', 0) . '_' . $user->id . '_' . md5(json_encode($request->only(
                 ['project_id', 'search', 'priority', 'assignee_id', 'status']
             )));
             [$columns, $completedTotal] = Cache::remember($cacheKey, 30, $buildColumns);
