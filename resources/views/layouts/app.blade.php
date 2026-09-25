@@ -277,6 +277,24 @@
         }
         #main-content.sidebar-collapsed { margin-left: 0; }
 
+
+        /* ─── Desktop: collapsed sidebar becomes an icon rail (mobile keeps the slide-over) ─── */
+        @media (min-width: 1025px) {
+            #sidebar { transition: width .28s cubic-bezier(.4,0,.2,1), transform .28s cubic-bezier(.4,0,.2,1); overflow: hidden; }
+            #sidebar.hidden-sidebar { transform: none; width: 64px; }
+            #main-content.sidebar-collapsed { margin-left: 64px; }
+            #sidebar.hidden-sidebar .sidebar-logo { padding: 14px 0 12px; display:flex; justify-content:center; }
+            #sidebar.hidden-sidebar .sidebar-logo img { width: 34px; height: 34px; object-fit: cover; object-position: left center; }
+            #sidebar.hidden-sidebar .nav-section { font-size: 0; height: 1px; padding: 0; margin: 10px 14px; background: rgba(255,255,255,.08); }
+            #sidebar.hidden-sidebar .nav-link { font-size: 0; gap: 0; justify-content: center; padding: 10px 0; margin: 2px 8px; }
+            #sidebar.hidden-sidebar .nav-link.active { padding-left: 0; border-left: none; }
+            #sidebar.hidden-sidebar .nav-link svg { width: 20px; height: 20px; }
+            #sidebar.hidden-sidebar .sb-user { padding: 12px 0 !important; }
+            #sidebar.hidden-sidebar .sb-user > div { justify-content: center; }
+            #sidebar.hidden-sidebar .sb-user a > div, #sidebar.hidden-sidebar .sb-user form { display: none; }
+            #sidebar.hidden-sidebar .sb-user a { flex: 0 0 auto !important; }
+        }
+
         /* ─── Responsive: tablets & phones ─── */
         @media (max-width: 1024px) {
             /* Sidebar becomes a slide-over; content uses the full width */
@@ -495,7 +513,7 @@
         </nav>
 
         {{-- User info --}}
-        <div style="padding:12px;border-top:1px solid rgba(255,255,255,.07);">
+        <div class="sb-user" style="padding:12px;border-top:1px solid rgba(255,255,255,.07);">
             <div style="display:flex;align-items:center;gap:10px;">
                 <a href="{{ route('profile.show') }}" style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;text-decoration:none;" title="My Profile">
                     <img src="{{ auth()->user()->avatar_url }}" style="width:34px;height:34px;border-radius:50%;object-fit:cover;flex-shrink:0;border:2px solid rgba(255,255,255,.15);transition:border-color .15s;" alt="">
@@ -2366,7 +2384,10 @@ function appShell() {
     return {
         // On phones/tablets the sidebar starts closed (slide-over); desktop remembers the choice
         sidebarOpen: window.innerWidth > 1024 ? (localStorage.getItem('sb') !== 'false') : false,
-        init() { this.$watch('sidebarOpen', v => localStorage.setItem('sb', v)); }
+        init() {
+            this.$watch('sidebarOpen', v => localStorage.setItem('sb', v));
+            document.querySelectorAll('#sidebar .nav-link').forEach(a => { a.title = a.textContent.trim(); });
+        }
     }
 }
 function openTaskModal(projectId) {
