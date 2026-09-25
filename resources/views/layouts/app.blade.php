@@ -2556,6 +2556,16 @@ document.addEventListener('keydown', function(e){ if(e.key==='Escape') { closeTa
 let notifIsOpen    = false;
 let notifPollTimer = null;
 let _notifPrevCount = -1; // -1 = first load, no sound yet
+/* Keep chats / task comments pinned to the newest message when an image finishes loading (it grows the list) */
+document.addEventListener('load', function (e) {
+    const img = e.target;
+    if (!img || img.tagName !== 'IMG') return;
+    const box = img.closest && img.closest('#cp-msg-area, #chat-msg-area, #tp-messages');
+    if (!box) return;
+    const distance = box.scrollHeight - box.scrollTop - box.clientHeight;   // after growth
+    if (distance <= img.offsetHeight + 220) box.scrollTop = box.scrollHeight + 9999;
+}, true);
+
 /* ── CSRF self-healing: a stale token (login in another tab, long-idle tab) no longer breaks actions ── */
 (function () {
     const orig = window.fetch.bind(window);
