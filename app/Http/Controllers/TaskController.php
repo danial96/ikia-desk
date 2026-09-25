@@ -38,7 +38,7 @@ class TaskController extends Controller
         $query = Task::withCount(['files as task_files_count' => fn($q) => $q->where('is_task_attachment', true)])
             ->with(['project', 'assignee', 'creator', 'members:id,name',
             'coverFile' => fn($q) => $q->whereNotNull('disk_path')
-                ->where('is_task_attachment', true)
+                ->where('is_task_attachment', true)->where('size', '<=', 2 * 1024 * 1024) // never use a huge file as a card thumbnail
                 ->where(function ($q2) use ($imgExts) {
                     $q2->whereIn('mime_type', ['image/jpeg','image/jpg','image/png','image/gif','image/webp','image/svg+xml'])
                        ->orWhere(function ($q3) use ($imgExts) {
@@ -571,7 +571,7 @@ class TaskController extends Controller
             $query = Task::withCount(['files as task_files_count' => fn($q) => $q->where('is_task_attachment', true)])
                 ->with(['project', 'assignee', 'creator', 'members:id,name',
                 'coverFile' => fn($q) => $q->whereNotNull('disk_path')
-                    ->where('is_task_attachment', true)
+                    ->where('is_task_attachment', true)->where('size', '<=', 2 * 1024 * 1024)
                     ->where(function ($q2) use ($imgExts) {
                         $q2->whereIn('mime_type', ['image/jpeg','image/jpg','image/png','image/gif','image/webp','image/svg+xml'])
                            ->orWhere(function ($q3) use ($imgExts) {
