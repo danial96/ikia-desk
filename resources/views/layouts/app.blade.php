@@ -1781,31 +1781,61 @@ window.msgImgMosaic = function (urls, galKey) {
     };
 
     // Drag & drop: dropping files anywhere on a chat / task-chat opens the same popup (Bitrix style)
+    const shown = id => { const el = document.getElementById(id); return !!el && getComputedStyle(el).display !== 'none' && el.getBoundingClientRect().height > 0; };
     const DROP_ZONES = [
-        { sel: '#cp-right',   ta: 'cp-textarea',     ok: () => typeof _cpActiveConvId !== 'undefined' && !!_cpActiveConvId },
-        { sel: '#chat-right', ta: 'chat-textarea',   ok: () => typeof _activeConvId !== 'undefined' && !!_activeConvId },
-        { sel: '#tp-right',   ta: 'tp-comment-text', ok: () => !!document.getElementById('tp-comment-text') },
+        { sel: '#cp-right',   ta: 'cp-textarea',     what: 'message', ok: () => shown('cp-input-area') },
+        { sel: '#chat-right', ta: 'chat-textarea',   what: 'message', ok: () => shown('chat-input-area') },
+        { sel: '#tp-right',   ta: 'tp-comment-text', what: 'comment', ok: () => !!document.getElementById('tp-comment-text') },
     ];
     const zoneOf = t => { for (const z of DROP_ZONES) { const el = t && t.closest && t.closest(z.sel); if (el && z.ok() && document.getElementById(z.ta)) return { z, el }; } return null; };
     const hasFiles = e => e.dataTransfer && Array.from(e.dataTransfer.types || []).includes('Files');
-    let lit = null;
-    const unlight = () => { if (lit) { lit.style.outline = ''; lit.style.outlineOffset = ''; lit = null; } };
+
+    // one overlay, same look as the task-comments one, laid over whichever chat is being dropped on
+    let ov = null, lit = null;
+    function overlay() {
+        if (ov) return ov;
+        ov = document.createElement('div');
+        ov.style.cssText = 'display:none;position:fixed;z-index:3500;background:rgba(248,250,252,.82);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:3px dashed #0ea5e9;pointer-events:none;flex-direction:column;align-items:center;justify-content:center;gap:20px;';
+        ov.innerHTML = '<div style="width:90px;height:90px;border-radius:50%;background:rgba(14,165,233,.15);border:2px solid rgba(14,165,233,.4);display:flex;align-items:center;justify-content:center;"><i class="fas fa-cloud-upload-alt" style="font-size:36px;color:#0ea5e9;"></i></div>'
+                    + '<div style="text-align:center;"><p style="font-size:20px;font-weight:800;color:#0f172a;margin:0 0 8px;letter-spacing:.3px;">Drop files to attach</p><p id="drop-ov-sub" style="font-size:13px;color:#475569;margin:0;"></p></div>';
+        document.body.appendChild(ov);
+        return ov;
+    }
+    function light(hit) {
+        if (lit === hit.el) return;
+        lit = hit.el;
+        const r = hit.el.getBoundingClientRect(), o = overlay();
+        o.style.left = r.left + 'px'; o.style.top = r.top + 'px'; o.style.width = r.width + 'px'; o.style.height = r.height + 'px';
+        o.querySelector('#drop-ov-sub').textContent = 'Files will be added to your ' + hit.z.what;
+        o.style.display = 'flex';
+    }
+    const unlight = () => { lit = null; if (ov) ov.style.display = 'none'; };
+    function hideOwnOverlays() { ['cp-drop-overlay', 'tp-drop-overlay'].forEach(id => { const o = document.getElementById(id); if (o) o.style.display = 'none'; }); }
+
+    document.addEventListener('dragenter', function (e) {
+        if (!hasFiles(e)) return;
+        const hit = zoneOf(e.target);
+        if (!hit) return;
+        e.stopPropagation();          // keep each page's own (older, different-looking) overlay from showing
+        hideOwnOverlays(); light(hit);
+    }, true);
     document.addEventListener('dragover', function (e) {
         if (!hasFiles(e)) return;
         const hit = zoneOf(e.target);
         if (!hit) { unlight(); return; }
         e.preventDefault(); e.dataTransfer.dropEffect = 'copy';
-        if (lit !== hit.el) { unlight(); lit = hit.el; lit.style.outline = '3px dashed rgba(255,255,255,.85)'; lit.style.outlineOffset = '-6px'; }
+        hideOwnOverlays(); light(hit);
     }, true);
-    document.addEventListener('dragleave', function (e) { if (!e.relatedTarget) unlight(); }, true);
+    document.addEventListener('dragleave', function (e) { if (!e.relatedTarget || !zoneOf(e.relatedTarget)) unlight(); }, true);
+    document.addEventListener('dragend', unlight, true);
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') unlight(); }, true);
     document.addEventListener('drop', function (e) {
-        unlight();
+        unlight(); hideOwnOverlays();
         if (!e.dataTransfer || !e.dataTransfer.files || !e.dataTransfer.files.length) return;
         if (window._pasteModalAdd && e.target.closest && e.target.closest('#paste-modal')) { e.preventDefault(); e.stopPropagation(); window._pasteModalAdd(Array.from(e.dataTransfer.files)); return; }
         const hit = zoneOf(e.target);
         if (!hit) return;
         e.preventDefault(); e.stopPropagation();
-        ['cp-drop-overlay', 'tp-drop-overlay'].forEach(id => { const o = document.getElementById(id); if (o) o.style.display = 'none'; });
         const files = Array.from(e.dataTransfer.files);
         if (window._pasteModalAdd) window._pasteModalAdd(files); else openPasteModal(files, hit.z.ta);
     }, true);
