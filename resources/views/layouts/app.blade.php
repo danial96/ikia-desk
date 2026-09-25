@@ -631,7 +631,7 @@
 <div id="chat-panel" style="display:none;position:fixed;top:0;right:52px;bottom:0;width:calc(90% - 52px);z-index:250;display:none;flex-direction:row;box-shadow:-8px 0 40px rgba(0,0,0,.45);animation:chatSlideIn .25s cubic-bezier(.22,1,.36,1);">
 
     {{-- LEFT: Conversation list --}}
-    <div id="chat-left" style="width:340px;flex-shrink:0;display:flex;flex-direction:column;background:#fff;border-right:1px solid #e2e8f0;">
+    <div id="chat-left" style="width:400px;flex-shrink:0;display:flex;flex-direction:column;background:#fff;border-right:1px solid #e2e8f0;">
 
         {{-- Search bar: new group · search · new message (Bitrix style) --}}
         <div style="padding:14px 14px 12px;display:flex;align-items:center;gap:10px;flex-shrink:0;background:#fff;">
@@ -692,13 +692,13 @@
             </div>
             {{-- Normal input --}}
             <div id="chat-normal-input" style="display:flex;align-items:stretch;">
-                <div style="flex:1;position:relative;background:#fff;border-radius:10px;box-shadow:0 1px 3px rgba(0,0,0,.12);min-height:96px;">
+                <div style="flex:1;position:relative;background:#fff;border-radius:10px;box-shadow:0 1px 3px rgba(0,0,0,.12);min-height:190px;">
                     <button type="button" onclick="document.getElementById('chat-file-input').click()" title="Attach file"
                             style="position:absolute;left:14px;top:16px;background:none;border:none;color:#9aa5ad;cursor:pointer;padding:0;font-size:16px;line-height:1;"><i class="fas fa-paperclip"></i></button>
-                    <textarea id="chat-textarea" rows="2" placeholder="Type @ or + to mention a person, a chat or AI"
-                              style="display:block;width:100%;background:none;border:none;color:#1e293b;font-size:15px;padding:14px 16px 44px 44px;outline:none;resize:none;font-family:inherit;line-height:1.5;max-height:200px;overflow-y:auto;box-sizing:border-box;"
+                    <textarea id="chat-textarea" rows="5" placeholder="Type @ or + to mention a person, a chat or AI"
+                              style="display:block;width:100%;background:none;border:none;color:#1e293b;font-size:15px;padding:16px 16px 50px 46px;outline:none;resize:none;font-family:inherit;line-height:1.5;max-height:260px;min-height:120px;overflow-y:auto;box-sizing:border-box;"
                               onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();chatSend();}"
-                              oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,200)+'px';var b=document.getElementById('chat-send-btn');if(b)b.style.background=this.value.trim()?'#12b0f0':'#c5cad0';if(window.chatDraftSave)chatDraftSave();"></textarea>
+                              oninput="this.style.height='auto';this.style.height='auto';this.style.height=Math.min(this.scrollHeight,260)+'px';var b=document.getElementById('chat-send-btn');if(b)b.style.background=this.value.trim()?'#12b0f0':'#c5cad0';if(window.chatDraftSave)chatDraftSave();"></textarea>
                     <div style="position:absolute;right:14px;bottom:10px;display:flex;align-items:center;gap:14px;">
                         <button type="button" onclick="emojiToggle('chat-textarea',this)" title="Emoji" style="background:none;border:none;color:#9aa5ad;cursor:pointer;padding:0;font-size:18px;line-height:1;"><i class="far fa-face-smile"></i></button>
                         <button type="button" onclick="vnStart('chat')" title="Voice note" style="background:none;border:none;color:#9aa5ad;cursor:pointer;padding:0;font-size:17px;line-height:1;"><i class="fas fa-microphone"></i></button>
@@ -794,7 +794,7 @@
 .chat-conv-item { display:flex;align-items:center;gap:14px;padding:10px 16px;min-height:70px;cursor:pointer;transition:background .12s;margin:0 6px;border-radius:8px;position:relative; }
 .chat-conv-item:not(.active)::after { content:'';position:absolute;left:78px;right:10px;bottom:0;height:1px;background:#eef0f2; }
 .chat-conv-item:hover { background:#f4f6f8; }
-.chat-conv-item.active { background:#12b0f0; }
+.chat-conv-item.active { background:#00a6ec; }
 .chat-conv-item.active .cc-n, .chat-conv-item.active .cc-l, .chat-conv-item.active .cc-t { color:#fff !important; }
 .chat-conv-unread { background:#f0fdf4;border-left:2px solid #22c55e !important; }
 .chat-conv-unread:hover { background:#dcfce7 !important; }
@@ -1102,7 +1102,7 @@ function chatRenderConvs(list) {
         const avatar  = convAvatar(c, 48, true);
         const unread  = (c.unread && _activeConvId !== c.id) ? c.unread : 0;
         const lastLine = c.lastMsg
-            ? `<span class="cc-l" style="color:${unread?'#111827':'#8a94a6'};font-size:14px;font-weight:${unread?'500':'400'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+            ? `<span class="cc-l" style="color:${unread?'#333':'#7d8790'};font-size:14px;font-weight:${unread?'500':'400'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
                  ${c.lastMsg.byMe ? '<i class="fas fa-reply" style="font-size:11px;margin-right:7px;color:#9aa5ad;"></i>' : (c.type!=='direct'?escH(c.lastMsg.senderName||'')+': ':'')}${escH(previewText(c.lastMsg.text).substring(0,38))}
                </span>`
             : `<span class="cc-l" style="color:#a3adba;font-size:14px;">No messages yet</span>`;
@@ -1113,7 +1113,7 @@ function chatRenderConvs(list) {
             ${avatar}
             <div style="flex:1;min-width:0;">
                 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px;">
-                    <span class="cc-n" style="color:#111827;font-size:15.5px;font-weight:${unread?'600':'500'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:190px;">${escH(c.name)}</span>
+                    <span class="cc-n" style="color:#333;font-size:15.5px;font-weight:${unread?'600':'500'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:190px;">${escH(c.name)}</span>
                     ${timeStr}
                 </div>
                 <div style="display:flex;align-items:center;justify-content:space-between;gap:4px;">
@@ -1257,7 +1257,7 @@ function chatRenderMsgs(msgs) {
         prevAuthorId = m.author.id;
     });
 
-    el.innerHTML = `<div style="margin:auto auto 0;width:100%;max-width:860px;display:flex;flex-direction:column;gap:3px;">${html}</div>`;
+    el.innerHTML = `<div style="margin:auto auto 0;width:100%;max-width:900px;display:flex;flex-direction:column;gap:3px;">${html}</div>`;
     const goBottomChat = () => { el.scrollTop = el.scrollHeight + 9999; };
     goBottomChat();
     el.querySelectorAll('img').forEach(function(img) {
@@ -1338,7 +1338,7 @@ function chatBubble({isMine, name, avatar, text, time, showName=true, msgId=null
         const rxn = msgId ? chatRxnBadge(reactions, myReactions, msgId) : '';
         return `<div data-msg-id="${msgId||''}" data-mine="1" data-created-ts="${createdTs}" data-sender="You" class="chat-msg-outer" style="display:flex;justify-content:flex-end;align-items:center;gap:4px;margin-bottom:2px;">
             ${actions}
-            <div style="max-width:75%;">
+            <div style="max-width:85%;">
                 <div class="chat-bubble-bg" style="background:#e3f9c9;border-radius:14px 4px 14px 14px;padding:10px 14px 7px;">
                     <div data-raw="${rawEsc}" style="font-size:15.5px;color:#173a20;line-height:1.5;">${content}</div>
                     <div style="display:flex;align-items:center;justify-content:flex-end;gap:4px;margin-top:3px;">
@@ -1363,7 +1363,7 @@ function chatBubble({isMine, name, avatar, text, time, showName=true, msgId=null
         const rxnOther = msgId ? chatRxnBadge(reactions, myReactions, msgId) : '';
         return `<div data-msg-id="${msgId||''}" data-mine="0" data-created-ts="${createdTs}" data-sender="${escH(name)}" class="chat-msg-outer" style="display:flex;align-items:center;gap:4px;margin-bottom:2px;${showName?'margin-top:6px':''}">
             ${avatarHtml}
-            <div style="max-width:75%;">
+            <div style="max-width:85%;">
                 ${nameHtml}
                 <div class="chat-bubble-bg" style="background:#fff;border-radius:4px 14px 14px 14px;padding:10px 14px 7px;">
                     <div style="font-size:15.5px;color:#1e293b;line-height:1.5;">${content}</div>
@@ -1582,6 +1582,102 @@ window.chatSend = async function() {
     }
     document.addEventListener('DOMContentLoaded', wire);
     window._chatWireDrop = wire;
+})();
+
+
+/* ── Paste / attach popup (Bitrix style): preview, "Add more", compress option, caption, send ───────────── */
+(function() {
+    const TARGETS = {
+        'chat-textarea':   { preview: 'chat-attach-preview', send: () => window.chatSend && chatSend() },
+        'cp-textarea':     { preview: 'cp-attach-preview',   send: () => window.cpSend && cpSend() },
+        'tp-comment-text': { preview: 'tp-attach-preview',   send: () => window.tpSubmitComment && typeof _currentTaskId !== 'undefined' && tpSubmitComment(_currentTaskId) },
+    };
+    const esc = s => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    const isImg = f => (f.type || '').startsWith('image/');
+    const MIME_EXT = {'image/png':'png','image/jpeg':'jpg','image/jpg':'jpg','image/gif':'gif','image/webp':'webp','image/bmp':'bmp'};
+
+    // downscale big screenshots/photos unless the user ticked "Don't compress images"
+    async function shrink(file) {
+        if (!isImg(file) || file.type === 'image/gif' || file.type === 'image/svg+xml' || file.size < 700 * 1024) return file;
+        try {
+            const bmp = await createImageBitmap(file);
+            const max = 1800, k = Math.min(1, max / Math.max(bmp.width, bmp.height));
+            const c = document.createElement('canvas'); c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k);
+            const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); g.drawImage(bmp, 0, 0, c.width, c.height);
+            const blob = await new Promise(r => c.toBlob(r, 'image/jpeg', 0.85));
+            if (!blob || blob.size >= file.size) return file;
+            return new File([blob], (file.name || 'image').replace(/\.[^.]+$/, '') + '.jpg', { type: 'image/jpeg' });
+        } catch (e) { return file; }
+    }
+
+    window.openPasteModal = function(files, textareaId) {
+        const tgt = TARGETS[textareaId]; if (!tgt || !files.length) return;
+        const ta = document.getElementById(textareaId); if (!ta) return;
+        const old = document.getElementById('paste-modal'); if (old) old.remove();
+        let list = files.map(f => (!(f.name || '').includes('.') && MIME_EXT[f.type])
+            ? new File([f], 'pasted-' + Date.now() + '.' + MIME_EXT[f.type], { type: f.type }) : f);
+
+        const ov = document.createElement('div');
+        ov.id = 'paste-modal';
+        ov.style.cssText = 'position:fixed;inset:0;z-index:100000;background:rgba(15,23,42,.35);display:flex;align-items:center;justify-content:center;';
+        ov.innerHTML = `<div style="width:400px;max-width:92vw;background:#fff;border-radius:14px;box-shadow:0 12px 40px rgba(0,0,0,.28);padding:22px 24px 20px;max-height:92vh;overflow-y:auto;font-family:inherit;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;"><span id="pm-title" style="font-size:18px;font-weight:600;color:#333;"></span>
+                <button type="button" id="pm-x" style="background:none;border:none;color:#9aa5ad;font-size:20px;cursor:pointer;line-height:1;">&times;</button></div>
+            <div id="pm-list" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;"></div>
+            <button type="button" id="pm-more" style="display:inline-flex;align-items:center;gap:6px;border:1px solid #dfe3e6;background:#fff;border-radius:16px;padding:6px 14px;color:#6b7680;font-size:13px;cursor:pointer;"><i class="fas fa-paperclip" style="font-size:11px;"></i>Add more</button>
+            <input type="file" id="pm-file" multiple style="display:none">
+            <label style="display:flex;align-items:center;gap:9px;margin:16px 0 14px;font-size:14px;color:#333;cursor:pointer;"><input type="checkbox" id="pm-raw" style="width:18px;height:18px;">Don't compress images</label>
+            <div style="position:relative;"><textarea id="pm-text" rows="3" placeholder="Add text" style="width:100%;box-sizing:border-box;border:1.5px solid #cfd6da;border-radius:10px;padding:12px 14px 40px;font-size:14.5px;outline:none;resize:none;font-family:inherit;"></textarea>
+                <button type="button" id="pm-send" title="Send" style="position:absolute;right:10px;bottom:10px;width:36px;height:36px;border-radius:50%;background:#0075fd;border:none;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;"><i class="fas fa-paper-plane" style="font-size:14px;margin-left:-1px;"></i></button></div>
+        </div>`;
+        document.body.appendChild(ov);
+        const $ = id => ov.querySelector('#' + id);
+        const close = () => { ov.remove(); document.removeEventListener('keydown', onKey, true); };
+        const onKey = e => { if (e.key === 'Escape') { e.stopPropagation(); close(); } };
+        document.addEventListener('keydown', onKey, true);
+
+        function render() {
+            $('pm-title').textContent = 'Selected: ' + list.length;
+            $('pm-list').innerHTML = list.map((f, i) => {
+                const rm = `<button type="button" data-rm="${i}" title="Remove" style="position:absolute;top:6px;right:6px;width:22px;height:22px;border-radius:50%;background:rgba(0,0,0,.55);border:none;color:#fff;cursor:pointer;font-size:13px;line-height:1;">&times;</button>`;
+                if (isImg(f)) {
+                    const url = URL.createObjectURL(f), one = list.length === 1;
+                    return `<div style="position:relative;${one ? 'width:100%;' : 'width:calc(50% - 4px);'}">${rm}<img src="${url}" style="width:100%;${one ? 'max-height:270px;' : 'height:130px;'}object-fit:cover;border-radius:6px;display:block;"></div>`;
+                }
+                return `<div style="position:relative;width:100%;display:flex;align-items:center;gap:10px;border:1px solid #e3e6e9;border-radius:8px;padding:10px 40px 10px 12px;"><i class="fas fa-file" style="color:#6b7680;font-size:20px;"></i><span style="font-size:14px;color:#333;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(f.name)}</span>${rm}</div>`;
+            }).join('');
+            $('pm-list').querySelectorAll('[data-rm]').forEach(b => b.onclick = () => { list.splice(+b.dataset.rm, 1); list.length ? render() : close(); });
+        }
+        render();
+        $('pm-x').onclick = close;
+        ov.addEventListener('mousedown', e => { if (e.target === ov) close(); });
+        $('pm-more').onclick = () => $('pm-file').click();
+        $('pm-file').onchange = e => { list = list.concat(Array.from(e.target.files || [])); render(); };
+        $('pm-text').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); $('pm-send').click(); } });
+        setTimeout(() => $('pm-text').focus(), 30);
+
+        $('pm-send').onclick = async function() {
+            const btn = this; btn.disabled = true; btn.style.opacity = '.55';
+            const raw = $('pm-raw').checked, caption = $('pm-text').value.trim();
+            try {
+                for (const f of list) await window.uploadFileDirect(raw ? f : await shrink(f), textareaId, tgt.preview);
+                const keep = ta.value;
+                ta.value = caption || keep;
+                close();
+                tgt.send();
+            } catch (e) { btn.disabled = false; btn.style.opacity = '1'; if (window.showToast) showToast('Upload failed.'); }
+        };
+    };
+
+    // any pasted file (screenshot, image, document) in a chat / comment box opens the popup
+    document.addEventListener('paste', function(e) {
+        const t = e.target;
+        if (!t || !TARGETS[t.id]) return;
+        const files = Array.from((e.clipboardData || {}).items || []).filter(i => i.kind === 'file').map(i => i.getAsFile()).filter(Boolean);
+        if (!files.length) return;
+        e.preventDefault(); e.stopPropagation();
+        openPasteModal(files, t.id);
+    }, true);
 })();
 
 /* ── @mention autocomplete (chat + comments) ───────────────────────────────── */

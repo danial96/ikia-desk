@@ -16,7 +16,7 @@ document.addEventListener('DOMContentLoaded', function() {
 <div id="cp-wrap" style="display:flex;flex:1;min-height:0;overflow:hidden;">
 
     {{-- ═══ LEFT: Conversation list ═══ --}}
-    <div id="cp-left" style="width:340px;flex-shrink:0;display:flex;flex-direction:column;background:#fff;border-right:1px solid #e2e8f0;">
+    <div id="cp-left" style="width:400px;flex-shrink:0;display:flex;flex-direction:column;background:#fff;border-right:1px solid #e2e8f0;">
 
         {{-- Search bar: new group · filter · search · new chat (Bitrix style) --}}
         <div style="padding:14px 14px 12px;display:flex;align-items:center;gap:10px;flex-shrink:0;background:#fff;">
@@ -95,13 +95,13 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
             {{-- Normal input --}}
             <div id="cp-normal-input" style="display:flex;align-items:stretch;">
-                <div style="flex:1;position:relative;background:#fff;border-radius:10px;box-shadow:0 1px 3px rgba(0,0,0,.12);min-height:96px;">
+                <div style="flex:1;position:relative;background:#fff;border-radius:10px;box-shadow:0 1px 3px rgba(0,0,0,.12);min-height:190px;">
                     <button type="button" onclick="document.getElementById('cp-file-input').click()" title="Attach file"
                             style="position:absolute;left:14px;top:16px;background:none;border:none;color:#9aa5ad;cursor:pointer;padding:0;font-size:16px;line-height:1;"><i class="fas fa-paperclip"></i></button>
-                    <textarea id="cp-textarea" rows="2" placeholder="Type @ or + to mention a person, a chat or AI"
-                              style="display:block;width:100%;background:none;border:none;color:#1e293b;font-size:15px;padding:14px 16px 44px 44px;outline:none;resize:none;font-family:inherit;line-height:1.5;max-height:200px;overflow-y:auto;box-sizing:border-box;"
+                    <textarea id="cp-textarea" rows="5" placeholder="Type @ or + to mention a person, a chat or AI"
+                              style="display:block;width:100%;background:none;border:none;color:#1e293b;font-size:15px;padding:16px 16px 50px 46px;outline:none;resize:none;font-family:inherit;line-height:1.5;max-height:260px;min-height:120px;overflow-y:auto;box-sizing:border-box;"
                               onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();cpSend();}"
-                              oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,200)+'px';var b=document.getElementById('cp-send-btn');if(b)b.style.background=this.value.trim()?'#12b0f0':'#c5cad0'"></textarea>
+                              oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,260)+'px';var b=document.getElementById('cp-send-btn');if(b)b.style.background=this.value.trim()?'#12b0f0':'#c5cad0'"></textarea>
                     <div style="position:absolute;right:14px;bottom:10px;display:flex;align-items:center;gap:14px;">
                         <button type="button" onclick="emojiToggle('cp-textarea',this)" title="Emoji" style="background:none;border:none;color:#9aa5ad;cursor:pointer;padding:0;font-size:18px;line-height:1;"><i class="far fa-face-smile"></i></button>
                         <button type="button" onclick="vnStart('cp')" title="Voice note" style="background:none;border:none;color:#9aa5ad;cursor:pointer;padding:0;font-size:17px;line-height:1;"><i class="fas fa-microphone"></i></button>
@@ -212,7 +212,7 @@ document.addEventListener('DOMContentLoaded', function() {
 .cp-conv-item { display:flex;align-items:center;gap:14px;padding:10px 16px;min-height:70px;cursor:pointer;transition:background .12s;position:relative;margin:0 6px;border-radius:8px; }
 .cp-conv-item:not(.active)::after { content:'';position:absolute;left:78px;right:10px;bottom:0;height:1px;background:#eef0f2; }
 .cp-conv-item:hover { background:#f4f6f8; }
-.cp-conv-item.active { background:#12b0f0; }
+.cp-conv-item.active { background:#00a6ec; }
 .cp-conv-item.active .cp-cn, .cp-conv-item.active .cp-cl, .cp-conv-item.active .cp-ct { color:#fff !important; }
 .cp-conv-item.unread { background:#f0f7ff; }
 .cp-conv-item.unread:hover { background:#e4eefb; }
@@ -555,7 +555,7 @@ function bubble(m) {
         const rxn = msgId ? reactionBadge(reactions, myReactions, msgId) : '';
         return `<div ${dataAttrs} class="cp-msg-outer" style="display:flex;justify-content:flex-end;align-items:center;gap:5px;margin-bottom:2px;">
             ${actions}
-            <div style="max-width:75%;">
+            <div style="max-width:85%;">
                 <div class="cp-bubble-bg" style="background:#e3f9c9;border-radius:14px 4px 14px 14px;padding:10px 14px 7px;cursor:default;">
                     <div data-msg-text data-raw="${esc(text)}" style="font-size:15.5px;color:#173a20;line-height:1.5;">${content}</div>
                     <div style="display:flex;align-items:center;justify-content:flex-end;gap:4px;margin-top:3px;">
@@ -575,7 +575,7 @@ function bubble(m) {
     const rxnOther = msgId ? reactionBadge(reactions, myReactions, msgId) : '';
     return `<div ${dataAttrs} class="cp-msg-outer" style="display:flex;align-items:center;gap:5px;margin-bottom:2px;${showName?'margin-top:6px':''}">
         ${av}
-        <div style="max-width:75%;">
+        <div style="max-width:85%;">
             ${nm}
             <div class="cp-bubble-bg" style="background:#ffffff;border-radius:4px 14px 14px 14px;padding:10px 14px 7px;cursor:default;">
                 <div data-msg-text data-raw="${esc(text)}" style="font-size:15.5px;color:#1e293b;line-height:1.5;">${content}</div>
@@ -679,7 +679,7 @@ function cpRenderConvs(list) {
         const lm      = c.lastMsg;
         const unread  = (c.unread && _cpActiveConvId !== c.id) ? c.unread : 0;
         const lastLine = lm
-            ? `<span style="color:${unread?'#0f172a':'#64748b'};font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${unread?'font-weight:600;':''}" class="cp-cl">${lm.byMe?'<i class="fas fa-reply" style="font-size:11px;margin-right:7px;color:#9aa5ad;"></i>':(c.type!=='direct'?esc(lm.senderName||'')+': ':'')}${esc(cpPreviewText(lm.text).substring(0,45))}</span>`
+            ? `<span style="color:${unread?'#333':'#7d8790'};font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${unread?'font-weight:600;':''}" class="cp-cl">${lm.byMe?'<i class="fas fa-reply" style="font-size:11px;margin-right:7px;color:#9aa5ad;"></i>':(c.type!=='direct'?esc(lm.senderName||'')+': ':'')}${esc(cpPreviewText(lm.text).substring(0,45))}</span>`
             : `<span style="color:#94a3b8;font-size:14px;">No messages yet</span>`;
         const timeStr = lm ? `<span class="cp-ct" style="color:${unread?'#0891b2':'#9aa5ad'};font-size:12px;flex-shrink:0;">${lm.time}</span>` : '';
         const badge   = unread ? `<div style="min-width:18px;height:18px;border-radius:9px;background:#0891b2;color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0 4px;flex-shrink:0;">${unread>99?'99+':unread}</div>` : '';
@@ -688,7 +688,7 @@ function cpRenderConvs(list) {
             ${av}
             <div style="flex:1;min-width:0;">
                 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px;">
-                    <span class="cp-cn" style="color:#1e293b;font-size:15.5px;font-weight:${unread?'600':'500'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:190px;">${esc(c.name)}</span>
+                    <span class="cp-cn" style="color:#333;font-size:15.5px;font-weight:${unread?'600':'500'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:190px;">${esc(c.name)}</span>
                     ${timeStr}
                 </div>
                 <div style="display:flex;align-items:center;justify-content:space-between;gap:4px;">

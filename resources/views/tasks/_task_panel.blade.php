@@ -1312,7 +1312,7 @@ function tpRenderLocal(data) {
     tpRenderLocalFeed(data, taskId);
     setTimeout(()=>{ const m=$('tp-messages'); m.scrollTop=m.scrollHeight; },80);
     $('tp-comment-footer').innerHTML=`
-        <div id="tp-comment-box" style="position:relative;background:#fff;border-radius:14px;box-shadow:0 1px 4px rgba(0,0,0,.08);min-height:150px;display:flex;flex-direction:column;">
+        <div id="tp-comment-box" style="position:relative;background:#fff;border-radius:14px;box-shadow:0 1px 4px rgba(0,0,0,.08);min-height:190px;display:flex;flex-direction:column;">
             <button type="button" onclick="document.getElementById('tp-file-input').click()" title="Attach file"
                     style="position:absolute;left:14px;top:15px;background:none;border:none;color:#9aa0a6;cursor:pointer;font-size:16px;padding:0;line-height:1;"><i class="fas fa-paperclip"></i></button>
             <textarea id="tp-comment-text" rows="4" placeholder="Type @ to mention a person…"
