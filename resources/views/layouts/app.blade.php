@@ -906,7 +906,8 @@ let _chatBaselineSet = false;
 let _allEmps   = [];
 let _pollTimer = null;
 let _lastMsgId = 0;
-let _chatConvType = '', _chatLastAuthor = 0;   // sender names are only shown in group chats
+let _chatConvType = '', _chatLastAuthor = 0;
+let _chatHasMore = false, _chatFirstTs = 0, _chatFirstId = 0, _chatLoadingOlder = false;   // sender names are only shown in group chats
 const ME_ID = {{ auth()->id() }};
 
 /* ── Open / Close ── */
@@ -1213,7 +1214,13 @@ window.chatSelectConv = async function(id) {
         const conv = d.conv;
         chatUpdateHeader(conv);
         const msgs = d.messages || [];
+        _chatHasMore = !!d.hasMore; _chatLoadingOlder = false;
+        if (msgs.length) {
+            _chatFirstTs = Math.min(...msgs.map(m => m.createdTs));
+            _chatFirstId = Math.min(...msgs.filter(m => m.createdTs === _chatFirstTs).map(m => m.id));
+        }
         chatRenderMsgs(msgs);
+        setTimeout(function () { const a = document.getElementById('chat-msg-area'); if (a && a.scrollHeight <= a.clientHeight + 40) chatLoadOlder(); }, 300);
         if (msgs.length) _lastMsgId = Math.max(...msgs.map(m => m.id));
         // Restore this conversation's saved draft and focus the box so typing works on click
         const _ta = document.getElementById('chat-textarea');
@@ -1937,6 +1944,53 @@ window.chatCreateGroup = async function() {
     await chatLoadConvs();
     if (d.conv_id) chatSelectConv(d.conv_id);
 };
+
+
+/* ── Older messages: load 50 more when the user scrolls to the top ── */
+async function chatLoadOlder() {
+    if (_chatLoadingOlder || !_chatHasMore || !_chatFirstTs || !_activeConvId) return;
+    _chatLoadingOlder = true;
+    const el = document.getElementById('chat-msg-area');
+    const inner = document.getElementById('chat-msg-inner');
+    if (!el || !inner) { _chatLoadingOlder = false; return; }
+    const loader = document.createElement('div');
+    loader.style.cssText = 'text-align:center;padding:10px;color:rgba(255,255,255,.7);font-size:12.5px;';
+    loader.innerHTML = '<i class="fas fa-spinner fa-spin" style="margin-right:6px;"></i>Loading older messages…';
+    inner.prepend(loader);
+    const convId = _activeConvId;
+    try {
+        const r = await fetch(API_BASE + '/api/chat/convs/' + convId + '/msgs?before_ts=' + _chatFirstTs + '&before_id=' + _chatFirstId);
+        const d = await r.json();
+        if (convId !== _activeConvId) { loader.remove(); _chatLoadingOlder = false; return; }
+        const msgs = d.messages || [];
+        _chatHasMore = !!d.hasMore;
+        loader.remove();
+        if (msgs.length) {
+            _chatFirstTs = Math.min(...msgs.map(m => m.createdTs));
+            _chatFirstId = Math.min(...msgs.filter(m => m.createdTs === _chatFirstTs).map(m => m.id));
+            const prevHeight = el.scrollHeight, prevTop = el.scrollTop;
+            let html = '', prevDate = null, prevAuthorId = null;
+            msgs.forEach(m => {
+                if (m.date !== prevDate) {
+                    html += `<div style="display:flex;align-items:center;justify-content:center;margin:12px 0 8px;"><span style="background:#538b7f;color:#fff;font-size:13px;font-weight:600;padding:3px 16px;border-radius:14px;white-space:nowrap;">${chatDayLabel(m.date).toLowerCase()}</span></div>`;
+                    prevDate = m.date; prevAuthorId = null;
+                }
+                const showName = _chatConvType !== 'direct' && !m.isMine && prevAuthorId !== m.author.id;
+                html += chatBubble({isMine: m.isMine, name: m.author.name, avatar: m.author.avatar, text: m.text, time: m.time, showName, msgId: m.id, createdTs: m.createdTs||0, reactions: m.reactions, myReactions: m.myReactions});
+                prevAuthorId = m.author.id;
+            });
+            const tmp = document.createElement('div'); tmp.innerHTML = html;
+            const first = inner.firstChild;
+            while (tmp.firstChild) inner.insertBefore(tmp.firstChild, first);
+            el.scrollTop = prevTop + (el.scrollHeight - prevHeight);   // keep the reader where they were
+        }
+    } catch (e) { loader.remove(); }
+    _chatLoadingOlder = false;
+}
+document.addEventListener('DOMContentLoaded', function () {
+    const a = document.getElementById('chat-msg-area');
+    if (a) a.addEventListener('scroll', function () { if (this.scrollTop < 80) chatLoadOlder(); });
+});
 
 /* ── Polling ── */
 async function chatPoll() {

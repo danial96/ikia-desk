@@ -518,12 +518,17 @@ Route::middleware('auth')->group(function () {
         if ($beforeTs > 0) {
             // Scroll-up pagination — load older messages before given timestamp
             // Fetch limit+1 to detect whether more exist without a separate COUNT query
-            $beforeDt = \Carbon\Carbon::createFromTimestamp($beforeTs);
+            $beforeDt = \Carbon\Carbon::createFromTimestamp($beforeTs, config('app.timezone'));   // same zone the rows are stored in
+            $beforeId = (int) $request->query('before_id', 0);
             $raw = $conv->messages()->with('user')->reorder()
-                        ->where('created_at', '<', $beforeDt)
-                        ->latest('created_at')->limit(51)->get();
+                        ->where(function ($q) use ($beforeDt, $beforeId) {
+                            $q->where('created_at', '<', $beforeDt);
+                            // same-second messages (bulk imports): continue by id so none are skipped
+                            if ($beforeId > 0) $q->orWhere(fn($q2) => $q2->where('created_at', $beforeDt)->where('id', '<', $beforeId));
+                        })
+                        ->orderByDesc('created_at')->orderByDesc('id')->limit(51)->get();
             $hasMore = $raw->count() > 50;
-            $msgs = $raw->take(50)->sortBy(fn($m) => $m->created_at->timestamp)->values();
+            $msgs = $raw->take(50)->sortBy([['created_at', 'asc'], ['id', 'asc']])->values();
             return response()->json([
                 'messages' => $msgs->map($msgFmt)->values(),
                 'hasMore'  => $hasMore,

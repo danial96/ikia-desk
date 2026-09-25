@@ -265,6 +265,7 @@ let _cpPollTimer    = null;
 let _cpMsgCount     = 0;
 let _cpLastMsgId    = 0;
 let _cpFirstMsgTs   = 0;
+let _cpFirstMsgId   = 0;
 let _cpHasMore      = false;
 let _cpLoadingOlder = false;
 let _cpLoaded       = false;
@@ -737,9 +738,11 @@ window.cpSelect = async function(id) {
         const _initMsgs = d.messages || [];
         _cpHasMore = !!d.hasMore;
         cpRenderMsgs(_initMsgs, true);
+        setTimeout(function () { const a = document.getElementById('cp-msg-area'); if (a && a.scrollHeight <= a.clientHeight + 40) cpLoadOlderMsgs(); }, 300);
         if (_initMsgs.length) {
             _cpLastMsgId  = Math.max(..._initMsgs.map(m => m.id));
             _cpFirstMsgTs = Math.min(..._initMsgs.map(m => m.createdTs));
+            _cpFirstMsgId = Math.min(..._initMsgs.filter(m => m.createdTs === _cpFirstMsgTs).map(m => m.id));
         }
         cpUpdateSeen();
         // Zero unread immediately in local cache so badge clears right away
@@ -1064,13 +1067,14 @@ async function cpLoadOlderMsgs() {
     if (inner) inner.prepend(loader); else el.prepend(loader);
 
     try {
-        const r = await fetch(API_BASE + '/api/chat/convs/' + _cpActiveConvId + '/msgs?before_ts=' + _cpFirstMsgTs);
+        const r = await fetch(API_BASE + '/api/chat/convs/' + _cpActiveConvId + '/msgs?before_ts=' + _cpFirstMsgTs + '&before_id=' + _cpFirstMsgId);
         const d = await r.json();
         const msgs = d.messages || [];
         _cpHasMore = !!d.hasMore;
 
         if (msgs.length) {
             _cpFirstMsgTs = Math.min(...msgs.map(m => m.createdTs));
+            _cpFirstMsgId = Math.min(...msgs.filter(m => m.createdTs === _cpFirstMsgTs).map(m => m.id));
 
             // Remember scroll position so page doesn't jump
             const prevHeight = el.scrollHeight;
