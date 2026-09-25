@@ -77,17 +77,22 @@ class TaskController extends Controller
         ]);
     }
 
+    private function rememberTaskView($user, string $view): void
+    {
+        if ($user->task_view !== $view) $user->forceFill(['task_view' => $view])->save();
+    }
+
     public function index(Request $request)
     {
         $user = Auth::user();
 
-        // If user explicitly clicked List, save preference
+        // The layout choice is remembered per user (survives logging out and in)
         if ($request->has('view') && $request->view === 'list') {
-            session(['task_view' => 'list']);
+            $this->rememberTaskView($user, 'list');
         }
 
-        // If last view was kanban and user didn't explicitly request list, redirect
-        if (session('task_view') === 'kanban' && !$request->has('view')) {
+        // Last chosen layout was Kanban and the user didn't explicitly ask for the list → open the board
+        if ($user->task_view === 'kanban' && !$request->has('view')) {
             return redirect()->route('tasks.kanban');
         }
 
@@ -583,7 +588,7 @@ class TaskController extends Controller
 
     public function kanban(Request $request)
     {
-        session(['task_view' => 'kanban']);
+        $this->rememberTaskView(Auth::user(), 'kanban');
 
         // No status filter now shows ALL active (non-completed) tasks, not just in_progress,
         // so nothing gets hidden by a default filter.

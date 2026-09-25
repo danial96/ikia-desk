@@ -483,7 +483,7 @@
                 Projects
             </a>
 
-            <a href="{{ route('tasks.index') }}"
+            <a href="{{ auth()->user()->task_view === 'kanban' ? route('tasks.kanban') : route('tasks.index') }}"
                class="nav-link {{ request()->routeIs('tasks.index') || request()->routeIs('tasks.show') || request()->routeIs('tasks.kanban') ? 'active' : '' }}">
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
