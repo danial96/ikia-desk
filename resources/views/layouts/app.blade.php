@@ -1294,6 +1294,7 @@ function renderMsgContent(text, isMine) {
         const urlM   = part.match(/^\[URL\](.*?)\[\/URL\]$/i);
         if (imgM) {
             const ci = imgIdx++;
+            if (allImgs.length > 1 && window.msgImgMosaic) { if (ci === 0) out += window.msgImgMosaic(allImgs, galKey); return; }
             // JSON.stringify keeps quotes inside a JS string; escH keeps it inside the onclick attribute
             const fn = galKey !== null ? `imgLightbox(${galKey},${ci})` : `imgLightbox(${escH(JSON.stringify(imgM[1]))},0)`;
             out += `<img src="${escH(imgM[1])}" style="max-width:280px;max-height:220px;object-fit:cover;border-radius:8px;display:block;margin:4px 0;cursor:zoom-in;transition:opacity .15s;" loading="lazy" onmouseover="this.style.opacity='.88'" onmouseout="this.style.opacity='1'" onclick="${fn}">`;
@@ -1311,7 +1312,7 @@ function renderMsgContent(text, isMine) {
         } else if (urlM) {
             const _su2 = /^https?:\/\//i.test(urlM[1]) ? urlM[1] : '#';
             out += `<a href="${escH(_su2)}" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline;">${escH(urlM[1])}</a>`;
-        } else if (part) {
+        } else if (part && !(allImgs.length > 1 && !part.trim())) {
             out += `<span style="white-space:pre-wrap;word-break:break-word;">${linkify(part)}</span>`;
         }
     });
@@ -1585,12 +1586,34 @@ window.chatSend = async function() {
 })();
 
 
+
+/* Photo mosaic like Bitrix: rows of 2, then 3, then 2, then 3 … (used in messages, the paste popup and the "uploading" bubble) */
+window.imgMosaic = function (items, o) {
+    o = o || {};
+    const rows = []; let i = 0, t = 0;
+    while (i < items.length) { let take = (t % 2 === 0) ? 2 : 3; if (take > items.length - i) take = items.length - i; rows.push(items.slice(i, i + take)); i += take; t++; }
+    return '<div style="width:' + (o.w || 460) + 'px;max-width:100%;display:flex;flex-direction:column;gap:2px;border-radius:8px;overflow:hidden;">' +
+        rows.map(function (r) {
+            const h = r.length === 3 ? (o.h3 || 116) : (r.length === 2 ? (o.h2 || 172) : (o.h1 || 230));
+            return '<div style="display:flex;gap:2px;">' + r.map(function (it) {
+                return '<div style="position:relative;flex:1 1 0;min-width:0;height:' + h + 'px;overflow:hidden;background:#1c2a2a;">' + it + '</div>';
+            }).join('') + '</div>';
+        }).join('') + '</div>';
+};
+window.msgImgMosaic = function (urls, galKey) {
+    const e = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    return imgMosaic(urls.map(function (u, idx) {
+        const fn = galKey !== null && galKey !== undefined ? 'imgLightbox(' + galKey + ',' + idx + ')' : 'imgLightbox(' + e(JSON.stringify(u)) + ',0)';
+        return '<img src="' + e(u) + '" loading="lazy" onclick="' + fn + '" style="width:100%;height:100%;object-fit:cover;display:block;cursor:zoom-in;">';
+    }));
+};
+
 /* ── Paste / attach popup (Bitrix style): preview, "Add more", compress option, caption, send ───────────── */
 (function() {
     const TARGETS = {
-        'chat-textarea':   { preview: 'chat-attach-preview', send: () => window.chatSend && chatSend() },
-        'cp-textarea':     { preview: 'cp-attach-preview',   send: () => window.cpSend && cpSend() },
-        'tp-comment-text': { preview: 'tp-attach-preview',   send: () => window.tpSubmitComment && typeof _currentTaskId !== 'undefined' && tpSubmitComment(_currentTaskId) },
+        'chat-textarea':   { preview: 'chat-attach-preview', area: () => { const a = document.getElementById('chat-msg-area'); return a && (a.firstElementChild || a); }, send: () => window.chatSend && chatSend() },
+        'cp-textarea':     { preview: 'cp-attach-preview',   area: () => document.getElementById('cp-msg-inner') || document.getElementById('cp-msg-area'), send: () => window.cpSend && cpSend() },
+        'tp-comment-text': { preview: 'tp-attach-preview',   area: () => document.getElementById('tp-messages'), send: () => window.tpSubmitComment && typeof _currentTaskId !== 'undefined' && tpSubmitComment(_currentTaskId) },
     };
     const esc = s => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     const isImg = f => (f.type || '').startsWith('image/');
@@ -1638,15 +1661,22 @@ window.chatSend = async function() {
 
         function render() {
             $('pm-title').textContent = 'Selected: ' + list.length;
-            $('pm-list').innerHTML = list.map((f, i) => {
-                const rm = `<button type="button" data-rm="${i}" title="Remove" style="position:absolute;top:6px;right:6px;width:22px;height:22px;border-radius:50%;background:rgba(0,0,0,.55);border:none;color:#fff;cursor:pointer;font-size:13px;line-height:1;">&times;</button>`;
-                if (isImg(f)) {
-                    const url = URL.createObjectURL(f), one = list.length === 1;
-                    return `<div style="position:relative;${one ? 'width:100%;' : 'width:calc(50% - 4px);'}">${rm}<img src="${url}" style="width:100%;${one ? 'max-height:270px;' : 'height:130px;'}object-fit:cover;border-radius:6px;display:block;"></div>`;
-                }
-                return `<div style="position:relative;width:100%;display:flex;align-items:center;gap:10px;border:1px solid #e3e6e9;border-radius:8px;padding:10px 40px 10px 12px;"><i class="fas fa-file" style="color:#6b7680;font-size:20px;"></i><span style="font-size:14px;color:#333;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(f.name)}</span>${rm}</div>`;
-            }).join('');
-            $('pm-list').querySelectorAll('[data-rm]').forEach(b => b.onclick = () => { list.splice(+b.dataset.rm, 1); list.length ? render() : close(); });
+            const rm = i => `<button type="button" data-rm="${i}" title="Remove" style="position:absolute;top:6px;right:6px;width:22px;height:22px;border-radius:50%;background:rgba(0,0,0,.55);border:none;color:#fff;cursor:pointer;font-size:13px;line-height:1;z-index:2;">&times;</button>`;
+            const imgIdx = [], fileIdx = [];
+            list.forEach((f, i) => (isImg(f) ? imgIdx : fileIdx).push(i));
+            let html = '';
+            if (imgIdx.length === 1) {
+                html += `<div style="position:relative;width:100%;">${rm(imgIdx[0])}<img src="${URL.createObjectURL(list[imgIdx[0]])}" style="width:100%;max-height:270px;object-fit:cover;border-radius:6px;display:block;"></div>`;
+            } else if (imgIdx.length > 1) {
+                html += imgMosaic(imgIdx.map(i => `<img src="${URL.createObjectURL(list[i])}" style="width:100%;height:100%;object-fit:cover;display:block;">${rm(i)}`), { w: 352, h1: 200, h2: 132, h3: 88 });
+            }
+            fileIdx.forEach(i => {
+                html += `<div style="position:relative;width:100%;display:flex;align-items:center;gap:10px;border:1px solid #e3e6e9;border-radius:8px;padding:10px 40px 10px 12px;margin-top:6px;"><i class="fas fa-file" style="color:#6b7680;font-size:20px;"></i><span style="font-size:14px;color:#333;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(list[i].name)}</span>${rm(i)}</div>`;
+            });
+            const box = $('pm-list');
+            box.style.cssText = 'max-height:505px;overflow-y:auto;margin-bottom:14px;';
+            box.innerHTML = html;
+            box.querySelectorAll('[data-rm]').forEach(b => b.onclick = () => { list.splice(+b.dataset.rm, 1); list.length ? render() : close(); });
         }
         render();
         $('pm-x').onclick = close;
@@ -1659,13 +1689,31 @@ window.chatSend = async function() {
         $('pm-send').onclick = async function() {
             const btn = this; btn.disabled = true; btn.style.opacity = '.55';
             const raw = $('pm-raw').checked, caption = $('pm-text').value.trim();
+            const files2 = list.slice();
+            close();
+            // Bitrix-style pending bubble: the photos appear at once with an "Uploading…" veil
+            let pending = null;
             try {
-                for (const f of list) await window.uploadFileDirect(raw ? f : await shrink(f), textareaId, tgt.preview);
+                const area = tgt.area && tgt.area();
+                const imgs = files2.filter(isImg);
+                if (area && imgs.length) {
+                    const veil = '<div style="position:absolute;inset:0;background:rgba(0,0,0,.28);display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-size:12px;gap:4px;"><span style="width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;font-size:20px;">&times;</span>Uploading…</div>';
+                    pending = document.createElement('div');
+                    pending.setAttribute('data-pending-upload', '1');
+                    pending.style.cssText = 'display:flex;justify-content:flex-end;margin:4px 0;';
+                    pending.innerHTML = '<div style="background:#e3f9c9;border-radius:14px 4px 14px 14px;padding:6px;">' +
+                        (imgs.length === 1 ? '<div style="position:relative;width:280px;max-width:100%;border-radius:8px;overflow:hidden;"><img src="' + URL.createObjectURL(imgs[0]) + '" style="width:100%;display:block;">' + veil + '</div>'
+                                           : imgMosaic(imgs.map(f => '<img src="' + URL.createObjectURL(f) + '" style="width:100%;height:100%;object-fit:cover;display:block;">' + veil))) + '</div>';
+                    area.appendChild(pending);
+                    area.parentElement && (area.parentElement.scrollTop = area.parentElement.scrollHeight + 9999);
+                    if (area.scrollHeight > area.clientHeight) area.scrollTop = area.scrollHeight + 9999;
+                }
+                for (const f of files2) await window.uploadFileDirect(raw ? f : await shrink(f), textareaId, tgt.preview);
                 const keep = ta.value;
                 ta.value = caption || keep;
-                close();
+                if (pending) { pending.remove(); pending = null; }
                 tgt.send();
-            } catch (e) { btn.disabled = false; btn.style.opacity = '1'; if (window.showToast) showToast('Upload failed.'); }
+            } catch (e) { if (pending) pending.remove(); if (window.showToast) showToast('Upload failed.'); }
         };
     };
 

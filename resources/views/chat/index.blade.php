@@ -499,6 +499,7 @@ function renderContent(text, isMine) {
         const voiceM = part.match(/^\[voice(?:\s+dur="([^"]*)")?\](.*?)\[\/voice\]$/);
         if (imgM) {
             const ci = imgIdx++;
+            if (allImgs.length > 1 && window.msgImgMosaic) { if (ci === 0) out += window.msgImgMosaic(allImgs, galKey); return; }
             const fn = galKey !== null ? `imgLightbox(${galKey},${ci})` : `imgLightbox('${esc(imgM[1])}',0)`;
             out += `<img src="${esc(imgM[1])}" style="max-width:280px;max-height:220px;object-fit:cover;border-radius:8px;display:block;margin:4px 0;cursor:zoom-in;transition:opacity .15s;" loading="lazy" onmouseover="this.style.opacity='.88'" onmouseout="this.style.opacity='1'" onclick="${fn}">`;
         } else if (fileM) {
@@ -513,7 +514,7 @@ function renderContent(text, isMine) {
             </a>`;
         } else if (voiceM) {
             out += window.voiceBubbleHtml ? window.voiceBubbleHtml(voiceM[2]||'', voiceM[1]||'0:00', !!isMine) : '';
-        } else if (part) {
+        } else if (part && !(allImgs.length > 1 && !part.trim())) {
             out += `<span style="white-space:pre-wrap;word-break:break-word;">${linkify(part)}</span>`;
         }
     });

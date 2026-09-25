@@ -396,6 +396,9 @@ const parseMsg = txt => {
         const diskM = part.match(/^\[disk\s+file\s+id=n(\d+)[^\]]*\]$/i);
         const imgM  = part.match(/^\[img\](.*?)\[\/img\]$/);
         const fileM = part.match(/^\[file name="([^"]*)"\](.*?)\[\/file\]$/);
+        // several photos in one comment → a single Bitrix-style mosaic
+        if (allImgs.length > 1 && (diskM || imgM)) { const _ci = imgIdx++; return _ci === 0 && window.msgImgMosaic ? window.msgImgMosaic(allImgs, galKey) : ''; }
+        if (allImgs.length > 1 && !fileM && !part.trim()) return '';
         if (diskM) {
             const url = diskFileUrl(diskM[1]);
             const fn = `imgLightbox('${url}',0)`;
