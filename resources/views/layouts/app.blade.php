@@ -1678,7 +1678,7 @@ window.msgImgMosaic = function (urls, galKey) {
         </div>`;
         document.body.appendChild(ov);
         const $ = id => ov.querySelector('#' + id);
-        const close = () => { ov.remove(); document.removeEventListener('keydown', onKey, true); };
+        const close = () => { ov.remove(); window._pasteModalAdd = null; document.removeEventListener('keydown', onKey, true); };
         const onKey = e => { if (e.key === 'Escape') { e.stopPropagation(); close(); } };
         document.addEventListener('keydown', onKey, true);
 
@@ -1702,6 +1702,7 @@ window.msgImgMosaic = function (urls, galKey) {
             box.querySelectorAll('[data-rm]').forEach(b => b.onclick = () => { list.splice(+b.dataset.rm, 1); list.length ? render() : close(); });
         }
         render();
+        window._pasteModalAdd = more => { list = list.concat(more.map(f => (!(f.name || '').includes('.') && MIME_EXT[f.type]) ? new File([f], 'pasted-' + Date.now() + '-' + Math.random().toString(36).slice(2,5) + '.' + MIME_EXT[f.type], { type: f.type }) : f)); render(); };
         $('pm-x').onclick = close;
         ov.addEventListener('mousedown', e => { if (e.target === ov) close(); });
         $('pm-more').onclick = () => $('pm-file').click();
@@ -1740,12 +1741,21 @@ window.msgImgMosaic = function (urls, galKey) {
         };
     };
 
-    // any pasted file (screenshot, image, document) in a chat / comment box opens the popup
+    // any pasted file (screenshot, image, document) in a chat / comment box opens the popup;
+    // pasting again while it is open adds to the selection
+    function pastedFiles(e) {
+        const cd = e.clipboardData || {}, out = [], seen = new Set();
+        const add = f => { if (!f) return; const k = f.name + '|' + f.size + '|' + f.type; if (!seen.has(k)) { seen.add(k); out.push(f); } };
+        Array.from(cd.files || []).forEach(add);                                   // every file of a multi-file copy
+        Array.from(cd.items || []).filter(i => i.kind === 'file').forEach(i => add(i.getAsFile()));
+        return out;
+    }
     document.addEventListener('paste', function(e) {
+        const files = pastedFiles(e);
+        if (!files.length) return;
+        if (window._pasteModalAdd) { e.preventDefault(); e.stopPropagation(); window._pasteModalAdd(files); return; }
         const t = e.target;
         if (!t || !TARGETS[t.id]) return;
-        const files = Array.from((e.clipboardData || {}).items || []).filter(i => i.kind === 'file').map(i => i.getAsFile()).filter(Boolean);
-        if (!files.length) return;
         e.preventDefault(); e.stopPropagation();
         openPasteModal(files, t.id);
     }, true);
