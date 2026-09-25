@@ -1762,8 +1762,8 @@ window.msgImgMosaic = function (urls, galKey) {
             try {
                 const area = tgt.area && tgt.area();
                 const q = files2.map(f => ({ f, st: 'wait', url: isImg(f) ? URL.createObjectURL(f) : null }));
-                const imgsQ = () => q.filter(it => it.url && it.st !== 'cancel');
-                const veil = it => it.st === 'done' ? '' :
+                const imgsQ = () => q.filter(it => it.url && it.st !== 'cancel' && it.st !== 'sent');
+                const veil = it =>
                     '<div style="position:absolute;inset:0;background:rgba(0,0,0,.30);display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-size:12px;gap:4px;">' +
                     '<span data-cancel="' + q.indexOf(it) + '" title="Don\'t send this one" style="width:38px;height:38px;border-radius:50%;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;font-size:20px;cursor:pointer;pointer-events:auto;">&times;</span>' +
                     (it.st === 'up' ? '<span><i class="fas fa-spinner fa-spin" style="margin-right:4px;"></i>Uploading…</span>' : '<span>Waiting…</span>') + '</div>';
@@ -1785,18 +1785,22 @@ window.msgImgMosaic = function (urls, galKey) {
                     if (area.parentElement) area.parentElement.scrollTop = area.parentElement.scrollHeight + 9999;
                     if (area.scrollHeight > area.clientHeight) area.scrollTop = area.scrollHeight + 9999;
                 }
+                // one message per photo, in order: upload → send → next (the first one carries the caption)
                 let sent = 0;
+                const keep = ta.value;
                 for (const it of q) {
                     if (it.st === 'cancel') continue;
                     it.st = 'up'; paint();
                     await window.uploadFileDirect(raw ? it.f : await shrink(it.f), textareaId, tgt.preview);
-                    it.st = 'done'; sent++; paint();
+                    ta.value = sent === 0 ? (caption || keep) : '';
+                    const r = tgt.send();
+                    if (r && typeof r.then === 'function') await r; else await new Promise(res => setTimeout(res, 350));
+                    it.st = 'sent'; sent++;
+                    if (pending) { area.appendChild(pending); paint(); }   // the still-waiting photos stay below what was already sent
+                    if (area && area.parentElement) area.parentElement.scrollTop = area.parentElement.scrollHeight + 9999;
                 }
                 if (pending) { pending.remove(); pending = null; }
-                if (!sent && !caption) return;                       // everything was cancelled
-                const keep = ta.value;
-                ta.value = caption || keep;
-                tgt.send();
+                if (!sent && caption) { ta.value = caption; tgt.send(); }   // everything was cancelled but there is a caption
             } catch (e) { if (pending) pending.remove(); if (window.showToast) showToast('Upload failed.'); }
         };
     };
