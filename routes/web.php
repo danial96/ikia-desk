@@ -75,6 +75,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/employees/{employee}/toggle-active', [EmployeeController::class, 'toggleActive'])->name('employees.toggle-active');
 
     // Profile
+    Route::post('/profile/theme', [\App\Http\Controllers\ThemeController::class, 'set'])->name('theme.set');
+    Route::post('/profile/theme/custom', [\App\Http\Controllers\ThemeController::class, 'custom'])->name('theme.custom');
     Route::get('/profile', [ProfileController::class, 'show'])->name('profile.show');
     Route::post('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::get('/profile/{id}', [ProfileController::class, 'show'])->name('profile.show.user');

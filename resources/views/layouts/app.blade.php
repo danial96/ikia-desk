@@ -10,6 +10,7 @@
     <link rel="apple-touch-icon" href="{{ asset('logo-dark.png') }}">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    @auth<style id="theme-live">{!! \App\Support\Themes::styleRules(\App\Support\Themes::css(auth()->user())) !!}</style>@endauth
     <style>
         * { box-sizing: border-box; }
         [x-cloak] { display: none !important; }
@@ -548,11 +549,33 @@
 
             <div style="width:1px;height:20px;background:rgba(255,255,255,.1);"></div>
 
-            <a href="{{ route('profile.show') }}" style="display:flex;align-items:center;gap:8px;text-decoration:none;padding:4px 8px;border-radius:8px;transition:background .2s;" onmouseover="this.style.background='rgba(255,255,255,.08)'" onmouseout="this.style.background='transparent'">
-                <img src="{{ auth()->user()->avatar_url }}"
-                     style="width:30px;height:30px;border-radius:50%;object-fit:cover;border:2px solid rgba(0,212,232,.4);" alt="">
-                <span style="color:rgba(255,255,255,.7);font-size:13px;font-weight:500;">{{ explode(' ', auth()->user()->name)[0] }}</span>
-            </a>
+            <div style="position:relative;" id="user-menu-wrap">
+                <button type="button" onclick="toggleUserMenu(event)" style="display:flex;align-items:center;gap:8px;background:none;border:none;cursor:pointer;padding:4px 8px;border-radius:8px;transition:background .2s;" onmouseover="this.style.background='rgba(255,255,255,.08)'" onmouseout="this.style.background='none'">
+                    <img src="{{ auth()->user()->avatar_url }}" style="width:30px;height:30px;border-radius:50%;object-fit:cover;border:2px solid rgba(0,212,232,.4);" alt="">
+                    <span style="color:rgba(255,255,255,.7);font-size:13px;font-weight:500;">{{ explode(' ', auth()->user()->name)[0] }}</span>
+                </button>
+                <div id="user-menu" style="display:none;position:absolute;right:0;top:calc(100% + 10px);width:330px;z-index:400;background:linear-gradient(180deg,#f6f8f9,#e6ebee);border-radius:18px;box-shadow:0 14px 50px rgba(0,0,0,.4);padding:10px;color:#333;">
+                    <div style="background:#fff;border-radius:14px;padding:16px 16px 14px;">
+                        <a href="{{ route('profile.show') }}" style="display:flex;align-items:center;gap:14px;text-decoration:none;color:inherit;">
+                            <img src="{{ auth()->user()->avatar_url }}" style="width:50px;height:50px;border-radius:50%;object-fit:cover;" alt="">
+                            <div style="min-width:0;flex:1;">
+                                <div style="font-size:17px;font-weight:600;color:#333;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ auth()->user()->name }} <i class="fas fa-chevron-right" style="font-size:10px;color:#9aa5ad;margin-left:4px;"></i></div>
+                                <div style="font-size:13px;color:#7d8790;">{{ auth()->user()->position ?: ucfirst(str_replace('_',' ',auth()->user()->role)) }}</div>
+                            </div>
+                        </a>
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px;">
+                            <a href="{{ route('profile.show') }}#security" style="text-decoration:none;color:#333;border:1px solid #cfe6f3;border-radius:12px;padding:18px 8px 12px;text-align:center;"><i class="far fa-shield-halved" style="font-size:22px;color:#525c69;"></i><div style="font-size:13px;color:#525c69;margin-top:12px;">Security</div></a>
+                            <a href="{{ route('profile.show') }}" style="text-decoration:none;color:#333;border:1px solid #cfe6f3;border-radius:12px;padding:18px 8px 12px;text-align:center;"><i class="far fa-id-card" style="font-size:22px;color:#525c69;"></i><div style="font-size:13px;color:#525c69;margin-top:12px;">My profile</div></a>
+                        </div>
+                    </div>
+                    <div style="background:#fff;border-radius:14px;margin-top:10px;padding:6px 0;">
+                        <div onclick="toggleUserMenu();openThemes();" style="display:flex;align-items:center;gap:16px;padding:14px 18px;cursor:pointer;" onmouseover="this.style.background='#f4f7f8'" onmouseout="this.style.background=''"><i class="fas fa-palette" style="font-size:16px;color:#525c69;width:20px;text-align:center;"></i><span style="flex:1;font-size:15px;">Visual theme</span><i class="fas fa-chevron-right" style="font-size:11px;color:#b3bcc2;"></i></div>
+                    </div>
+                    <div style="text-align:center;padding:14px 0 6px;">
+                        <form action="{{ route('logout') }}" method="POST" style="display:inline;">@csrf<button type="submit" style="background:none;border:none;color:#7d8790;font-size:14px;cursor:pointer;">Log out</button></form>
+                    </div>
+                </div>
+            </div>
         </div>
 
         {{-- Flash messages --}}
@@ -2951,5 +2974,87 @@ document.addEventListener('keydown', function(e) {
     }
 });
 </script>
+
+{{-- Themes dialog (Bitrix style) --}}
+<div id="theme-modal" style="display:none;position:fixed;inset:0;z-index:100001;background:rgba(15,23,42,.45);align-items:center;justify-content:center;">
+    <div style="width:860px;max-width:94vw;max-height:92vh;background:#fff;border-radius:16px;box-shadow:0 14px 50px rgba(0,0,0,.35);display:flex;flex-direction:column;overflow:hidden;">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:20px 24px 12px;">
+            <span style="font-size:20px;color:#525c69;">Themes</span>
+            <button type="button" onclick="closeThemes(true)" style="background:none;border:none;font-size:26px;color:#c0c6cb;cursor:pointer;line-height:1;">&times;</button>
+        </div>
+        <div id="theme-grid" style="flex:1;overflow-y:auto;background:#eef2f3;margin:0 12px;padding:10px;border-radius:6px;display:grid;grid-template-columns:repeat(4,1fr);gap:10px;"></div>
+        <div style="display:flex;align-items:center;justify-content:center;gap:22px;padding:18px 24px 20px;position:relative;">
+            <button type="button" id="theme-save" onclick="saveTheme()" style="background:#bbed21;border:none;border-radius:8px;padding:12px 26px;font-size:13px;font-weight:600;letter-spacing:.4px;color:#535c69;cursor:pointer;">SAVE</button>
+            <button type="button" onclick="closeThemes(true)" style="background:none;border:none;font-size:13px;font-weight:500;letter-spacing:.4px;color:#525c69;cursor:pointer;">CANCEL</button>
+            <button type="button" onclick="document.getElementById('theme-file').click()" style="position:absolute;right:24px;background:none;border:2px solid #2fa3e6;border-radius:4px;padding:6px 12px;font-size:12px;font-weight:500;color:#2067b0;cursor:pointer;">CUSTOM THEME</button>
+            <input type="file" id="theme-file" accept="image/*" style="display:none">
+        </div>
+    </div>
+</div>
+<script>
+(function () {
+    const PRESETS = @json(\App\Support\Themes::PRESETS);
+    const NAMES = { sunset:'Sunset', ocean:'Ocean', aurora:'Aurora', forest:'Forest', midnight:'Midnight', rose:'Rose', ember:'Ember', graphite:'Graphite', violet:'Violet', teal:'Teal', sky:'Sky' };
+    const ME = @json(auth()->check() ? ['theme' => auth()->user()->theme, 'css' => \App\Support\Themes::css(auth()->user())] : ['theme' => null, 'css' => null]);
+    let saved = { theme: ME.theme || 'default', css: ME.css || null }, pick = { theme: saved.theme, css: saved.css }, customFile = null;
+
+    function apply(css) {
+        const st = document.getElementById('theme-live'); if (!st) return;
+        st.textContent = css ? '#bg-canvas{background:' + css + ' !important}#bg-canvas .bg-base,#bg-canvas .bg-orb3,#bg-canvas .bg-orb4,#bg-canvas::before,#bg-canvas::after{display:none !important}' : '';
+    }
+    function tile(key, label, css, badge) {
+        const on = pick.theme === key;
+        return '<div data-theme="' + key + '" title="' + label + '" style="position:relative;height:130px;border-radius:12px;cursor:pointer;overflow:hidden;background:' + (css || 'linear-gradient(135deg,#1d2b6e,#7b2fd6)') + ';' + (on ? 'outline:3px solid #22b3e8;outline-offset:0;' : '') + '">' +
+            (badge ? '<span style="position:absolute;top:8px;right:8px;background:rgba(40,110,180,.85);color:#fff;font-size:12px;padding:3px 12px;border-radius:12px;">Default</span>' : '') + '</div>';
+    }
+    function render() {
+        const g = document.getElementById('theme-grid');
+        let html = tile('default', 'Default', null, true);
+        Object.keys(PRESETS).forEach(k => { html += tile(k, NAMES[k] || k, PRESETS[k], false); });
+        if (saved.theme === 'custom' || customFile) html += tile('custom', 'My picture', pick.theme === 'custom' ? pick.css : saved.css, false);
+        g.innerHTML = html;
+        g.querySelectorAll('[data-theme]').forEach(el => el.onclick = function () {
+            const k = el.dataset.theme;
+            if (k === 'custom') pick = { theme: 'custom', css: customFile ? customFile.css : saved.css };
+            else pick = { theme: k, css: k === 'default' ? null : PRESETS[k] };
+            apply(pick.css); render();
+        });
+    }
+    window.toggleUserMenu = function (e) {
+        if (e) e.stopPropagation();
+        const m = document.getElementById('user-menu'); if (m) m.style.display = m.style.display === 'none' ? 'block' : 'none';
+    };
+    document.addEventListener('click', function (e) { const m = document.getElementById('user-menu'); if (m && m.style.display !== 'none' && !e.target.closest('#user-menu-wrap')) m.style.display = 'none'; });
+    window.openThemes = function () { pick = { theme: saved.theme, css: saved.css }; customFile = null; render(); document.getElementById('theme-modal').style.display = 'flex'; };
+    window.closeThemes = function (revert) {
+        document.getElementById('theme-modal').style.display = 'none';
+        if (revert) { apply(saved.css); pick = { theme: saved.theme, css: saved.css }; customFile = null; }
+    };
+    window.saveTheme = async function () {
+        const btn = document.getElementById('theme-save'); btn.disabled = true; btn.style.opacity = '.6';
+        try {
+            let r;
+            if (pick.theme === 'custom' && customFile) {
+                const fd = new FormData(); fd.append('image', customFile.file);
+                r = await fetch('{{ route('theme.custom') }}', { method: 'POST', body: fd, headers: { 'Accept': 'application/json' } });
+            } else {
+                r = await fetch('{{ route('theme.set') }}', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' }, body: JSON.stringify({ theme: pick.theme }) });
+            }
+            const d = await r.json();
+            if (d.ok) { saved = { theme: pick.theme, css: d.css || null }; apply(saved.css); customFile = null; closeThemes(false); if (window.showToast) showToast('Theme saved.'); }
+            else if (window.showToast) showToast(d.message || 'Could not save the theme.');
+        } catch (e) { if (window.showToast) showToast('Could not save the theme.'); }
+        btn.disabled = false; btn.style.opacity = '1';
+    };
+    document.getElementById('theme-file').addEventListener('change', function () {
+        const f = this.files[0]; if (!f) return;
+        const url = URL.createObjectURL(f);
+        const css = "linear-gradient(rgba(6,10,40,.35),rgba(6,10,40,.35)),url('" + url + "') center/cover no-repeat fixed";
+        customFile = { file: f, css: css }; pick = { theme: 'custom', css: css };
+        apply(css); render(); this.value = '';
+    });
+})();
+</script>
+
 </body>
 </html>

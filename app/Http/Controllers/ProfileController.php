@@ -22,7 +22,30 @@ class ProfileController extends Controller
                             ->pluck('position')->unique()->sort()->values();
         $departments = \App\Models\Department::orderBy('name')->pluck('name');
 
-        return view('profile.show', compact('user', 'positions', 'departments'));
+        // Org chart (Bitrix "Additional information"): the head of my department is my supervisor;
+        // people in departments I head (and their sub-departments) are my subordinates.
+        $allDepts   = \App\Models\Department::all();
+        $byId       = $allDepts->keyBy('id');
+        $mine       = $allDepts->first(fn($d) => $user->department && mb_strtolower($d->name) === mb_strtolower($user->department));
+        $supervisor = null;
+        for ($d = $mine, $guard = 0; $d && $guard < 10; $d = $d->parent_id ? $byId->get($d->parent_id) : null, $guard++) {
+            if ($d->head_id && $d->head_id != $user->id) { $supervisor = \App\Models\User::find($d->head_id); break; }
+        }
+        $deptIds = collect();
+        $queue   = $allDepts->where('head_id', $user->id)->pluck('id')->all();
+        while ($queue) {
+            $id = array_shift($queue);
+            if ($deptIds->contains($id)) continue;
+            $deptIds->push($id);
+            foreach ($allDepts->where('parent_id', $id) as $child) $queue[] = $child->id;
+        }
+        $deptNames    = $allDepts->whereIn('id', $deptIds->all())->pluck('name')->map(fn($n) => mb_strtolower($n))->all();
+        $subordinates = $deptNames
+            ? \App\Models\User::where('is_active', true)->where('id', '!=', $user->id)->whereNotNull('department')->get()
+                ->filter(fn($u) => in_array(mb_strtolower($u->department), $deptNames, true))->sortBy('name')->values()
+            : collect();
+
+        return view('profile.show', compact('user', 'positions', 'departments', 'supervisor', 'subordinates'));
     }
 
     public function update(Request $request, $id = null)

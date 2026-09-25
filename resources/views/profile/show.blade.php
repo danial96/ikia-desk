@@ -39,7 +39,7 @@
 .pf-card h3 { margin:0 0 14px; padding-bottom:12px; border-bottom:1px solid #e7ecee; font-size:17px; font-weight:400; color:#535c69; display:flex; align-items:center; justify-content:space-between; }
 .pf-lbl { font-size:11.5px; color:#a3acb3; margin:0 0 2px; }
 .pf-val { font-size:14.5px; color:#333; margin:0 0 14px; word-break:break-word; }
-.pf-editing #pf-view { display:none; } .pf-editing #pf-edit { display:block !important; } .pf-editing .pf-cam { display:flex !important; }
+.pf-editing #pf-view, .pf-editing #pf-org { display:none; } .pf-editing #pf-edit { display:block !important; } .pf-editing .pf-cam { display:flex !important; }
 @media (max-width:900px){ .pf-grid { grid-template-columns:1fr !important; } }
 </style>
 
@@ -112,6 +112,31 @@
                         <p class="pf-lbl">Bitrix ID</p><p class="pf-val" style="margin-bottom:0;">#{{ $user->bitrix_id }}@if($user->last_login_at) &nbsp;·&nbsp; last login {{ \Carbon\Carbon::parse($user->last_login_at)->format('d M Y') }}@endif</p>
                         @endif
                     </div>
+
+                    {{-- Additional information (Bitrix): supervisor + subordinates --}}
+                    @if($supervisor || $subordinates->count())
+                    <div id="pf-org" class="pf-card" style="margin-top:12px;">
+                        <h3><span>Additional information</span></h3>
+                        @if($subordinates->count())
+                        <p class="pf-lbl">Subordinates</p>
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px 24px;margin:6px 0 18px;">
+                            @foreach($subordinates as $sub)
+                            <a href="{{ route('profile.show.user', $sub->id) }}" style="display:flex;align-items:center;gap:10px;text-decoration:none;color:inherit;min-width:0;">
+                                <img src="{{ $sub->avatar_url }}" style="width:34px;height:34px;border-radius:50%;object-fit:cover;flex-shrink:0;" alt="">
+                                <span style="min-width:0;"><span style="display:block;font-size:14px;color:#333;">{{ $sub->name }}</span><span style="display:block;font-size:11.5px;color:#a3acb3;">{{ $sub->position }}</span></span>
+                            </a>
+                            @endforeach
+                        </div>
+                        @endif
+                        @if($supervisor)
+                        <p class="pf-lbl">Supervisor</p>
+                        <a href="{{ route('profile.show.user', $supervisor->id) }}" style="display:flex;align-items:center;gap:10px;text-decoration:none;color:inherit;margin-top:6px;">
+                            <img src="{{ $supervisor->avatar_url }}" style="width:34px;height:34px;border-radius:50%;object-fit:cover;" alt="">
+                            <span><span style="display:block;font-size:14px;color:#333;">{{ $supervisor->name }}</span><span style="display:block;font-size:11.5px;color:#a3acb3;">{{ $supervisor->position }}</span></span>
+                        </a>
+                        @endif
+                    </div>
+                    @endif
 
                     {{-- Edit mode: the real form --}}
                     <div id="pf-edit" style="display:none;">
@@ -360,6 +385,7 @@ function pfEdit(on, scrollId) {
     if (on && scrollId) { var el = document.getElementById(scrollId); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
     if (!on) { document.getElementById('pf-form').reset(); }
 }
+if (location.hash === '#security') document.addEventListener('DOMContentLoaded', function(){ pfEdit(true,'pf-pass'); });
 // Only one field (select OR input) should carry the name at a time.
 function profFieldSwitch(selId, inputId, fieldName) {
     const sel = document.getElementById(selId);
