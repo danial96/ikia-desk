@@ -74,7 +74,7 @@ class KanbanDeadlineTimeTest extends TestCase
         $this->task($admin, 'Passed today', '2026-09-24 18:00:00');
 
         $this->actingAs($admin)->get(route('tasks.kanban'))->assertOk()
-            ->assertSee('Sep 24, 2026, 6:00 PM');
+            ->assertSee('Today, 6:00 pm')->assertSee('#e0413a', false);
     }
 
     public function test_move_reports_when_the_new_date_is_already_past(): void

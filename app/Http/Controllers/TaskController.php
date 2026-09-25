@@ -35,7 +35,8 @@ class TaskController extends Controller
     {
         $user   = Auth::user();
         $imgExts = ['jpg','jpeg','png','gif','webp','svg'];
-        $query = Task::with(['project', 'assignee', 'creator',
+        $query = Task::withCount(['files as task_files_count' => fn($q) => $q->where('is_task_attachment', true)])
+            ->with(['project', 'assignee', 'creator', 'members:id,name',
             'coverFile' => fn($q) => $q->whereNotNull('disk_path')
                 ->where('is_task_attachment', true)
                 ->where(function ($q2) use ($imgExts) {
@@ -567,7 +568,8 @@ class TaskController extends Controller
             $nextWeekEnd = now($tz)->addWeek()->endOfWeek();
 
             $imgExts = ['jpg','jpeg','png','gif','webp','svg'];
-            $query = Task::with(['project', 'assignee', 'creator',
+            $query = Task::withCount(['files as task_files_count' => fn($q) => $q->where('is_task_attachment', true)])
+                ->with(['project', 'assignee', 'creator', 'members:id,name',
                 'coverFile' => fn($q) => $q->whereNotNull('disk_path')
                     ->where('is_task_attachment', true)
                     ->where(function ($q2) use ($imgExts) {
@@ -690,6 +692,11 @@ class TaskController extends Controller
                     'project'  => $t->project  ? $t->project->name  : null,
                     'assignee'    => $t->assignee ? ['name' => $t->assignee->name, 'avatar' => $t->assignee->avatar_url] : null,
                     'cover_image' => $t->coverFile->first() ? asset($t->coverFile->first()->disk_path) : null,
+                    'dl'          => $t->kanbanDeadline(),
+                    'hot'         => in_array($t->priority, ['high', 'urgent'], true),
+                    'members'     => $t->members->pluck('name')->values(),
+                    'creator'     => $t->creator ? ['name' => $t->creator->name, 'avatar' => $t->creator->avatar_url] : null,
+                    'files_count' => (int) $t->task_files_count,
                     // Only Super Admin / creator / assignee may drag this card (matches TaskController::move).
                     'can_move' => $user->isSuperAdmin() || $t->created_by === $user->id || $t->assigned_to === $user->id,
                 ])->values();

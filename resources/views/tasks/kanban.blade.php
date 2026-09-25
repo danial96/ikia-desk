@@ -536,32 +536,32 @@ function kbH(s) {
 }
 
 function kbRenderCard(t) {
-    const dot = { low:'#cbd5e1', medium:'#3b82f6', high:'#f59e0b', urgent:'#ef4444' }[t.priority] || '#cbd5e1';
-
-    let thumb = '';
-    if (t.cover_image) {
-        thumb = `<div style="margin:-12px -12px 10px;overflow:hidden;border-radius:10px 10px 0 0;"><img src="${kbH(t.cover_image)}" loading="lazy" style="width:100%;max-height:170px;object-fit:cover;display:block;" onerror="this.parentElement.style.display='none'"></div>`;
-    }
-
-    const proj  = t.project  ? `<p style="font-size:11px;color:#8a94a6;margin:0 0 8px;display:flex;align-items:center;gap:5px;"><i class="fas fa-folder" style="font-size:9px;color:#b4bcc8;"></i>${kbH(t.project)}</p>` : '';
-    const dl    = t.deadline ? `<span style="font-size:11.5px;color:${t.dl_past?'#ef4444':'#8a94a6'};display:flex;align-items:center;gap:4px;"><i class="far fa-clock" style="font-size:10px;"></i>${kbH(t.deadline)}</span>` : `<span style="font-size:11.5px;color:#c4ccd6;">No deadline</span>`;
-    const asgn  = t.assignee ? `<div style="display:flex;align-items:center;gap:7px;margin-bottom:9px;"><img src="${kbH(t.assignee.avatar)}" style="width:24px;height:24px;border-radius:50%;object-fit:cover;flex-shrink:0;" title="${kbH(t.assignee.name)}" alt=""><span style="font-size:12px;color:#555e6d;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${kbH(t.assignee.name)}</span></div>` : '';
-
     const hasUnseen = window._kbUnseenIds && window._kbUnseenIds.has(String(t.id));
     const unseenBadge = hasUnseen
         ? `<span class="kb-unseen-dot" style="position:absolute;top:-4px;right:-4px;width:12px;height:12px;background:#ef4444;border-radius:50%;border:2px solid #fff;animation:kbPulse 1.8s ease-in-out infinite;"></span>`
         : '';
+    const flame = t.hot ? ` <i class="fas fa-fire" style="color:#f5a623;font-size:11px;margin-left:3px;" title="High priority"></i>` : '';
+    const parts = (t.members && t.members.length)
+        ? `<div style="font-size:10.5px;color:#9aa0a6;line-height:1.3;margin-bottom:2px;">Participants</div><div style="font-size:11.5px;color:#2067b0;line-height:1.35;margin-bottom:8px;">${kbH(t.members.join(', '))}</div>` : '';
+    const thumb = t.cover_image
+        ? `<div style="margin:2px 0 8px;overflow:hidden;border-radius:4px;background:#111;text-align:center;"><img src="${kbH(t.cover_image)}" loading="lazy" style="max-width:100%;max-height:120px;object-fit:contain;display:inline-block;" onerror="this.parentElement.style.display='none'"></div>` : '';
+    const files = t.files_count
+        ? `<div style="margin-bottom:8px;"><span style="display:inline-flex;align-items:center;gap:4px;font-size:10.5px;color:#9aa0a6;border:1px solid #e3e6e9;border-radius:9px;padding:0 6px;line-height:16px;"><i class="fas fa-paperclip" style="font-size:9px;"></i>${t.files_count}</span></div>` : '';
+    const pill = { overdue:['#e0413a','#e0413a','#fdecea'], today:['#c9930a','#f5dd8a','#fff8dc'], normal:['#2067b0','#2067b0','#fff'], done:['#7d858c','#d5d9dd','#fff'] };
+    let dl;
+    if (t.dl) { const [c,bc,bg] = pill[t.dl.kind] || pill.normal; dl = `<span style="display:inline-block;font-size:11.5px;color:${c};border:1px solid ${bc};background:${bg};border-radius:11px;padding:0 9px;line-height:20px;">${kbH(t.dl.label)}</span>`; }
+    else dl = `<span style="display:inline-block;font-size:11.5px;color:#7d858c;border:1px solid #d5d9dd;border-radius:11px;padding:0 9px;line-height:20px;">No deadline</span>`;
+    const av = u => u ? `<img src="${kbH(u.avatar)}" title="${kbH(u.name)}" alt="" style="width:20px;height:20px;border-radius:50%;object-fit:cover;">` : '';
 
     return `<div id="kb-task-${t.id}" data-task-id="${t.id}" data-can-move="${t.can_move ? '1' : '0'}" onclick="tpOpen('local',${t.id})"
-        style="position:relative;background:#fff;border:1px solid #eef0f2;border-radius:10px;padding:12px;cursor:pointer;transition:box-shadow .15s,transform .15s;box-shadow:0 1px 3px rgba(0,0,0,.07)${hasUnseen ? ';border-left:3px solid #ef4444' : ''};"
-        onmouseover="this.style.boxShadow='0 4px 14px rgba(0,0,0,.13)';this.style.transform='translateY(-1px)'"
-        onmouseout="this.style.boxShadow='0 1px 3px rgba(0,0,0,.07)';this.style.transform=''">
+        style="position:relative;background:#fff;border-radius:10px;padding:10px 12px 12px;cursor:pointer;transition:box-shadow .15s;box-shadow:0 1px 2px rgba(0,0,0,.12)${hasUnseen ? ';border-left:3px solid #ef4444' : ''};"
+        onmouseover="this.style.boxShadow='0 3px 10px rgba(0,0,0,.22)'"
+        onmouseout="this.style.boxShadow='0 1px 2px rgba(0,0,0,.12)'">
         ${unseenBadge}
-        ${thumb}
-        <p style="font-size:14px;font-weight:600;color:#333;margin:0 0 8px;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${dot};margin-right:7px;vertical-align:middle;" title="${kbH(t.priority||'')}"></span>${kbH(t.title)}</p>
-        ${proj}
-        ${asgn}
-        <div style="display:flex;align-items:center;justify-content:space-between;border-top:1px solid #f1f3f5;padding-top:8px;">${dl}</div>
+        <p style="font-size:13px;font-weight:500;color:#333;margin:0 0 8px;line-height:1.35;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;">${kbH(t.title)}${flame}</p>
+        ${parts}${thumb}${files}
+        <div style="margin-bottom:8px;">${dl}</div>
+        <div style="display:flex;align-items:center;gap:4px;">${av(t.creator)}<i class="fas fa-chevron-right" style="font-size:8px;color:#c0c6cc;"></i>${av(t.assignee)}</div>
     </div>`;
 }
 

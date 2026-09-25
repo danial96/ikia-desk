@@ -112,4 +112,24 @@ class Task extends Model
             default  => 'bg-gray-100 text-gray-600',
         };
     }
+
+    /**
+     * Kanban-card deadline as Bitrix shows it: "Today, 11:00 pm" / "Tomorrow, 9:00 am" / "September 28, 10:00 pm".
+     * kind = overdue | today | normal | done (drives the pill colour). Null when there is no deadline.
+     */
+    public function kanbanDeadline(): ?array
+    {
+        if (!$this->deadline) return null;
+        $tz  = config('app.timezone');
+        $d   = $this->deadline->copy()->setTimezone($tz);
+        $now = now($tz);
+        $time = strtolower($d->format('g:i a'));
+        if ($d->isSameDay($now))                       $label = "Today, $time";
+        elseif ($d->isSameDay($now->copy()->addDay()))  $label = "Tomorrow, $time";
+        elseif ($d->isSameDay($now->copy()->subDay())) $label = "Yesterday, $time";
+        else $label = $d->format($d->year === $now->year ? 'F j' : 'F j, Y') . ", $time";
+        $kind = $this->status === 'completed' ? 'done'
+              : ($d->lt($now) ? 'overdue' : ($d->isSameDay($now) ? 'today' : 'normal'));
+        return ['label' => $label, 'kind' => $kind];
+    }
 }
