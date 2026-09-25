@@ -78,17 +78,13 @@
         <div style="flex-shrink:0;width:240px;display:flex;flex-direction:column;">
 
             {{-- Column header --}}
-            <div style="background:{{ $col['bg'] }};border-radius:10px 10px 0 0;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;">
-                <span style="font-size:13px;font-weight:700;color:#000;">{{ $col['label'] }}</span>
-                @if($key === 'completed')
-                <span id="kb-count-{{ $key }}" style="font-size:12px;font-weight:700;color:#000;background:rgba(0,0,0,.15);padding:2px 9px;border-radius:20px;">{{ $completedTotal }}</span>
-                @else
-                <span id="kb-count-{{ $key }}" style="font-size:12px;font-weight:700;color:#000;background:rgba(0,0,0,.15);padding:2px 9px;border-radius:20px;">{{ $tasks->count() }}</span>
-                @endif
+            <div style="background:{{ $col['bg'] }};height:32px;padding:0 20px 0 {{ $loop->first ? '14px' : '22px' }};margin-bottom:10px;display:flex;align-items:center;gap:7px;clip-path:polygon(0 0,calc(100% - 12px) 0,100% 50%,calc(100% - 12px) 100%,0 100%{{ $loop->first ? '' : ',12px 50%' }});">
+                <span style="font-size:13px;font-weight:500;color:#000;white-space:nowrap;">{{ $col['label'] }}</span>
+                <span id="kb-count-{{ $key }}" style="font-size:12px;font-weight:400;color:rgba(0,0,0,.6);">{{ $key === 'completed' ? $completedTotal : $tasks->count() }}</span>
             </div>
 
             {{-- Column body --}}
-            <div id="kb-col-{{ $key }}" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-top:none;border-radius:0 0 10px 10px;padding:8px;display:flex;flex-direction:column;gap:7px;height:calc(100vh - 210px);overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.15) transparent;">
+            <div id="kb-col-{{ $key }}" style="background:transparent;border:none;border-left:1px dashed rgba(255,255,255,.3);border-right:1px dashed rgba(255,255,255,.3);border-radius:0;padding:4px 8px 8px;display:flex;flex-direction:column;gap:7px;height:calc(100vh - 210px);overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.15) transparent;">
 
                 @include('tasks._kanban_col_body', ['tasks' => $tasks, 'colKey' => $key, 'completedTotal' => $completedTotal])
 
