@@ -481,6 +481,17 @@
                 Tasks
             </a>
 
+            @if(auth()->user()->isAdmin() || \App\Models\Task::where('created_by', auth()->id())->exists())
+            <a href="{{ route('tasks.trash') }}"
+               class="nav-link {{ request()->routeIs('tasks.trash') ? 'active' : '' }}">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                          d="M4 7h16M10 11v6m4-6v6M6 7l1 12a2 2 0 002 2h6a2 2 0 002-2l1-12M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3"/>
+                </svg>
+                Trash
+            </a>
+            @endif
+
             <div class="nav-section">Communication</div>
 
             <a href="{{ route('chat.index') }}"
@@ -3072,7 +3083,7 @@ document.addEventListener('click', function(e) {
             <div style="font-size:16px;font-weight:700;color:#111827;margin-bottom:8px;letter-spacing:-.01em;">Delete Task</div>
             <div style="font-size:13.5px;color:#6b7280;line-height:1.65;">
                 Are you sure you want to delete this task?
-                <span style="display:block;margin-top:3px;font-weight:600;color:#374151;">This action cannot be undone.</span>
+                <span style="display:block;margin-top:3px;font-weight:600;color:#374151;">It moves to Trash — the task owner or an admin can restore it.</span>
             </div>
         </div>
 

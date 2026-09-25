@@ -51,6 +51,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/tasks/kanban', [TaskController::class, 'kanban'])->name('tasks.kanban');
     Route::get('/tasks/kanban/load-completed', [TaskController::class, 'loadCompleted'])->name('tasks.kanban.completed');
     Route::get('/tasks/kanban/version', [TaskController::class, 'kanbanVersion'])->name('tasks.kanban.version');
+    Route::get('/tasks/trash', [TaskController::class, 'trash'])->name('tasks.trash');
+    Route::post('/tasks/{id}/restore', [TaskController::class, 'restore'])->whereNumber('id')->name('tasks.restore');
     Route::resource('tasks', TaskController::class)->except(['create', 'edit']);
 
     // Task inline AJAX updates

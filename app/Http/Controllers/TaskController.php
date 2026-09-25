@@ -337,8 +337,34 @@ class TaskController extends Controller
             abort(403, 'Only the task owner or an admin can delete this task.');
         }
 
+        $task->forceFill(['deleted_by' => $user->id])->save();   // remember who trashed it (soft delete)
         $task->delete();
-        return redirect()->route('tasks.index')->with('success', 'Task deleted.');
+        return redirect()->route('tasks.index')->with('success', 'Task moved to Trash.');
+    }
+
+    /** Trash: admins see every deleted task, everybody else only the ones they created. */
+    public function trash(Request $request)
+    {
+        $user  = Auth::user();
+        $query = Task::onlyTrashed()->with(['creator', 'assignee', 'project']);
+        if (!$user->isAdmin()) $query->where('created_by', $user->id);
+        if ($q = trim((string) $request->query('q', ''))) $query->where('title', 'like', '%' . $q . '%');
+
+        $tasks    = $query->orderByDesc('deleted_at')->paginate(50)->withQueryString();
+        $deleters = \App\Models\User::whereIn('id', $tasks->pluck('deleted_by')->filter()->unique())->pluck('name', 'id');
+        return view('tasks.trash', compact('tasks', 'deleters'));
+    }
+
+    public function restore($id)
+    {
+        $user = Auth::user();
+        $task = Task::onlyTrashed()->findOrFail($id);
+        if (!$user->isAdmin() && $task->created_by !== $user->id) {
+            abort(403, 'Only the task owner or an admin can restore this task.');
+        }
+        $task->restore();
+        $task->forceFill(['deleted_by' => null])->save();
+        return redirect()->route('tasks.trash')->with('success', '"' . $task->title . '" restored.');
     }
 
     public function updateField(Request $request, Task $task)
