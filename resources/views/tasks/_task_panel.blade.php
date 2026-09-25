@@ -677,15 +677,16 @@ window.tpUpdateField = function(taskId, field, value, onDone, onFail) {
     .catch(()=>{ showToast('Update failed.'); if(onFail) onFail(); });
 };
 window.tpToggleMember = function(taskId,userId,onDone){
-    fetch(TP_TASKS_URL+'/'+taskId+'/participants/toggle',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-TOKEN':TP_CSRF,'Accept':'application/json'},body:JSON.stringify({user_id:userId})}).then(r=>r.json()).then(resp=>{if(onDone)onDone(resp);});
+    fetch(TP_TASKS_URL+'/'+taskId+'/participants/toggle',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-TOKEN':TP_CSRF,'Accept':'application/json'},body:JSON.stringify({user_id:userId})}).then(r=>r.json()).then(resp=>{if(onDone)onDone(resp);}).catch(()=>{if(onDone)onDone({success:false});});
 };
 window.tpToggleObserver = function(taskId,userId,onDone){
-    fetch(TP_TASKS_URL+'/'+taskId+'/observers/toggle',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-TOKEN':TP_CSRF,'Accept':'application/json'},body:JSON.stringify({user_id:userId})}).then(r=>r.json()).then(resp=>{if(onDone)onDone(resp);});
+    fetch(TP_TASKS_URL+'/'+taskId+'/observers/toggle',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-TOKEN':TP_CSRF,'Accept':'application/json'},body:JSON.stringify({user_id:userId})}).then(r=>r.json()).then(resp=>{if(onDone)onDone(resp);}).catch(()=>{if(onDone)onDone({success:false});});
 };
 
 /* ─── People chips + dropdown ──────────────────────────── */
 function renderChips(list, taskId, toggleFn, allEmployees) {
     const dropId='tp-drop-'+toggleFn+'-'+taskId;
+    (window._tpPS=window._tpPS||{})[toggleFn+'-'+taskId]={list:list.slice(),employees:allEmployees};
     const chips=list.map(u=>
         `<span class="tp-member-chip" onclick="tpToggleMemberUI(${taskId},${u.id},'${toggleFn}')" title="Click to remove" style="cursor:pointer;" onmouseover="this.style.background='#fee2e2';this.style.borderColor='#fca5a5'" onmouseout="this.style.background='#f1f5f9';this.style.borderColor='#e2e8f0'">
             ${uAvatar(u,22)}
@@ -726,9 +727,25 @@ window.tpFilterDrop = function(dropId,query) {
     el.querySelectorAll('.opt').forEach(opt=>{ opt.style.display=opt.dataset.name.includes(query.toLowerCase())?'flex':'none'; });
 };
 window.tpToggleMemberUI = function(taskId,userId,type) {
+    const key=type+'-'+taskId, st=(window._tpPS||{})[key];
     const fn=type==='observer'?tpToggleObserver:tpToggleMember;
-    fn(taskId,userId,()=>{
-        fetch(TP_LOCAL_URL+'/'+taskId,{headers:{'X-CSRF-TOKEN':TP_CSRF,'Accept':'application/json'}}).then(r=>r.json()).then(d=>tpRenderLocal(d));
+    const dropId='tp-drop-'+type+'-'+taskId;
+    const drop=$(dropId);
+    if(!st||!drop){ fn(taskId,userId,()=>fetch(TP_LOCAL_URL+'/'+taskId,{headers:{'X-CSRF-TOKEN':TP_CSRF,'Accept':'application/json'}}).then(r=>r.json()).then(d=>tpRenderLocal(d))); return; }
+    // Optimistic: update chips + dropdown in place right away, save in the background
+    const apply=(list)=>{
+        const holder=drop.parentElement, q=drop.querySelector('input')?.value||'', sc=drop.querySelector('.opts')?.scrollTop||0;
+        holder.parentElement.innerHTML=renderChips(list,taskId,type,st.employees);
+        const nd=$(dropId); nd.style.display='block';
+        const inp=nd.querySelector('input'); inp.value=q; tpFilterDrop(dropId,q); nd.querySelector('.opts').scrollTop=sc;
+        if(q) inp.focus();
+    };
+    const before=st.list.slice();
+    const has=before.some(u=>u.id===userId);
+    const emp=st.employees.find(e=>e.id===userId);
+    apply(has?before.filter(u=>u.id!==userId):before.concat(emp?[emp]:[]));
+    fn(taskId,userId,(resp)=>{
+        if(resp&&resp.success===false){ showToast('Update failed.'); const d=$(dropId); if(d) apply(before); }
     });
 };
 document.addEventListener('click',function(e){
