@@ -1280,7 +1280,7 @@ function chatRenderMsgs(msgs) {
         prevAuthorId = m.author.id;
     });
 
-    el.innerHTML = `<div style="margin:auto auto 0;width:100%;max-width:900px;display:flex;flex-direction:column;gap:3px;">${html}</div>`;
+    el.innerHTML = `<div id="chat-msg-inner" style="margin:auto auto 0;width:100%;max-width:900px;display:flex;flex-direction:column;gap:3px;">${html}</div>`;
     const goBottomChat = () => { el.scrollTop = el.scrollHeight + 9999; };
     goBottomChat();
     el.querySelectorAll('img').forEach(function(img) {
@@ -1555,7 +1555,7 @@ window.chatSend = async function() {
     const now = new Date();
     const timeStr = now.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true,timeZone:'Asia/Karachi'}).toLowerCase();
     const el = document.getElementById('chat-msg-area');
-    el.insertAdjacentHTML('beforeend', chatBubble({isMine:true, name:'Me', avatar:'', text: fullText, time:timeStr, showName:false}));
+    (document.getElementById('chat-msg-inner') || el).insertAdjacentHTML('beforeend', chatBubble({isMine:true, name:'Me', avatar:'', text: fullText, time:timeStr, showName:false}));
     el.scrollTop = el.scrollHeight;
 
     try {
@@ -1948,7 +1948,7 @@ async function chatPoll() {
 }
 function chatAppendMsgs(msgs) {
     const el = document.getElementById('chat-msg-area');
-    const inner = el.querySelector('[style*="margin-top:auto"]');
+    const inner = document.getElementById('chat-msg-inner');
     if (!inner) { chatRenderMsgs(msgs); return; }
     msgs.forEach(m => {
         inner.insertAdjacentHTML('beforeend', chatBubble({
@@ -2514,7 +2514,7 @@ window.vnSend = function(panel) {
                 const el  = document.getElementById('chat-msg-area');
                 const now = new Date();
                 const ts  = now.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true,timeZone:'Asia/Karachi'}).toLowerCase();
-                el.insertAdjacentHTML('beforeend', chatBubble({isMine:true, name:'Me', avatar:'', text:tag, time:ts, showName:false}));
+                (document.getElementById('chat-msg-inner') || el).insertAdjacentHTML('beforeend', chatBubble({isMine:true, name:'Me', avatar:'', text:tag, time:ts, showName:false}));
                 el.scrollTop = el.scrollHeight;
                 await fetch(API_BASE + '/api/chat/convs/' + _activeConvId + '/send', {
                     method: 'POST',
