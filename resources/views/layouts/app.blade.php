@@ -564,7 +564,7 @@
                             </div>
                         </a>
                         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px;">
-                            <a href="{{ route('profile.show') }}#security" style="text-decoration:none;color:#333;border:1px solid #cfe6f3;border-radius:12px;padding:18px 8px 12px;text-align:center;"><i class="far fa-shield-halved" style="font-size:22px;color:#525c69;"></i><div style="font-size:13px;color:#525c69;margin-top:12px;">Security</div></a>
+                            <a href="{{ route('profile.show') }}#security" style="text-decoration:none;color:#333;border:1px solid #cfe6f3;border-radius:12px;padding:18px 8px 12px;text-align:center;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#525c69" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="display:block;margin:0 auto;"><path d="M12 3l7.5 3v5.5c0 4.6-3.1 8.3-7.5 9.5-4.4-1.2-7.5-4.9-7.5-9.5V6L12 3z"/><path d="M8.8 12.2l2.3 2.3 4.2-4.6"/></svg><div style="font-size:13px;color:#525c69;margin-top:12px;">Security</div></a>
                             <a href="{{ route('profile.show') }}" style="text-decoration:none;color:#333;border:1px solid #cfe6f3;border-radius:12px;padding:18px 8px 12px;text-align:center;"><i class="far fa-id-card" style="font-size:22px;color:#525c69;"></i><div style="font-size:13px;color:#525c69;margin-top:12px;">My profile</div></a>
                         </div>
                     </div>
