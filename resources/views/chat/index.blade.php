@@ -16,34 +16,18 @@ document.addEventListener('DOMContentLoaded', function() {
 <div id="cp-wrap" style="display:flex;flex:1;min-height:0;overflow:hidden;">
 
     {{-- ═══ LEFT: Conversation list ═══ --}}
-    <div id="cp-left" style="width:300px;flex-shrink:0;display:flex;flex-direction:column;background:#f0f4f8;border-right:1px solid #e2e8f0;">
+    <div id="cp-left" style="width:340px;flex-shrink:0;display:flex;flex-direction:column;background:#fff;border-right:1px solid #e2e8f0;">
 
-        {{-- Header --}}
-        <div style="padding:16px 16px 12px;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;gap:8px;flex-shrink:0;background:#fff;">
-            <i class="fas fa-comment-dots" style="color:#0891b2;font-size:17px;"></i>
-            <span style="color:#1e293b;font-size:15px;font-weight:700;flex:1;">Messenger</span>
-        </div>
-
-        {{-- Search --}}
-        <div style="padding:12px 14px 8px;flex-shrink:0;">
-            <div style="display:flex;align-items:center;background:#fff;border:1px solid #e2e8f0;border-radius:9px;padding:0 12px;gap:7px;">
-                <i class="fas fa-search" style="font-size:12px;color:#94a3b8;"></i>
-                <input type="text" id="cp-search" placeholder="Search chats..."
+        {{-- Search bar: new group · filter · search · new chat (Bitrix style) --}}
+        <div style="padding:14px 14px 12px;display:flex;align-items:center;gap:10px;flex-shrink:0;background:#fff;">
+            <button onclick="cpNewGroup()" title="New group chat" style="width:40px;height:40px;border-radius:50%;background:#e8f6fd;border:none;color:#0a9bd8;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><i class="fas fa-users" style="font-size:15px;"></i></button>
+            <div style="flex:1;min-width:0;display:flex;align-items:center;background:#eef2f4;border-radius:20px;padding:0 14px;gap:8px;height:38px;">
+                <i class="fas fa-search" style="font-size:13px;color:#8b98a3;"></i>
+                <input type="text" id="cp-search" placeholder="Find employee or chat"
                        oninput="cpFilterConvs(this.value)"
-                       style="background:none;border:none;outline:none;color:#1e293b;font-size:13px;padding:8px 0;width:100%;font-family:inherit;">
+                       style="background:none;border:none;outline:none;color:#1e293b;font-size:14px;width:100%;font-family:inherit;">
             </div>
-        </div>
-
-        {{-- New chat buttons --}}
-        <div style="padding:0 14px 10px;display:flex;gap:6px;flex-shrink:0;">
-            <button onclick="cpNewDirect()" style="flex:1;background:#e0f7fa;border:1px solid #b2ebf2;color:#0891b2;border-radius:8px;padding:6px 0;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;"
-                    onmouseover="this.style.background='#b2ebf2'" onmouseout="this.style.background='#e0f7fa'">
-                <i class="fas fa-user-plus" style="font-size:10px;margin-right:4px;"></i>Direct
-            </button>
-            <button onclick="cpNewGroup()" style="flex:1;background:#ede9fe;border:1px solid #ddd6fe;color:#7c3aed;border-radius:8px;padding:6px 0;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;"
-                    onmouseover="this.style.background='#ddd6fe'" onmouseout="this.style.background='#ede9fe'">
-                <i class="fas fa-users" style="font-size:10px;margin-right:4px;"></i>Group
-            </button>
+            <button onclick="cpNewDirect()" title="New message" style="width:40px;height:40px;border-radius:50%;background:#e8f6fd;border:none;color:#0a9bd8;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><i class="far fa-pen-to-square" style="font-size:16px;"></i></button>
         </div>
 
         {{-- Conversation list --}}
@@ -76,21 +60,22 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
 
         {{-- Header --}}
-        <div id="cp-right-head" style="display:none;padding:13px 20px;border-bottom:1px solid #e2e8f0;align-items:center;gap:12px;background:#fff;flex-shrink:0;box-shadow:0 1px 3px rgba(0,0,0,.06);">
-            <div id="cp-rh-avatar" style="width:38px;height:38px;border-radius:50%;overflow:hidden;flex-shrink:0;background:#e0f7fa;display:flex;align-items:center;justify-content:center;">
+        <div id="cp-right-head" style="display:none;padding:12px 22px;border-bottom:1px solid #e9edf0;align-items:center;gap:14px;background:#fff;flex-shrink:0;">
+            <div id="cp-rh-avatar" style="width:44px;height:44px;border-radius:50%;overflow:hidden;flex-shrink:0;background:#e0f7fa;display:flex;align-items:center;justify-content:center;">
                 <i class="fas fa-user" style="font-size:16px;color:#0891b2;"></i>
             </div>
             <div style="flex:1;min-width:0;">
-                <p id="cp-rh-name" style="margin:0;color:#1e293b;font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></p>
-                <p id="cp-rh-sub" style="margin:0;color:#94a3b8;font-size:11.5px;"></p>
+                <p style="margin:0;display:flex;align-items:baseline;gap:8px;min-width:0;"><span id="cp-rh-name" style="color:#000;font-size:16px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></span><span id="cp-rh-online" style="color:#a0a8ae;font-size:14px;font-style:italic;flex-shrink:0;"></span></p>
+                <p id="cp-rh-sub" style="margin:0;color:#6b7680;font-size:13.5px;"></p>
             </div>
         </div>
 
         {{-- Messages --}}
-        <div id="cp-msg-area" style="display:none;flex:1;overflow-y:auto;padding:20px 200px;background:#5a9e96 url('{{ asset('pattern-chat-teal.svg') }}') center/cover no-repeat;flex-direction:column;"></div>
+        <div id="cp-msg-area" style="display:none;flex:1;overflow-y:auto;padding:20px 24px 12px;background:#5a9e96 url('{{ asset('pattern-chat-teal.svg') }}') center/cover no-repeat;flex-direction:column;"></div>
 
         {{-- Input --}}
-        <div id="cp-input-area" style="display:none;padding:10px 16px 14px;border-top:1px solid #e2e8f0;background:#fff;flex-shrink:0;">
+        <div id="cp-input-area" style="display:none;padding:0 24px 22px;background:#5a9e96 url('{{ asset('pattern-chat-teal.svg') }}') center bottom/cover no-repeat;flex-shrink:0;">
+            <div style="max-width:860px;margin:0 auto;">
             {{-- Reply preview bar --}}
             <div id="cp-reply-bar" style="display:none;align-items:center;gap:10px;padding:7px 12px 6px;margin-bottom:6px;background:#f0f9ff;border-radius:8px;border-left:3px solid #0891b2;">
                 <i class="fas fa-reply" style="font-size:12px;color:#0891b2;flex-shrink:0;"></i>
@@ -103,36 +88,23 @@ document.addEventListener('DOMContentLoaded', function() {
                 </button>
             </div>
             {{-- Normal input --}}
-            <div id="cp-normal-input" style="display:flex;align-items:flex-end;gap:8px;">
-                <div style="flex:1;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;">
-                    <textarea id="cp-textarea" rows="1" placeholder="Type a message..."
-                              style="display:block;width:100%;background:none;border:none;color:#1e293b;font-size:13.5px;padding:10px 14px 7px;outline:none;resize:none;font-family:inherit;line-height:1.5;max-height:140px;overflow-y:auto;box-sizing:border-box;"
+            <div id="cp-normal-input" style="display:flex;align-items:stretch;">
+                <div style="flex:1;position:relative;background:#fff;border-radius:10px;box-shadow:0 1px 3px rgba(0,0,0,.12);min-height:96px;">
+                    <button type="button" onclick="document.getElementById('cp-file-input').click()" title="Attach file"
+                            style="position:absolute;left:14px;top:16px;background:none;border:none;color:#9aa5ad;cursor:pointer;padding:0;font-size:16px;line-height:1;"><i class="fas fa-paperclip"></i></button>
+                    <textarea id="cp-textarea" rows="2" placeholder="Type @ or + to mention a person, a chat or AI"
+                              style="display:block;width:100%;background:none;border:none;color:#1e293b;font-size:15px;padding:14px 16px 44px 44px;outline:none;resize:none;font-family:inherit;line-height:1.5;max-height:200px;overflow-y:auto;box-sizing:border-box;"
                               onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();cpSend();}"
-                              oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,140)+'px'"></textarea>
-                    <div style="display:flex;align-items:center;gap:2px;padding:4px 10px;border-top:1px solid #e2e8f0;">
-                        <button type="button" onclick="emojiToggle('cp-textarea',this)"
-                                title="Emoji" style="background:none;border:none;color:#94a3b8;cursor:pointer;padding:4px 6px;border-radius:6px;font-size:16px;line-height:1;transition:color .12s;"
-                                onmouseover="this.style.color='#0891b2'" onmouseout="this.style.color='#94a3b8'">
-                            <i class="far fa-smile-beam"></i>
-                        </button>
-                        <button type="button" onclick="document.getElementById('cp-file-input').click()"
-                                title="Attach file" style="background:none;border:none;color:#94a3b8;cursor:pointer;padding:4px 6px;border-radius:6px;font-size:15px;line-height:1;transition:color .12s;"
-                                onmouseover="this.style.color='#0891b2'" onmouseout="this.style.color='#94a3b8'">
-                            <i class="fas fa-paperclip"></i>
-                        </button>
-                        <input type="file" id="cp-file-input" style="display:none" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.zip"
-                               onchange="uploadAndInsert('cp-textarea','cp-file-input','cp-attach-preview')">
+                              oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,200)+'px';var b=document.getElementById('cp-send-btn');if(b)b.style.background=this.value.trim()?'#12b0f0':'#c5cad0'"></textarea>
+                    <div style="position:absolute;right:14px;bottom:10px;display:flex;align-items:center;gap:14px;">
+                        <button type="button" onclick="emojiToggle('cp-textarea',this)" title="Emoji" style="background:none;border:none;color:#9aa5ad;cursor:pointer;padding:0;font-size:18px;line-height:1;"><i class="far fa-face-smile"></i></button>
+                        <button type="button" onclick="vnStart('cp')" title="Voice note" style="background:none;border:none;color:#9aa5ad;cursor:pointer;padding:0;font-size:17px;line-height:1;"><i class="fas fa-microphone"></i></button>
+                        <button type="button" id="cp-send-btn" onclick="cpSend()" title="Send" style="width:38px;height:38px;border-radius:50%;background:#c5cad0;border:none;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s;"><i class="fas fa-paper-plane" style="font-size:15px;margin-left:-1px;"></i></button>
                     </div>
-                    <div id="cp-attach-preview" style="display:none;padding:6px 10px 4px;gap:8px;flex-wrap:wrap;border-top:1px solid #e2e8f0;"></div>
+                    <input type="file" id="cp-file-input" style="display:none" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.zip"
+                           onchange="uploadAndInsert('cp-textarea','cp-file-input','cp-attach-preview')">
+                    <div id="cp-attach-preview" style="display:none;padding:6px 14px 8px;gap:8px;flex-wrap:wrap;border-top:1px solid #eef1f3;"></div>
                 </div>
-                <button onclick="vnStart('cp')" title="Voice note"
-                        style="width:42px;height:42px;border-radius:12px;background:#e2e8f0;border:1px solid #cbd5e1;color:#64748b;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s;"
-                        onmouseover="this.style.background='#cbd5e1';this.style.color='#334155'" onmouseout="this.style.background='#e2e8f0';this.style.color='#64748b'">
-                    <i class="fas fa-microphone" style="font-size:14px;"></i>
-                </button>
-                <button onclick="cpSend()" style="width:42px;height:42px;border-radius:50%;background:#2f70d6;border:none;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                    <i class="fas fa-paper-plane" style="font-size:14px;"></i>
-                </button>
             </div>
             {{-- Recording UI --}}
             <div id="cp-vn-rec" style="display:none;align-items:center;gap:8px;">
@@ -150,6 +122,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         style="width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,#22c55e,#16a34a);border:none;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
                     <i class="fas fa-check" style="font-size:14px;"></i>
                 </button>
+            </div>
             </div>
         </div>
     </div>
@@ -230,9 +203,10 @@ document.addEventListener('DOMContentLoaded', function() {
 <style>
 #cp-wrap { position:relative; }
 #cp-direct-modal.cp-show, #cp-group-modal.cp-show { display:flex !important; }
-.cp-conv-item { display:flex;align-items:center;gap:12px;padding:10px 16px;cursor:pointer;transition:background .12s;position:relative; }
+.cp-conv-item { display:flex;align-items:center;gap:14px;padding:11px 16px;cursor:pointer;transition:background .12s;position:relative;margin:0 6px;border-radius:8px; }
 .cp-conv-item:hover { background:#f4f6f8; }
-.cp-conv-item.active { background:#e9f2fb; }
+.cp-conv-item.active { background:#12b0f0; }
+.cp-conv-item.active .cp-cn, .cp-conv-item.active .cp-cl, .cp-conv-item.active .cp-ct { color:#fff !important; }
 .cp-conv-item.unread { background:#f0f7ff; }
 .cp-conv-item.unread:hover { background:#e4eefb; }
 @keyframes cp-flash { 0%{background:rgba(37,211,102,.22)} 100%{background:rgba(0,212,232,.06)} }
@@ -574,11 +548,11 @@ function bubble(m) {
         const rxn = msgId ? reactionBadge(reactions, myReactions, msgId) : '';
         return `<div ${dataAttrs} class="cp-msg-outer" style="display:flex;justify-content:flex-end;align-items:center;gap:5px;margin-bottom:2px;">
             ${actions}
-            <div style="max-width:45%;">
-                <div class="cp-bubble-bg" style="background:#d7f5c9;border-radius:14px 4px 14px 14px;padding:9px 13px 7px;cursor:default;">
-                    <div data-msg-text data-raw="${esc(text)}" style="font-size:14px;color:#173a20;line-height:1.5;">${content}</div>
+            <div style="max-width:75%;">
+                <div class="cp-bubble-bg" style="background:#e3f9c9;border-radius:14px 4px 14px 14px;padding:10px 14px 7px;cursor:default;">
+                    <div data-msg-text data-raw="${esc(text)}" style="font-size:15.5px;color:#173a20;line-height:1.5;">${content}</div>
                     <div style="display:flex;align-items:center;justify-content:flex-end;gap:4px;margin-top:3px;">
-                        ${editedHtml}<span style="font-size:10.5px;color:rgba(0,0,0,.38);">${time}</span>
+                        ${editedHtml}<span style="font-size:11.5px;color:rgba(0,0,0,.4);">${time}</span>
                         <i class="fas fa-check-double" style="font-size:9px;color:rgba(0,140,90,.6);"></i>
                     </div>
                 </div>
@@ -587,19 +561,19 @@ function bubble(m) {
         </div>`;
     }
     const av = avatar
-        ? `<img src="${avatar}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;flex-shrink:0;margin-top:2px;">`
-        : `<div style="width:28px;height:28px;border-radius:50%;background:rgba(100,116,139,.3);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px;font-size:11px;color:#94a3b8;">${(name||'?')[0]}</div>`;
-    const nm = showName ? `<span style="font-size:11.5px;color:#64748b;font-weight:600;display:block;margin-bottom:2px;">${esc(name)}</span>` : '';
+        ? `<img src="${avatar}" style="width:44px;height:44px;border-radius:50%;object-fit:cover;flex-shrink:0;margin-top:2px;">`
+        : `<div style="width:44px;height:44px;border-radius:50%;background:rgba(100,116,139,.3);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px;font-size:15px;color:#94a3b8;">${(name||'?')[0]}</div>`;
+    const nm = showName ? `<span style="font-size:13px;color:#4f7f76;font-weight:600;display:block;margin-bottom:2px;">${esc(name)}</span>` : '';
     const editedHtmlOther = editedAt ? `<span style="font-size:9.5px;color:rgba(0,0,0,.3);margin-right:4px;font-style:italic;">edited</span>` : '';
     const rxnOther = msgId ? reactionBadge(reactions, myReactions, msgId) : '';
     return `<div ${dataAttrs} class="cp-msg-outer" style="display:flex;align-items:center;gap:5px;margin-bottom:2px;${showName?'margin-top:6px':''}">
         ${av}
-        <div style="max-width:45%;">
+        <div style="max-width:75%;">
             ${nm}
-            <div class="cp-bubble-bg" style="background:#ffffff;border-radius:4px 14px 14px 14px;padding:9px 13px 7px;cursor:default;">
-                <div data-msg-text data-raw="${esc(text)}" style="font-size:14px;color:#1e293b;line-height:1.5;">${content}</div>
+            <div class="cp-bubble-bg" style="background:#ffffff;border-radius:4px 14px 14px 14px;padding:10px 14px 7px;cursor:default;">
+                <div data-msg-text data-raw="${esc(text)}" style="font-size:15.5px;color:#1e293b;line-height:1.5;">${content}</div>
                 <div style="display:flex;align-items:center;justify-content:flex-end;gap:2px;margin-top:3px;">
-                    ${editedHtmlOther}<span style="font-size:10.5px;color:rgba(0,0,0,.35);">${time}</span>
+                    ${editedHtmlOther}<span style="font-size:11.5px;color:rgba(0,0,0,.4);">${time}</span>
                 </div>
             </div>
             ${rxnOther}
@@ -657,7 +631,7 @@ function convAvatar(c, size) {
         inner = `<div style="width:${s};height:${s};border-radius:50%;background:rgba(27,114,232,.25);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#60a5fa;font-size:${Math.round(size*.38)}px;font-weight:700;">${initials}</div>`;
     }
     const dot = (c.type==='direct')
-        ? `<div style="position:absolute;bottom:0;right:0;width:11px;height:11px;border-radius:50%;background:${c.online?'#22c55e':'#f97316'};border:2px solid #f0f4f8;"></div>`
+        ? `<div style="position:absolute;bottom:0;right:0;width:11px;height:11px;border-radius:50%;background:${c.online?'#22c55e':'#f97316'};border:2px solid #fff;"></div>`
         : '';
     return `<div style="position:relative;flex-shrink:0;">${inner}${dot}</div>`;
 }
@@ -693,20 +667,20 @@ function cpRenderConvs(list) {
         return;
     }
     el.innerHTML = list.map(c => {
-        const av      = convAvatar(c, 36);
+        const av      = convAvatar(c, 48);
         const lm      = c.lastMsg;
         const unread  = (c.unread && _cpActiveConvId !== c.id) ? c.unread : 0;
         const lastLine = lm
-            ? `<span style="color:${unread?'#0f172a':'#64748b'};font-size:11.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${unread?'font-weight:600;':''}">${lm.byMe?'You: ':(c.type!=='direct'?esc(lm.senderName||'')+': ':'')}${esc(cpPreviewText(lm.text).substring(0,45))}</span>`
-            : `<span style="color:#94a3b8;font-size:11.5px;">No messages yet</span>`;
-        const timeStr = lm ? `<span style="color:${unread?'#0891b2':'#94a3b8'};font-size:10.5px;flex-shrink:0;">${lm.time}</span>` : '';
+            ? `<span style="color:${unread?'#0f172a':'#64748b'};font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${unread?'font-weight:600;':''}" class="cp-cl">${lm.byMe?'You: ':(c.type!=='direct'?esc(lm.senderName||'')+': ':'')}${esc(cpPreviewText(lm.text).substring(0,45))}</span>`
+            : `<span style="color:#94a3b8;font-size:14px;">No messages yet</span>`;
+        const timeStr = lm ? `<span class="cp-ct" style="color:${unread?'#0891b2':'#9aa5ad'};font-size:12px;flex-shrink:0;">${lm.time}</span>` : '';
         const badge   = unread ? `<div style="min-width:18px;height:18px;border-radius:9px;background:#0891b2;color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0 4px;flex-shrink:0;">${unread>99?'99+':unread}</div>` : '';
         const unreadClass = (_cpActiveConvId!==c.id && unread) ? ' unread' : '';
         return `<div class="cp-conv-item${_cpActiveConvId===c.id?' active':''}${unreadClass}" onclick="cpSelect(${c.id})" data-id="${c.id}">
             ${av}
             <div style="flex:1;min-width:0;">
                 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px;">
-                    <span style="color:#1e293b;font-size:13px;font-weight:${unread?'700':'600'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:150px;">${esc(c.name)}</span>
+                    <span class="cp-cn" style="color:#1e293b;font-size:15.5px;font-weight:${unread?'600':'500'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:190px;">${esc(c.name)}</span>
                     ${timeStr}
                 </div>
                 <div style="display:flex;align-items:center;justify-content:space-between;gap:4px;">
@@ -775,6 +749,7 @@ function cpUpdateHeader(conv) {
     const nameEl = document.getElementById('cp-rh-name');
     const subEl  = document.getElementById('cp-rh-sub');
     nameEl.textContent = conv.name || 'Chat';
+    const _onl0 = document.getElementById('cp-rh-online'); if (_onl0) _onl0.textContent = '';
     if (conv.type === 'general') {
         avEl.innerHTML = '<i class="fas fa-globe" style="font-size:18px;color:#00D4E8;"></i>';
         avEl.style.background = 'rgba(0,212,232,.15)';
@@ -793,8 +768,9 @@ function cpUpdateHeader(conv) {
             avEl.innerHTML = `<span style="font-size:14px;font-weight:700;color:#60a5fa;">${ini}</span>`;
             avEl.style.background = 'rgba(27,114,232,.2)';
         }
-        const dot = `<span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${conv.online?'#22c55e':'#f97316'};margin-right:5px;vertical-align:middle;"></span>`;
-        subEl.innerHTML = dot + (conv.online ? 'Online' : (conv.last_seen ? 'Last seen ' + conv.last_seen : 'Offline'));
+        subEl.innerHTML = 'Direct message';
+        const onl = document.getElementById('cp-rh-online');
+        if (onl) onl.textContent = conv.online ? 'Online' : (conv.last_seen ? 'Last seen ' + conv.last_seen : 'Offline');
     }
 }
 
@@ -821,10 +797,8 @@ function cpRenderMsgs(msgs, scrollToBottom) {
         const deletedForMe = Array.isArray(m.deletedFor) && m.deletedFor.includes(ME_ID);
         const isDeleted    = deletedForMe || !m.text || m.text === 'This message has been deleted.';
         if (m.date !== prevDate) {
-            html += `<div style="display:flex;align-items:center;gap:10px;margin:14px 0 8px;">
-                <div style="flex:1;height:1px;background:rgba(255,255,255,.18);"></div>
-                <span style="color:rgba(255,255,255,.8);font-size:11.5px;white-space:nowrap;background:rgba(0,0,0,.32);padding:2px 12px;border-radius:20px;font-weight:600;letter-spacing:.3px;">${cpDayLabel(m.date)}</span>
-                <div style="flex:1;height:1px;background:rgba(255,255,255,.18);"></div>
+            html += `<div style="display:flex;align-items:center;justify-content:center;margin:14px 0 8px;">
+                <span style="color:#fff;font-size:13px;white-space:nowrap;background:#538b7f;padding:3px 16px;border-radius:14px;font-weight:600;">${cpDayLabel(m.date).toLowerCase()}</span>
             </div>`;
             prevDate = m.date; prevAuthor = null;
         }
@@ -836,7 +810,7 @@ function cpRenderMsgs(msgs, scrollToBottom) {
         prevAuthor = m.author.id;
     });
 
-    el.innerHTML = `<div id="cp-msg-inner" style="display:flex;flex-direction:column;gap:2px;margin-top:auto;">${html}</div>`;
+    el.innerHTML = `<div id="cp-msg-inner" style="display:flex;flex-direction:column;gap:3px;margin:auto auto 0;width:100%;max-width:860px;">${html}</div>`;
 
     const newCount = msgs.length;
     const hasNew   = newCount > _cpMsgCount;
@@ -893,7 +867,7 @@ window.cpSend = async function() {
     cpCancelReply();
     const fullText = replyPrefix + text + (attachTags ? (text ? '\n' : '') + attachTags : '');
     const now = new Date();
-    const timeStr = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
+    const timeStr = now.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true,timeZone:'Asia/Karachi'}).toLowerCase();
     const el = document.getElementById('cp-msg-area');
     const _inner = document.getElementById('cp-msg-inner') || el;
 
@@ -917,7 +891,7 @@ window.cpSend = async function() {
 window.cpSendRaw = async function(tag) {
     if (!_cpActiveConvId) return;
     const now = new Date();
-    const timeStr = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
+    const timeStr = now.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true,timeZone:'Asia/Karachi'}).toLowerCase();
     const el = document.getElementById('cp-msg-area');
     const _inner2 = document.getElementById('cp-msg-inner') || el;
     _inner2.style.paddingTop = '0';

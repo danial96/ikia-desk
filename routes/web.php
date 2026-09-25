@@ -458,7 +458,7 @@ Route::middleware('auth')->group(function () {
                 'members'       => $c->members->count(),
                 'unread'        => $unreadCounts->get($c->id, 0),
                 'online'        => $online,
-                'lastMsg'       => $lm ? ['text'=>$lm->content,'byMe'=>$lm->user_id===$user->id,'senderName'=>$lm->user?->name,'time'=>$lm->created_at->format('H:i')] : null,
+                'lastMsg'       => $lm ? ['text'=>$lm->content,'byMe'=>$lm->user_id===$user->id,'senderName'=>$lm->user?->name,'time'=>$lm->created_at->format('g:i a')] : null,
             ];
         }
         return response()->json(['convs'=>$list]);
@@ -476,10 +476,10 @@ Route::middleware('auth')->group(function () {
             'id'        => $m->id,
             'text'      => $m->content,
             'isMine'    => $m->user_id===$user->id,
-            'time'      => $m->created_at->format('H:i'),
+            'time'      => $m->created_at->format('g:i a'),
             'date'      => $m->created_at->format('Y-m-d'),
             'createdTs' => $m->created_at->timestamp,
-            'editedAt'  => $m->edited_at?->format('H:i'),
+            'editedAt'  => $m->edited_at?->format('g:i a'),
             'deletedFor'=> $m->deleted_for ?? [],
             'reactions' => $m->reactions ?? [],
             'myReactions'=> array_keys(array_filter($m->reactions ?? [], fn($ids) => in_array($user->id, (array)$ids))),
@@ -546,7 +546,7 @@ Route::middleware('auth')->group(function () {
         if ((int)$msg->user_id !== (int)$user->id) return response()->json(['error'=>'Forbidden'],403);
         if ($msg->created_at->diffInHours(now()) > 24) return response()->json(['error'=>'Too late to edit'],403);
         $msg->update(['content'=>$request->content,'edited_at'=>now()]);
-        return response()->json(['ok'=>true,'editedAt'=>$msg->edited_at->format('H:i')]);
+        return response()->json(['ok'=>true,'editedAt'=>$msg->edited_at->format('g:i a')]);
     });
 
     // ── Delete message ──
@@ -629,7 +629,7 @@ Route::middleware('auth')->group(function () {
 
         return response()->json(['ok'=>true,'message'=>[
             'id'=>$msg->id,'text'=>$msg->content,'isMine'=>true,
-            'time'=>$msg->created_at->format('H:i'),'date'=>$msg->created_at->format('Y-m-d'),
+            'time'=>$msg->created_at->format('g:i a'),'date'=>$msg->created_at->format('Y-m-d'),
             'createdTs'=>$msg->created_at->timestamp,'editedAt'=>null,
             'author'=>['id'=>$user->id,'name'=>$user->name,'avatar'=>$user->avatar_url],
         ]]);
