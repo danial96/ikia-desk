@@ -132,7 +132,7 @@
                     <i class="fas fa-bolt" style="font-size:12px;color:#00D4E8;"></i>
                 </div>
                 <div>
-                    <h2 class="txt-main" style="font-size:13.5px;font-weight:600;margin:0;line-height:1;">Bitrix24 Tasks</h2>
+                    <h2 class="txt-main" style="font-size:13.5px;font-weight:600;margin:0;line-height:1;">Desk Tasks</h2>
                     <span class="txt-sub" style="font-size:10.5px;">Upcoming &amp; active</span>
                 </div>
             </div>
@@ -164,7 +164,7 @@
         {{-- Error --}}
         <div id="b24-error" style="display:none;padding:24px 20px;text-align:center;">
             <i class="fas fa-exclamation-circle" style="font-size:20px;color:rgba(239,68,68,.6);margin-bottom:8px;display:block;"></i>
-            <p class="txt-sub" style="font-size:12.5px;margin:0;">Could not load Bitrix24 tasks</p>
+            <p class="txt-sub" style="font-size:12.5px;margin:0;">Could not load tasks</p>
         </div>
     </div>
 

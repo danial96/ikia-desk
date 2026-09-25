@@ -108,9 +108,8 @@
                             @else{!! $none !!}@endif
                         </p>
                         @endforeach
-                        @if($user->bitrix_id)
-                        <p class="pf-lbl">Bitrix ID</p><p class="pf-val" style="margin-bottom:0;">#{{ $user->bitrix_id }}@if($user->last_login_at) &nbsp;·&nbsp; last login {{ \Carbon\Carbon::parse($user->last_login_at)->format('d M Y') }}@endif</p>
-                        @endif
+                        <p class="pf-lbl">Desk ID</p><p class="pf-val" style="margin-bottom:0;">#{{ $user->id }}@if($user->last_login_at) &nbsp;·&nbsp; last login {{ \Carbon\Carbon::parse($user->last_login_at)->format('d M Y') }}@endif</p>
+                        
                     </div>
 
                     {{-- Additional information (Bitrix): supervisor + subordinates --}}
@@ -349,15 +348,14 @@
                 </div>
 
                 {{-- Bitrix info (read-only) --}}
-                @if($user->bitrix_id)
                 <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:14px;padding:16px 20px;">
                     <div style="font-size:11px;font-weight:700;color:#9ca3af;letter-spacing:1px;text-transform:uppercase;margin-bottom:12px;display:flex;align-items:center;gap:6px;">
-                        <i class="fas fa-link" style="color:#6366f1;font-size:10px;"></i> Bitrix24 Info
+                        <i class="fas fa-link" style="color:#6366f1;font-size:10px;"></i> IKIA Desk Info
                     </div>
                     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
                         <div>
-                            <p style="font-size:10px;color:#9ca3af;margin:0 0 2px;text-transform:uppercase;letter-spacing:.4px;">Bitrix ID</p>
-                            <p style="font-size:13px;color:#374151;font-weight:600;margin:0;">#{{ $user->bitrix_id }}</p>
+                            <p style="font-size:10px;color:#9ca3af;margin:0 0 2px;text-transform:uppercase;letter-spacing:.4px;">Desk ID</p>
+                            <p style="font-size:13px;color:#374151;font-weight:600;margin:0;">#{{ $user->id }}</p>
                         </div>
                         @if($user->last_login_at)
                         <div>
@@ -367,7 +365,6 @@
                         @endif
                     </div>
                 </div>
-                @endif
 
             </div>
         </div>

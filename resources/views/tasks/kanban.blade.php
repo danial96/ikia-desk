@@ -250,7 +250,7 @@
                 <div style="margin-top:12px;display:flex;gap:8px;">
                     <div style="flex:1;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:9px;padding:10px 13px;color:rgba(255,255,255,.2);font-size:12px;display:flex;align-items:center;gap:8px;">
                         <i class="fas fa-comment" style="font-size:11px;color:rgba(255,255,255,.15);"></i>
-                        <span>Reply in Bitrix24...</span>
+                        <span>Reply in Desk...</span>
                     </div>
                     <a href="https://thesoftcube.bitrix24.com/tasks/task/view/${t.id}/" target="_blank"
                        style="background:rgba(0,212,232,.12);border:1px solid rgba(0,212,232,.25);border-radius:9px;padding:10px 14px;color:#00D4E8;font-size:12px;font-weight:600;text-decoration:none;display:flex;align-items:center;gap:5px;white-space:nowrap;transition:background .15s;"
@@ -369,7 +369,7 @@
                 <p style="font-size:12.5px;font-weight:600;color:#1a1a2e;margin:0;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${t.title}</p>
                 <span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:5px;flex-shrink:0;text-transform:uppercase;background:${pBg};color:${pCol};">${pLbl}</span>
             </div>
-            <p style="font-size:10px;color:#00b8cc;margin:0 0 6px;font-weight:600;"><i class="fas fa-bolt" style="font-size:9px;margin-right:3px;"></i>Bitrix24</p>
+            <p style="font-size:10px;color:#00b8cc;margin:0 0 6px;font-weight:600;"><i class="fas fa-bolt" style="font-size:9px;margin-right:3px;"></i>Desk</p>
             <div style="margin-bottom:8px;">
                 <span style="font-size:10.5px;font-weight:500;padding:2px 9px;border-radius:6px;background:${sBg};color:${sCol};">${sLbl}</span>
             </div>

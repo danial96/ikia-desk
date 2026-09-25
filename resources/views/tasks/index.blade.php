@@ -178,7 +178,7 @@ function b24lRenderPanel_REMOVED(data) {
             <div style="margin-top:12px;display:flex;gap:8px;">
                 <div style="flex:1;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:9px;padding:10px 13px;color:rgba(255,255,255,.2);font-size:12px;display:flex;align-items:center;gap:8px;">
                     <i class="fas fa-comment" style="font-size:11px;color:rgba(255,255,255,.15);"></i>
-                    <span>Reply in Bitrix24...</span>
+                    <span>Reply in Desk...</span>
                 </div>
                 <a href="https://thesoftcube.bitrix24.com/tasks/task/view/${t.id}/" target="_blank"
                    style="background:rgba(0,212,232,.12);border:1px solid rgba(0,212,232,.25);border-radius:9px;padding:10px 14px;color:#00D4E8;font-size:12px;font-weight:600;text-decoration:none;display:flex;align-items:center;gap:5px;white-space:nowrap;transition:background .15s;"

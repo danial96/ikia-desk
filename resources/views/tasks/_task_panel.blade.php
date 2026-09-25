@@ -1001,7 +1001,7 @@ function tpRenderB24(data, bxId) {
     const sBg={'1':'#f1f5f9','2':'#fef3c7','3':'#dbeafe','4':'#ede9fe','5':'#dcfce7','6':'#f1f5f9'};
     const sCol={'1':'#475569','2':'#b45309','3':'#1d4ed8','4':'#6d28d9','5':'#15803d','6':'#475569'};
 
-    $('tp-source-badge').innerHTML=`<div style="display:flex;align-items:center;gap:4px;padding:2px 7px;background:#e0f2fe;border:1px solid #bae6fd;border-radius:5px;"><i class="fas fa-bolt" style="font-size:8px;color:#0284c7;"></i><span style="font-size:9px;font-weight:700;color:#0284c7;letter-spacing:.6px;">BITRIX24</span></div>`;
+    $('tp-source-badge').innerHTML=`<div style="display:flex;align-items:center;gap:4px;padding:2px 7px;background:#e0f2fe;border:1px solid #bae6fd;border-radius:5px;"><i class="fas fa-bolt" style="font-size:8px;color:#0284c7;"></i><span style="font-size:9px;font-weight:700;color:#0284c7;letter-spacing:.6px;">DESK</span></div>`;
     $('tp-task-id').textContent='#'+t.id;
     $('tp-title').textContent=t.title||'Untitled';
 
