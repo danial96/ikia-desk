@@ -3041,7 +3041,7 @@ document.addEventListener('keydown', function(e) {
                 r = await fetch('{{ route('theme.set') }}', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' }, body: JSON.stringify({ theme: pick.theme }) });
             }
             const d = await r.json();
-            if (d.ok) { saved = { theme: pick.theme, css: d.css || null }; apply(saved.css); customFile = null; closeThemes(false); if (window.showToast) showToast('Theme saved.'); }
+            if (d.ok) { saved = { theme: pick.theme, css: d.css || null }; apply(saved.css); customFile = null; closeThemes(false); if (window.showToast) showToast('Theme saved.', 'success'); }
             else if (window.showToast) showToast(d.message || 'Could not save the theme.');
         } catch (e) { if (window.showToast) showToast('Could not save the theme.'); }
         btn.disabled = false; btn.style.opacity = '1';
