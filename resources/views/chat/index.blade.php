@@ -100,10 +100,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     <button type="button" onclick="document.getElementById('cp-file-input').click()" title="Attach file"
                             style="position:absolute;left:14px;top:16px;background:none;border:none;color:#9aa5ad;cursor:pointer;padding:0;font-size:16px;line-height:1;"><i class="fas fa-paperclip"></i></button>
                     <textarea id="cp-textarea" rows="5" placeholder="Type @ or + to mention a person, a chat or AI"
-                              style="display:block;width:100%;background:none;border:none;color:#1e293b;font-size:15px;padding:16px 16px 50px 46px;outline:none;resize:none;font-family:inherit;line-height:1.5;flex:1;min-height:0;overflow-y:auto;box-sizing:border-box;"
+                              style="display:block;width:100%;background:none;border:none;color:#1e293b;font-size:15px;padding:16px 16px 6px 46px;outline:none;resize:none;font-family:inherit;line-height:1.5;flex:1;min-height:0;overflow-y:auto;box-sizing:border-box;"
                               onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();cpSend();}"
                               oninput="var b=document.getElementById('cp-send-btn');if(b)b.style.background=this.value.trim()?'#12b0f0':'#c5cad0'"></textarea>
-                    <div style="position:absolute;right:14px;bottom:10px;display:flex;align-items:center;gap:14px;">
+                    <div style="display:flex;align-items:center;justify-content:flex-end;gap:14px;padding:6px 14px 10px;flex-shrink:0;">
                         <button type="button" onclick="emojiToggle('cp-textarea',this)" title="Emoji" style="background:none;border:none;color:#9aa5ad;cursor:pointer;padding:0;font-size:18px;line-height:1;"><i class="far fa-face-smile"></i></button>
                         <button type="button" onclick="vnStart('cp')" title="Voice note" style="background:none;border:none;color:#9aa5ad;cursor:pointer;padding:0;font-size:17px;line-height:1;"><i class="fas fa-microphone"></i></button>
                         <button type="button" id="cp-send-btn" onclick="cpSend()" title="Send" style="width:38px;height:38px;border-radius:50%;background:#c5cad0;border:none;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s;"><i class="fas fa-paper-plane" style="font-size:15px;margin-left:-1px;"></i></button>
