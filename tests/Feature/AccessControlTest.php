@@ -48,7 +48,7 @@ class AccessControlTest extends TestCase
 
         $this->post(route('login'), ['email' => $user->email, 'password' => 'wrong']);
         $this->post(route('login'), ['email' => $user->email, 'password' => 'password'])
-            ->assertRedirect(route('dashboard'));
+            ->assertRedirect(route('tasks.index'));   // people land straight on their tasks
         $this->assertAuthenticatedAs($user);
     }
 
@@ -164,5 +164,13 @@ class AccessControlTest extends TestCase
             ['create_tasks' => false, 'view_all_tasks' => false, 'create_projects' => true],
             $employee->fresh()->permissions
         );
+    }
+
+    public function test_login_lands_on_the_kanban_board_for_users_who_chose_it(): void
+    {
+        $user = $this->makeUser();
+        $user->forceFill(['task_view' => 'kanban'])->save();
+
+        $this->post(route('login'), ['email' => $user->email, 'password' => 'password'])->assertRedirect(route('tasks.kanban'));
     }
 }

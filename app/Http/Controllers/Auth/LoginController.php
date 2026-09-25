@@ -10,9 +10,15 @@ use Illuminate\Support\Str;
 
 class LoginController extends Controller
 {
+    /** After signing in people land straight on their tasks, in the layout they last used. */
+    private function landing(): string
+    {
+        return Auth::user()?->task_view === 'kanban' ? route('tasks.kanban') : route('tasks.index');
+    }
+
     public function showLoginForm()
     {
-        if (Auth::check()) return redirect()->route('dashboard');
+        if (Auth::check()) return redirect($this->landing());
         return view('auth.login');
     }
 
@@ -37,7 +43,7 @@ class LoginController extends Controller
                 return back()->withErrors(['email' => 'Your account has been deactivated.']);
             }
             $request->session()->regenerate();
-            return redirect()->intended(route('dashboard'));
+            return redirect()->intended($this->landing());
         }
 
         RateLimiter::hit($throttleKey, 60);
