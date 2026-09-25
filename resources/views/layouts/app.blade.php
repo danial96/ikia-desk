@@ -1127,7 +1127,8 @@ function chatRenderConvs(list) {
 
 function convAvatar(c, size, noDot) {
     const s = size + 'px';
-    if (c.type === 'general') {
+    if (c.type==='notes') return `<div style="width:${s};height:${s};border-radius:50%;background:#2fc7f7;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><i class="fas fa-bookmark" style="font-size:${Math.round(size*.4)}px;color:#fff;"></i></div>`;
+        if (c.type === 'general') {
         return `<div style="width:${s};height:${s};border-radius:50%;background:rgba(0,212,232,.2);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><i class="fas fa-globe" style="font-size:${size*0.45}px;color:#00D4E8;"></i></div>`;
     }
     if (c.type === 'group') {
@@ -1203,6 +1204,10 @@ function chatUpdateHeader(conv) {
         avatarEl.innerHTML = '<i class="fas fa-globe" style="font-size:16px;color:#00D4E8;"></i>';
         avatarEl.style.background = 'rgba(0,212,232,.15)';
         subEl.textContent = 'General channel';
+    } else if (conv.type === 'notes') {
+        avatarEl.innerHTML = '<i class="fas fa-bookmark" style="font-size:18px;color:#fff;"></i>';
+        avatarEl.style.background = '#2fc7f7';
+        subEl.textContent = 'Only you can see this chat';
     } else if (conv.type === 'group') {
         avatarEl.innerHTML = '<i class="fas fa-users" style="font-size:14px;color:#a78bfa;"></i>';
         avatarEl.style.background = 'rgba(139,92,246,.15)';

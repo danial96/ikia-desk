@@ -427,9 +427,15 @@ Route::middleware('auth')->group(function () {
         $user = auth()->user();
         $user->forceFill(['last_seen_at' => now()])->save();
 
+        // Personal "Notes" chat (Bitrix parity): one private conversation per user, only they are in it
+        if (!$user->conversations()->where('conversations.type', 'notes')->exists()) {
+            $notes = \App\Models\Conversation::create(['type' => 'notes', 'name' => 'Notes', 'created_by' => $user->id]);
+            $notes->members()->attach($user->id);
+        }
+
         $convs = $user->conversations()->with(['lastMessage.user','members'])->get()
-            ->filter(fn($c) => $c->lastMessage !== null)
-            ->sortByDesc(fn($c) => $c->lastMessage->created_at)->values();
+            ->filter(fn($c) => $c->type === 'notes' || $c->lastMessage !== null)
+            ->sortByDesc(fn($c) => $c->type === 'notes' ? PHP_INT_MAX : $c->lastMessage->created_at->timestamp)->values();
 
         $memberRows = \App\Models\ConversationMember::where('user_id', $user->id)->get()->keyBy('conversation_id');
 
@@ -452,7 +458,7 @@ Route::middleware('auth')->group(function () {
             $lm     = $c->lastMessage;
             $online = $other && $other->last_seen_at && $other->last_seen_at->diffInMinutes(now()) < 5;
             $list[] = ['id'=>$c->id,'type'=>$c->type,
-                'name'          => $c->type==='general' ? 'General Chat' : ($c->type==='direct' ? ($other?->name??'Unknown') : ($c->name??'Group')),
+                'name'          => $c->type==='general' ? 'General Chat' : ($c->type==='notes' ? 'Notes' : ($c->type==='direct' ? ($other?->name??'Unknown') : ($c->name??'Group'))),
                 'other_user_id' => $c->type==='direct' ? ($other?->id) : null,
                 'avatar'        => $c->type==='direct' ? ($other?->avatar_url??null) : null,
                 'position'      => $c->type==='direct' ? ($other?->position) : null,
@@ -528,7 +534,7 @@ Route::middleware('auth')->group(function () {
 
         return response()->json([
             'conv' => ['id'=>$conv->id,'type'=>$conv->type,
-                'name'    => $conv->type==='direct' ? ($other?->name??'Unknown') : ($conv->name??'Group'),
+                'name'    => $conv->type==='notes' ? 'Notes' : ($conv->type==='direct' ? ($other?->name??'Unknown') : ($conv->name??'Group')),
                 'avatar'  => $conv->type==='direct' ? ($other?->avatar_url??null) : null,
                 'position'=> $conv->type==='direct' ? ($other?->position) : null,
                 'members' => $conv->members->count(),
@@ -617,6 +623,7 @@ Route::middleware('auth')->group(function () {
             ? \App\Models\User::where('is_active', true)->pluck('id')->toArray()
             : $conv->members->pluck('id')->toArray();
         $mentions = array_values(array_intersect(array_map('intval', (array) $request->mentions), $memberIds));
+        if ($conv->type === 'notes') $mentions = [];
 
         $msg = $conv->messages()->create(['user_id'=>$user->id,'content'=>$request->content,'mentions'=>$mentions]);
         \App\Models\ConversationMember::where('conversation_id',$conv->id)->where('user_id',$user->id)
