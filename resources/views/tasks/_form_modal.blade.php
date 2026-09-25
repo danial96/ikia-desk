@@ -113,44 +113,6 @@
                        oninput="ntSaveDraft()"
                        style="width:100%;border:none;outline:none;background:transparent;font-size:16px;font-weight:700;color:#111827;line-height:1.4;font-family:inherit;box-sizing:border-box;">
                 {{-- Tab buttons --}}
-                <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap;position:relative;">
-                    <button type="button" class="nt-chipbtn" onclick="ntToggleSsSection()"
-                            style="display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border:1.5px solid #e2e8f0;border-radius:7px;background:#fff;color:#374151;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;line-height:1;"
-                            onmouseover="this.style.borderColor='#0ea5e9';this.style.color='#0ea5e9'"
-                            onmouseout="this.style.borderColor='#e2e8f0';this.style.color='#374151'">
-                        <i class="fas fa-clipboard-list" style="font-size:11px;color:#0ea5e9;"></i>
-                        Task status summaries
-                    </button>
-                    <div style="position:relative;">
-                        <button type="button" id="nt-files-btn" onclick="ntToggleFilesMenu(event)"
-                                style="display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border:1.5px solid #e2e8f0;border-radius:7px;background:#fff;color:#374151;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;line-height:1;"
-                                onmouseover="this.style.borderColor='#6b7280'" onmouseout="this.style.borderColor='#e2e8f0'">
-                            <i class="fas fa-paperclip" style="font-size:11px;color:#6b7280;"></i>
-                            Files
-                        </button>
-                        <div id="nt-files-menu" style="display:none;position:absolute;left:0;top:calc(100% + 6px);z-index:50;background:#fff;border:1px solid #e2e8f0;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.14);padding:5px;min-width:220px;">
-                            <div onclick="document.getElementById('nt-desc-file').click();document.getElementById('nt-files-menu').style.display='none';"
-                                 style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border-radius:7px;cursor:pointer;font-size:13px;color:#374151;transition:background .12s;"
-                                 onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background=''">
-                                <span>Upload</span>
-                                <i class="fas fa-upload" style="font-size:12px;color:#9ca3af;"></i>
-                            </div>
-                            <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border-radius:7px;font-size:13px;color:#c4c9d4;">
-                                <span>My Drive</span>
-                                <i class="fas fa-cloud" style="font-size:12px;color:#d1d5db;"></i>
-                            </div>
-                            <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border-radius:7px;font-size:13px;color:#c4c9d4;">
-                                <span>External drives</span>
-                                <i class="fas fa-chevron-right" style="font-size:10px;color:#d1d5db;"></i>
-                            </div>
-                        </div>
-                    </div>
-
-                    <button type="button" class="nt-chipbtn" id="nt-chip-project" onclick="ntToggleRow('project',this)" style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;line-height:1;"><i class="far fa-folder" style="font-size:12px;"></i>Project</button>
-                    <button type="button" class="nt-chipbtn" id="nt-chip-participants" onclick="ntToggleRow('participants',this)" style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;line-height:1;"><i class="far fa-user" style="font-size:12px;"></i>Participants</button>
-                    <button type="button" class="nt-chipbtn" id="nt-chip-observers" onclick="ntToggleRow('observers',this)" style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;line-height:1;"><i class="far fa-eye" style="font-size:12px;"></i>Observers</button>
-                    <button type="button" class="nt-chipbtn" id="nt-chip-status" onclick="ntToggleRow('status',this)" style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;line-height:1;"><i class="far fa-circle-dot" style="font-size:12px;"></i>Status</button>
-                </div>
             </div>
 
             {{-- Scrollable body --}}
@@ -254,9 +216,6 @@
                     {{-- Attachment preview strip (below description card) --}}
                     <div id="nt-desc-attachments"
                          style="display:none;flex-wrap:wrap;gap:8px;margin-top:10px;"></div>
-                </div>
-
-                <div class="nt-card">
                 <div class="nt-sec">
                     <div class="nt-lbl"><span>Task owner:</span></div>
                     <div class="nt-owner"><img src="{{ auth()->user()->avatar_url }}" alt=""><span>{{ auth()->user()->name }}</span></div>
@@ -536,6 +495,57 @@
 
                 </div>
 
+                <div style="margin:2px 0 18px;display:flex;gap:8px;flex-wrap:wrap;position:relative;">
+                    <button type="button" class="nt-chipbtn" onclick="ntToggleSsSection()"
+                            style="display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border:1.5px solid #e2e8f0;border-radius:7px;background:#fff;color:#374151;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;line-height:1;"
+                            onmouseover="this.style.borderColor='#0ea5e9';this.style.color='#0ea5e9'"
+                            onmouseout="this.style.borderColor='#e2e8f0';this.style.color='#374151'">
+                        <i class="fas fa-clipboard-list" style="font-size:11px;color:#0ea5e9;"></i>
+                        Task status summaries
+                    </button>
+                    <div style="position:relative;">
+                        <button type="button" id="nt-files-btn" onclick="ntToggleFilesMenu(event)"
+                                style="display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border:1.5px solid #e2e8f0;border-radius:7px;background:#fff;color:#374151;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;line-height:1;"
+                                onmouseover="this.style.borderColor='#6b7280'" onmouseout="this.style.borderColor='#e2e8f0'">
+                            <i class="fas fa-paperclip" style="font-size:11px;color:#6b7280;"></i>
+                            Files
+                        </button>
+                        <div id="nt-files-menu" style="display:none;position:absolute;left:0;top:calc(100% + 6px);z-index:50;background:#fff;border:1px solid #e2e8f0;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.14);padding:5px;min-width:220px;">
+                            <div onclick="document.getElementById('nt-desc-file').click();document.getElementById('nt-files-menu').style.display='none';"
+                                 style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border-radius:7px;cursor:pointer;font-size:13px;color:#374151;transition:background .12s;"
+                                 onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background=''">
+                                <span>Upload</span>
+                                <i class="fas fa-upload" style="font-size:12px;color:#9ca3af;"></i>
+                            </div>
+                            <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border-radius:7px;font-size:13px;color:#c4c9d4;">
+                                <span>My Drive</span>
+                                <i class="fas fa-cloud" style="font-size:12px;color:#d1d5db;"></i>
+                            </div>
+                            <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border-radius:7px;font-size:13px;color:#c4c9d4;">
+                                <span>External drives</span>
+                                <i class="fas fa-chevron-right" style="font-size:10px;color:#d1d5db;"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="button" class="nt-chipbtn" onclick="ntSoon('Checklists')" style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;line-height:1;"><i class="fas fa-list-check" style="font-size:12px;"></i>Checklists</button>
+                    <button type="button" class="nt-chipbtn" id="nt-chip-project" onclick="ntToggleRow('project',this)" style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;line-height:1;"><i class="far fa-folder" style="font-size:12px;"></i>Project</button>
+                    <button type="button" class="nt-chipbtn" id="nt-chip-participants" onclick="ntToggleRow('participants',this)" style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;line-height:1;"><i class="far fa-user" style="font-size:12px;"></i>Participants</button>
+                    <button type="button" class="nt-chipbtn" id="nt-chip-observers" onclick="ntToggleRow('observers',this)" style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;line-height:1;"><i class="far fa-eye" style="font-size:12px;"></i>Observers</button>
+                    <button type="button" class="nt-chipbtn" onclick="ntSoon('Flow')" style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;line-height:1;"><i class="fas fa-diagram-project" style="font-size:12px;"></i>Flow</button>
+                    <button type="button" class="nt-chipbtn" onclick="ntSoon('Tags')" style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;line-height:1;"><i class="fas fa-hashtag" style="font-size:12px;"></i>Tags</button>
+                    <button type="button" class="nt-chipbtn" onclick="ntSoon('Reminders')" style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;line-height:1;"><i class="far fa-bell" style="font-size:12px;"></i>Reminders</button>
+                    <button type="button" class="nt-chipbtn" onclick="ntSoon('CRM items')" style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;line-height:1;"><i class="fas fa-filter" style="font-size:12px;"></i>CRM items</button>
+                    <button type="button" class="nt-chipbtn" onclick="ntSoon('Parent task')" style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;line-height:1;"><i class="far fa-clone" style="font-size:12px;"></i>Parent task</button>
+                    <button type="button" class="nt-chipbtn" onclick="ntSoon('Subtasks')" style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;line-height:1;opacity:.45;"><i class="fas fa-sitemap" style="font-size:12px;"></i>Subtasks</button>
+                    <button type="button" class="nt-chipbtn" onclick="ntSoon('Related tasks')" style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;line-height:1;"><i class="fas fa-link" style="font-size:12px;"></i>Related tasks</button>
+                    <button type="button" class="nt-chipbtn" onclick="ntSoon('Recurring task')" style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;line-height:1;"><i class="fas fa-rotate" style="font-size:12px;"></i>Recurring task</button>
+                    <button type="button" class="nt-chipbtn" onclick="ntSoon('Gantt')" style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;line-height:1;"><i class="fas fa-bars-staggered" style="font-size:12px;"></i>Gantt</button>
+                    <button type="button" class="nt-chipbtn" onclick="ntSoon('Time planning')" style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;line-height:1;"><i class="far fa-calendar-check" style="font-size:12px;"></i>Time planning</button>
+                    <button type="button" class="nt-chipbtn" onclick="ntSoon('Time tracking')" style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;line-height:1;"><i class="far fa-clock" style="font-size:12px;"></i>Time tracking</button>
+                    <button type="button" class="nt-chipbtn" id="nt-chip-status" onclick="ntToggleRow('status',this)" style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;line-height:1;"><i class="far fa-circle-dot" style="font-size:12px;"></i>Status</button>
+                </div>
+
                 <div style="height:20px;"></div>
             </div>
 
@@ -658,6 +668,9 @@
     };
 
     // Restore draft from localStorage into the form
+    window.ntSoon = function(label) {
+        if (window.showToast) showToast(label + ' is not available yet.');
+    };
     // Optional rows behind chips (Bitrix style)
     window.ntToggleRow = function(key, chip) {
         var r = document.getElementById('nt-row-' + key); if (!r) return;
