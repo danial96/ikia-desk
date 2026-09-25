@@ -2973,8 +2973,13 @@ window.appDelExecute = function(btn) {
         method: 'POST',
         headers: {'X-CSRF-TOKEN': csrf, 'Content-Type': 'application/x-www-form-urlencoded'},
         body: '_method=DELETE'
-    }).then(function() {
+    }).then(function(res) {
         appDelCancel();
+        if (res && res.status === 403) {
+            if (window.showToast) showToast('Only the task owner or an admin can delete this.');
+            btn.innerHTML = '<i class="fas fa-trash-alt" style="font-size:10px;"></i>Delete'; btn.disabled = false;
+            return;
+        }
         if (_appDelCb) { _appDelCb(); }
         else { setTimeout(function(){ location.reload(); }, 200); }
     }).catch(function() {

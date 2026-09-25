@@ -332,8 +332,9 @@ class TaskController extends Controller
 
     public function destroy(Task $task)
     {
-        if (!Auth::user()->isSuperAdmin()) {
-            abort(403, 'Only Super Admin can delete tasks.');
+        $user = Auth::user();
+        if (!$user->isAdmin() && $task->created_by !== $user->id) {
+            abort(403, 'Only the task owner or an admin can delete this task.');
         }
 
         $task->delete();
