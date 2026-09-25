@@ -120,7 +120,7 @@ Route::middleware('auth')->group(function () {
             ->get(['id','name','first_name','last_name','position'])->map(fn($u)=>['id'=>$u->id,'name'=>$u->name,'avatar'=>$u->avatar_url]);
 
         return response()->json([
-            'task'         => ['id'=>$task->id,'title'=>$task->title,'description'=>$task->description,
+            'task'         => ['id'=>$task->id,'bitrixId'=>$task->bitrix_id,'title'=>$task->title,'description'=>$task->description,
                                'status'=>$task->status,'priority'=>$task->priority,
                                'assigned_to'=>$task->assigned_to,
                                'deadline'=>$task->deadline?->toIso8601String(),

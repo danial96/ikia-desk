@@ -73,8 +73,8 @@
                     @endif
                 </div>
                 <span style="font-size:11px;padding:3px 8px;border-radius:6px;font-weight:500;flex-shrink:0;
-                     background:{{ ['new'=>'rgba(148,163,184,.15)','in_progress'=>'rgba(27,114,232,.2)','paused'=>'rgba(251,191,36,.2)','completed'=>'rgba(34,197,94,.15)'][$task->status] ?? 'rgba(148,163,184,.15)' }};
-                     color:{{ ['new'=>'#94a3b8','in_progress'=>'#60a5fa','paused'=>'#fde68a','completed'=>'#4ade80'][$task->status] ?? '#94a3b8' }};">
+                     background:{{ ['new'=>'rgba(148,163,184,.15)','pending'=>'rgba(56,189,248,.18)','in_progress'=>'rgba(27,114,232,.2)','paused'=>'rgba(251,191,36,.2)','completed'=>'rgba(34,197,94,.15)'][$task->status] ?? 'rgba(148,163,184,.15)' }};
+                     color:{{ ['new'=>'#94a3b8','pending'=>'#7dd3fc','in_progress'=>'#60a5fa','paused'=>'#fde68a','completed'=>'#4ade80'][$task->status] ?? '#94a3b8' }};">
                     {{ str_replace('_',' ',ucfirst($task->status)) }}
                 </span>
             </a>

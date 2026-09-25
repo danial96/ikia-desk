@@ -12,6 +12,18 @@ use Illuminate\Support\Facades\Cache;
 
 class TaskController extends Controller
 {
+    /**
+     * "In Progress" in the filters means active work, so it also covers Pending (Bitrix's
+     * "Pending" = accepted, not yet started) — otherwise those tasks would vanish from the
+     * default view. Every other status filters exactly.
+     */
+    private static function expandStatuses(array $statuses): array
+    {
+        return in_array('in_progress', $statuses, true)
+            ? array_values(array_unique(array_merge($statuses, ['pending'])))
+            : $statuses;
+    }
+
     /** How many completed tasks the kanban loads per page (initial + each "Load more"). */
     private const KANBAN_COMPLETED_PAGE = 50;
 
@@ -101,7 +113,7 @@ class TaskController extends Controller
         }
         if ($request->filled('status')) {
             $statuses = is_array($request->status) ? $request->status : [$request->status];
-            $query->whereIn('status', $statuses);
+            $query->whereIn('status', self::expandStatuses($statuses));
         }
         if ($request->filled('priority')) {
             $query->where('priority', $request->priority);
@@ -142,7 +154,7 @@ class TaskController extends Controller
             'project_id'  => 'nullable|exists:projects,id',
             'assigned_to' => 'nullable|exists:users,id',
             'priority'    => 'required|in:low,medium,high,urgent',
-            'status'      => 'nullable|in:new,in_progress,paused,completed',
+            'status'      => 'nullable|in:new,pending,in_progress,paused,completed',
             'deadline'    => 'nullable|date',
             'members'     => 'nullable|array',
             'members.*'   => 'exists:users,id',
@@ -223,7 +235,7 @@ class TaskController extends Controller
             if (!$task->isMember($user)) {
                 abort(403, 'You are not a member of this task.');
             }
-            $validStatuses = ['new', 'in_progress', 'paused', 'completed'];
+            $validStatuses = ['new', 'pending', 'in_progress', 'paused', 'completed'];
             if (!in_array($request->status, $validStatuses)) {
                 abort(422, 'Invalid status value.');
             }
@@ -248,7 +260,7 @@ class TaskController extends Controller
             'assigned_to' => 'nullable|exists:users,id',
             'priority'    => 'required|in:low,medium,high,urgent',
             'deadline'    => 'nullable|date',
-            'status'      => 'required|in:new,in_progress,paused,completed',
+            'status'      => 'required|in:new,pending,in_progress,paused,completed',
             'members'     => 'nullable|array',
         ]);
 
@@ -478,7 +490,7 @@ class TaskController extends Controller
         $updates = ['updated_at' => now()];
 
         if (array_key_exists('status', $all) && $all['status']) {
-            $validStatuses = ['new', 'in_progress', 'paused', 'completed'];
+            $validStatuses = ['new', 'pending', 'in_progress', 'paused', 'completed'];
             if (!in_array($all['status'], $validStatuses)) abort(422, 'Invalid status.');
             $updates['status'] = $all['status'];
         }
@@ -595,7 +607,7 @@ class TaskController extends Controller
             $baseQuery = clone $query;
 
             if ($request->status) {
-                $all = (clone $baseQuery)->where('status', $request->status)->latest()->limit(200)->get();
+                $all = (clone $baseQuery)->whereIn('status', self::expandStatuses([$request->status]))->latest()->limit(200)->get();
                 $completedTotal = $request->status === 'completed'
                     ? $all->count()
                     : (clone $baseQuery)->where('status', 'completed')->count();

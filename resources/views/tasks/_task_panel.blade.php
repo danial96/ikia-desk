@@ -45,6 +45,30 @@
 }
 .tp-people-dropdown .opt:hover { background:#f1f5f9; }
 .tp-people-dropdown .opt.selected { color:#0ea5e9; }
+/* ── Bitrix-style look ── */
+#tp-overlay { inset:0 52px 0 0 !important; }              /* keep the user rail visible, like Bitrix */
+@media (max-width:1024px){ #tp-overlay { inset:0 !important; } }
+#tp-desc-content a, #tp-left-body .tp-card a { color:#2067b0 !important; text-decoration:none !important; }
+#tp-desc-content a:hover { text-decoration:underline !important; }
+.tp-lnk { color:#2067b0; cursor:pointer; font-size:15px; display:inline-flex; align-items:center; }
+.tp-lnk:hover { text-decoration:underline; }
+.tp-card { background:#fff; border-radius:12px; margin:0 0 13px; }
+.tp-chip { display:inline-flex; align-items:center; gap:8px; height:34px; padding:0 13px; border-radius:9px; font-size:14px; cursor:pointer; white-space:nowrap; transition:background .12s,border-color .12s; background:#fff; border:1px solid #e6e9ec; color:#5f6670; font-family:inherit; }
+.tp-chip i { font-size:13px; color:#8a9099; }
+.tp-chip:hover { background:#f6f8f9; }
+.tp-chip.on { background:#eaf6fd; border-color:#b9e0f5; color:#0a9be0; }
+.tp-chip.on i { color:#0a9be0; }
+.tp-member-chip { background:transparent !important; border:none !important; padding:2px 12px 2px 0 !important; font-size:15px !important; color:#2d2d2d !important; }
+.tp-member-chip .rm { opacity:0; margin-left:6px; }
+.tp-member-chip:hover .rm { opacity:1; }
+.tp-add { color:#2067b0; font-size:14px; cursor:pointer; display:inline-flex; align-items:center; gap:4px; }
+.tp-add:hover { text-decoration:underline; }
+.tp-btn { height:38px; padding:0 18px; border-radius:8px; font-size:15px; font-family:inherit; cursor:pointer; display:inline-flex; align-items:center; gap:7px; transition:opacity .15s,background .15s; }
+.tp-btn-primary { background:#0075fd; border:none; color:#fff; font-weight:600; padding:0 20px; }
+.tp-btn-primary:hover { opacity:.88; }
+.tp-btn-ghost { background:#fff; border:1px solid #d8dde1; color:#333; font-weight:500; }
+.tp-btn-ghost:hover { background:#f4f6f7; }
+
 /* Phones/tablets: stack the two columns so the 660px detail column fits */
 @media (max-width:768px){
     #tp-panel{ left:0 !important; top:46px !important; flex-direction:column !important; overflow-y:auto !important; border-radius:0 !important; }
@@ -67,39 +91,37 @@
 
     {{-- Two-column panel --}}
     <div id="tp-panel"
-         style="position:absolute;top:58px;left:58px;right:0;bottom:0;display:flex;background:#fff;border-radius:12px 0 0 0;overflow:hidden;box-shadow:0 -4px 40px rgba(0,0,0,.15);">
+         style="position:absolute;top:10px;left:58px;right:0;bottom:0;display:flex;background:#fff;border-radius:14px 14px 0 0;overflow:hidden;box-shadow:0 -4px 40px rgba(0,0,0,.15);">
 
         {{-- ===== LEFT COLUMN ===== --}}
         <div id="tp-left"
-             style="flex:0 0 660px;width:660px;display:flex;flex-direction:column;border-right:1px solid #e9ecef;overflow:hidden;background:#f4f4f5;">
+             style="flex:0 0 660px;width:660px;display:flex;flex-direction:column;border-right:none;overflow:hidden;background:#eef2f3;">
 
             {{-- Left header --}}
             <div id="tp-left-header"
-                 style="flex-shrink:0;padding:16px 24px;border-bottom:1px solid #e5e5e5;display:flex;align-items:flex-start;gap:12px;background:#f4f4f5;">
+                 style="flex-shrink:0;padding:24px 26px 14px 22px;display:flex;align-items:flex-start;gap:12px;background:#eef2f3;">
                 <div style="flex:1;min-width:0;">
-                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
-                        <div id="tp-source-badge"></div>
-                        <span id="tp-task-id" style="font-size:10px;color:#adb5bd;font-weight:600;"></span>
-                    </div>
-                    <h2 id="tp-title" style="color:#111827;font-size:16px;font-weight:700;margin:0;line-height:1.45;"></h2>
+                    <div id="tp-source-badge" style="display:none;"></div>
+                    <span id="tp-task-id" style="display:none;"></span>
+                    <h2 id="tp-title" style="color:#000;font-size:21px;font-weight:500;margin:0;line-height:1.3;word-break:break-word;"></h2>
                 </div>
-                <div id="tp-header-actions" style="flex-shrink:0;display:flex;gap:6px;margin-top:2px;"></div>
+                <div id="tp-header-actions" style="flex-shrink:0;display:flex;gap:4px;margin-top:0;"></div>
             </div>
 
             {{-- Left scrollable body --}}
             <div id="tp-left-body"
-                 style="flex:1;overflow-y:auto;padding:0 24px;scrollbar-width:thin;scrollbar-color:#dee2e6 transparent;background:#f4f4f5;">
+                 style="flex:1;overflow-y:auto;padding:0 22px 8px;scrollbar-width:thin;scrollbar-color:#cfd6da transparent;background:#eef2f3;">
             </div>
 
             {{-- Bottom action bar --}}
             <div id="tp-left-footer"
-                 style="flex-shrink:0;padding:10px 20px;border-top:1px solid #e5e5e5;background:#f4f4f5;display:flex;align-items:center;justify-content:space-between;gap:10px;">
+                 style="flex-shrink:0;padding:20px 22px;background:#fff;box-shadow:0 -1px 0 #e6e9ec;display:flex;align-items:center;justify-content:space-between;gap:10px;">
             </div>
         </div>
 
         {{-- ===== RIGHT COLUMN — comments ===== --}}
         <div id="tp-right"
-             style="flex:1;min-width:0;display:flex;flex-direction:column;overflow:hidden;background:#f8fafc;position:relative;">
+             style="flex:1;min-width:0;display:flex;flex-direction:column;overflow:hidden;background:#5a9e96 url('{{ asset('pattern-chat-teal.svg') }}') center/cover no-repeat;position:relative;">
 
             {{-- Drag-and-drop overlay (scoped to comments area) --}}
             <div id="tp-drop-overlay"
@@ -115,21 +137,21 @@
 
             {{-- Right header --}}
             <div id="tp-right-header"
-                 style="flex-shrink:0;padding:14px 20px;border-bottom:1px solid rgba(255,255,255,0.4);display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,0.55);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);">
-                <div style="display:flex;align-items:center;gap:7px;">
-                    <i class="fas fa-comment-dots" style="color:#0ea5e9;font-size:12px;"></i>
-                    <span id="tp-chat-title" style="color:#374151;font-size:14px;font-weight:700;">Task chat</span>
+                 style="flex-shrink:0;height:63px;padding:0 24px;display:flex;align-items:center;gap:12px;background:#fff;">
+                <div style="width:38px;height:38px;border-radius:50%;background:#e8f4fb;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><i class="far fa-comments" style="color:#3a9bd9;font-size:17px;"></i></div>
+                <div style="min-width:0;">
+                    <div id="tp-chat-title" style="color:#000;font-size:15px;font-weight:500;line-height:1.25;">Task chat</div>
+                    <div id="tp-chat-count" style="font-size:13px;color:#8b9098;line-height:1.25;margin-top:1px;"></div>
                 </div>
-                <span id="tp-chat-count" style="font-size:11px;color:#9ca3af;font-weight:600;"></span>
             </div>
 
             {{-- Messages --}}
             <div id="tp-messages"
-                 style="flex:1;overflow-y:auto;padding:14px 18px;display:flex;flex-direction:column;gap:8px;scrollbar-width:thin;scrollbar-color:#dee2e6 transparent;background:linear-gradient(rgba(244,247,249,.9),rgba(244,247,249,.9)),url('{{ asset('pattern-chat.svg') }}');background-size:340px;background-position:center;background-repeat:repeat;background-attachment:local;">
+                 style="flex:1;overflow-y:auto;padding:14px max(18px,calc((100% - 760px)/2));display:flex;flex-direction:column;gap:8px;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.35) transparent;background:transparent;">
             </div>
 
             {{-- Comment footer --}}
-            <div id="tp-comment-footer" style="flex-shrink:0;padding:12px 18px;border-top:1px solid rgba(255,255,255,0.4);background:rgba(255,255,255,0.55);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);">
+            <div id="tp-comment-footer" style="flex-shrink:0;padding:0 max(18px,calc((100% - 900px)/2)) 18px;background:transparent;">
             </div>
         </div>
     </div>
@@ -440,7 +462,13 @@ const fmtDate  = v => { const d=parseAppDate(v); return d ? d.toLocaleDateString
 const fmtTime  = v => { const d=parseAppDate(v); return d ? d.toLocaleTimeString('en-GB',{hour:'numeric',minute:'2-digit',hour12:true,timeZone:APP_TZ}) : ''; };
 const fmtShort = v => { const d=parseAppDate(v); return d ? d.toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit',timeZone:APP_TZ}) : ''; };
 // Feed/comment timestamps and day dividers — always in the app timezone so every viewer sees the same time.
-const fmtTimeOnly = v => { const d=parseAppDate(v); return d ? d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',hour12:false,timeZone:APP_TZ}) : ''; };
+const ampm = str => str.replace(/[\s\u202f]*(AM|PM)$/i,(m,a)=>' '+a.toLowerCase());
+const fmtTimeOnly = v => { const d=parseAppDate(v); return d ? ampm(d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true,timeZone:APP_TZ})) : ''; };
+// Bitrix style: "September 25 10:00 pm" (year only when it isn't the current one)
+const fmtB24 = v => { const d=parseAppDate(v); if(!d) return ''; const y=karachiParts(d).y, ny=karachiParts(new Date()).y;
+    return d.toLocaleDateString('en-US',{month:'long',day:'numeric',timeZone:APP_TZ})+(y!==ny?', '+y:'')+' '+fmtTimeOnly(d); };
+// Bitrix system-card style: "9/25/2026 10:00 pm"
+const fmtB24Short = v => { const d=parseAppDate(v); if(!d) return ''; return d.toLocaleDateString('en-US',{month:'numeric',day:'numeric',year:'numeric',timeZone:APP_TZ})+' '+fmtTimeOnly(d); };
 const chatDayKey  = v => { const d=parseAppDate(v); return d ? d.toLocaleDateString('en-CA',{timeZone:APP_TZ}) : ''; };
 const chatDayLabel = v => {
     const d=parseAppDate(v); if(!d) return '';
@@ -449,15 +477,15 @@ const chatDayLabel = v => {
     if(key===chatDayKey(new Date(Date.now()-86400000))) return 'yesterday';
     return d.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric',timeZone:APP_TZ});
 };
-const chatDivider = iso => `<div style="display:flex;align-items:center;justify-content:center;margin:12px 0 8px;"><span style="background:rgba(0,0,0,0.28);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);color:rgba(255,255,255,.9);font-size:11px;font-weight:600;padding:3px 14px;border-radius:12px;letter-spacing:.3px;">${chatDayLabel(iso)}</span></div>`;
+const chatDivider = iso => `<div style="display:flex;align-items:center;justify-content:center;margin:12px 0 8px;"><span style="background:#538b7f;color:#fff;font-size:12px;font-weight:600;padding:3px 14px;border-radius:12px;">${chatDayLabel(iso)}</span></div>`;
 
 /* build a chat bubble — isMine = right green, else left white */
 const chatBubble = ({isMine, name, nameColor, text, time, showName=true, isSystem=false, files=[]}) => {
     if(isSystem) return `
-        <div style="display:flex;justify-content:center;margin:7px 0;">
-            <div style="max-width:90%;text-align:center;line-height:1.45;">
-                <span style="color:#8a94a6;font-size:12px;">${text}</span>
-                <span style="color:#b4bcc8;font-size:10.5px;margin-left:6px;white-space:nowrap;">${time}</span>
+        <div style="display:flex;justify-content:center;margin:5px 0;">
+            <div style="max-width:90%;text-align:center;line-height:1.45;background:rgba(255,255,255,.34);border-radius:10px;padding:6px 14px;">
+                <span style="color:#1d2f2b;font-size:13px;">${text}</span>
+                <span style="color:rgba(0,0,0,.4);font-size:11px;margin-left:8px;white-space:nowrap;">${time}</span>
             </div>
         </div>`;
     const bg   = isMine ? '#d7f5c9' : '#ffffff';
@@ -646,9 +674,7 @@ function renderChips(list, taskId, toggleFn, allEmployees) {
         </span>`).join('');
     return `<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;position:relative;">
         ${chips}
-        <span onclick="tpToggleDropdown('${dropId}')" style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;border:1.5px dashed #cbd5e1;color:#94a3b8;font-size:11.5px;cursor:pointer;transition:all .15s;" onmouseover="this.style.borderColor='#0ea5e9';this.style.color='#0ea5e9'" onmouseout="this.style.borderColor='#cbd5e1';this.style.color='#94a3b8'">
-            <i class="fas fa-plus" style="font-size:8px;"></i>Add
-        </span>
+        <span class="tp-add" onclick="tpToggleDropdown('${dropId}')"><i class="fas fa-plus" style="font-size:9px;"></i>Add</span>
         <div id="${dropId}" class="tp-people-dropdown" style="display:none;top:34px;left:0;">
             <input type="text" placeholder="Search..." oninput="tpFilterDrop('${dropId}',this.value)">
             <div class="opts">
@@ -1001,6 +1027,7 @@ function tpRenderLocal(data) {
 
     const statuses=[
         {v:'new',        label:'New',             bg:'#f1f5f9',col:'#475569'},
+        {v:'pending',    label:'Pending',         bg:'#e0f2fe',col:'#0369a1'},
         {v:'in_progress',label:'In Progress',     bg:'#dbeafe',col:'#1d4ed8'},
         {v:'paused',     label:'Paused',          bg:'#fef3c7',col:'#b45309'},
         {v:'completed',  label:'Completed',       bg:'#dcfce7',col:'#15803d'},
@@ -1012,13 +1039,20 @@ function tpRenderLocal(data) {
         {v:'urgent',label:'Urgent',bg:'#fee2e2',col:'#b91c1c'},
     ];
 
-    $('tp-source-badge').innerHTML=`<div style="display:flex;align-items:center;gap:4px;padding:2px 7px;background:#ede9fe;border:1px solid #c4b5fd;border-radius:5px;"><i class="fas fa-tasks" style="font-size:8px;color:#6d28d9;"></i><span style="font-size:9px;font-weight:700;color:#6d28d9;letter-spacing:.6px;">LOCAL TASK</span></div>`;
-    $('tp-task-id').textContent='#'+t.id;
+    $('tp-source-badge').innerHTML='';
+    $('tp-task-id').textContent='';
     $('tp-title').textContent=t.title||'Untitled';
     window._tpCurrentData = data;
-    $('tp-header-actions').innerHTML = data.canEdit
-        ? `<button onclick="tpEditOpenFull(${taskId}, window._tpCurrentData)" style="display:inline-flex;align-items:center;gap:5px;padding:6px 14px;background:#fff;border:1.5px solid #e2e8f0;border-radius:8px;color:#475569;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;" onmouseover="this.style.borderColor='#0ea5e9';this.style.color='#0ea5e9'" onmouseout="this.style.borderColor='#e2e8f0';this.style.color='#475569'"><i class="fas fa-pen" style="font-size:10px;"></i>Edit</button>`
-        : '';
+    const hot = (t.priority==='high'||t.priority==='urgent');
+    $('tp-header-actions').innerHTML = `
+        <button onclick="tpSetPriority2(${taskId},'${hot?'medium':'high'}')" title="${hot?'High priority — click to clear':'Mark as high priority'}" style="width:34px;height:34px;border:none;background:none;cursor:pointer;font-size:17px;color:${hot?'#f5801e':'#a5abb2'};"><i class="fas fa-fire-alt"></i></button>
+        <div style="position:relative;">
+            <button onclick="tpToggleDropdown('tp-hdr-menu')" style="width:34px;height:34px;border:none;background:none;cursor:pointer;font-size:17px;color:#a5abb2;"><i class="fas fa-bars"></i></button>
+            <div id="tp-hdr-menu" class="tp-people-dropdown" style="display:none;top:36px;right:0;min-width:170px;">
+                ${data.canEdit?`<div class="opt" onclick="tpToggleDropdown('tp-hdr-menu');tpEditOpenFull(${taskId}, window._tpCurrentData)"><i class="fas fa-pen" style="width:16px;color:#6b7280;"></i>Edit task</div>`:''}
+                <div class="opt" style="color:#ef4444;" onclick="tpDeleteTask(${taskId})"><i class="fas fa-trash" style="width:16px;color:#ef4444;"></i>Delete task</div>
+            </div>
+        </div>`;
 
     const desc      = parseDescText(t.description||'');
     const attachSec = parseDescAttachments(t.description||'');
@@ -1027,24 +1061,23 @@ function tpRenderLocal(data) {
         const curStatus   = statuses.find(s=>s.v===t.status)   || statuses[0];
         const curPriority = priorities.find(p=>p.v===t.priority)|| priorities[0];
 
-        const infoRow = (label, val, last=false) =>
-            `<div style="display:flex;align-items:center;min-height:44px;padding:9px 16px;${last?'':'border-bottom:1px solid #f1f3f5;'}">
-                <span style="flex-shrink:0;width:128px;font-size:13px;color:#8a94a6;font-weight:400;">${label}</span>
-                <div style="flex:1;min-width:0;">${val}</div>
-            </div>`;
+        const row=(label,val,icon,iconCol)=>`<div style="display:flex;align-items:center;min-height:42px;padding:0 20px;">
+            <span style="flex:0 0 180px;font-size:14px;color:#848688;">${label}:</span>
+            <div style="flex:1;min-width:0;display:flex;align-items:center;gap:10px;font-size:15px;color:#2d2d2d;">${icon?`<i class="${icon}" style="width:18px;text-align:center;color:${iconCol||'#2f7cc9'};font-size:15px;"></i>`:''}${val}</div>
+        </div>`;
 
         /* Creator */
         const creatorVal = creator
-            ? `<div style="display:flex;align-items:center;gap:8px;">${uAvatar(creator,26)}<span style="font-size:14px;color:#111827;">${esc(creator.name)}</span></div>`
-            : `<span style="color:#9ca3af;font-size:14px;">—</span>`;
+            ? `<div style="display:flex;align-items:center;gap:9px;">${uAvatar(creator,24)}<span>${esc(creator.name)}</span></div>`
+            : `<span style="color:#9ca3af;">—</span>`;
 
         /* Assignee */
         const assigneeVal = assignee
-            ? `<div onclick="tpToggleDropdown('tp-drop-assignee')" style="display:inline-flex;align-items:center;gap:8px;cursor:pointer;padding:3px 6px;border-radius:8px;transition:background .15s;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='transparent'">
-                ${uAvatar(assignee,26)}<span style="font-size:14px;color:#111827;">${esc(assignee.name)}</span>
-                <i class="fas fa-chevron-down" style="font-size:9px;color:#9ca3af;"></i></div>`
-            : `<div onclick="tpToggleDropdown('tp-drop-assignee')" style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;padding:3px 6px;border-radius:8px;transition:background .15s;color:#9ca3af;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='transparent'">
-                <i class="fas fa-user-plus" style="font-size:11px;"></i><span style="font-size:14px;">Unassigned</span>
+            ? `<div onclick="tpToggleDropdown('tp-drop-assignee')" style="display:inline-flex;align-items:center;gap:9px;cursor:pointer;">
+                ${uAvatar(assignee,24)}<span>${esc(assignee.name)}</span>
+                <i class="fas fa-chevron-down" style="font-size:9px;color:#b0b5bb;"></i></div>`
+            : `<div onclick="tpToggleDropdown('tp-drop-assignee')" style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;color:#9ca3af;">
+                <i class="fas fa-user-plus" style="font-size:12px;"></i><span>Unassigned</span>
                 <i class="fas fa-chevron-down" style="font-size:9px;"></i></div>`;
         const assigneeDrop = `<div id="tp-drop-assignee" class="tp-people-dropdown" style="display:none;top:100%;left:0;min-width:240px;z-index:200;">
             <input type="text" placeholder="Search employee..." oninput="tpFilterDrop('tp-drop-assignee',this.value)">
@@ -1059,26 +1092,18 @@ function tpRenderLocal(data) {
             </div>
         </div>`;
 
-        /* Deadline */
+        /* Deadline — Bitrix style: "September 25 10:00 pm", red + "Overdue" once passed */
         const _dl=t.deadline?new Date(t.deadline):null, _now=new Date();
         const _isOvr=_dl&&_dl<_now&&t.status!=='completed';
-        const _daysLeft=_dl?Math.ceil((_dl-_now)/86400000):null;
-        const dlBadge=_isOvr
-            ?`<span style="margin-left:8px;background:#fee2e2;color:#b91c1c;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;"><i class="fas fa-exclamation-triangle" style="margin-right:2px;font-size:9px;"></i>OVERDUE</span>`
-            :_daysLeft===0?`<span style="margin-left:8px;background:#fef3c7;color:#b45309;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;">Due Today</span>`
-            :_daysLeft!==null&&_daysLeft>0&&_daysLeft<=7?`<span style="margin-left:8px;background:#dcfce7;color:#15803d;font-size:10px;font-weight:600;padding:2px 8px;border-radius:10px;">${_daysLeft}d left</span>`:'';
-        const _dlTimeStr=fmtTime(t.deadline);
+        const dlBadge=_isOvr?`<span style="background:#ffe4e1;color:#e5493a;font-size:12px;font-weight:600;padding:2px 9px;border-radius:12px;">Overdue</span>`:'';
         const deadlineVal=_dl
-            ?`<div onclick="tpCalOpen(${taskId},this,'${t.deadline||''}')" style="display:inline-flex;align-items:center;cursor:pointer;padding:3px 6px;border-radius:8px;transition:background .15s;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='transparent'">
-                <div><div style="display:flex;align-items:center;gap:0;"><span style="font-size:14px;color:${_isOvr?'#b91c1c':'#111827'};">${fmtDate(t.deadline)}</span>${dlBadge}</div>${_dlTimeStr?`<div style="color:#9ca3af;font-size:11px;margin-top:1px;">${_dlTimeStr}</div>`:''}</div></div>`
-            :`<div onclick="tpCalOpen(${taskId},this,'')" style="display:inline-flex;align-items:center;gap:5px;cursor:pointer;padding:3px 6px;border-radius:8px;transition:background .15s;color:#9ca3af;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='transparent'">
-                <i class="fas fa-calendar-plus" style="font-size:11px;"></i><span style="font-size:14px;">Set deadline</span></div>`;
+            ?`<div onclick="tpCalOpen(${taskId},this,'${t.deadline||''}')" style="display:inline-flex;align-items:center;gap:10px;cursor:pointer;"><span style="color:${_isOvr?'#d64545':'#2d2d2d'};">${fmtB24(t.deadline)}</span>${dlBadge}</div>`
+            :`<div onclick="tpCalOpen(${taskId},this,'')" style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;color:#9ca3af;"><span>Set deadline</span></div>`;
 
         /* Status */
+        const statusIcon={new:'far fa-circle',pending:'fas fa-hourglass-half',in_progress:'far fa-play-circle',paused:'far fa-pause-circle',completed:'far fa-check-circle'}[t.status]||'far fa-circle';
         const statusVal=`<div style="position:relative;display:inline-flex;">
-            <div onclick="tpToggleDropdown('tp-drop-status-${taskId}')" style="display:inline-flex;align-items:center;gap:5px;cursor:pointer;padding:4px 10px;border-radius:12px;background:${curStatus.bg};color:${curStatus.col};font-size:12px;font-weight:600;border:1.5px solid ${curStatus.col}33;transition:opacity .15s;" onmouseover="this.style.opacity='.78'" onmouseout="this.style.opacity='1'">
-                <i class="fas fa-circle" style="font-size:6px;"></i>${curStatus.label}<i class="fas fa-chevron-down" style="font-size:8px;margin-left:3px;"></i>
-            </div>
+            <div onclick="tpToggleDropdown('tp-drop-status-${taskId}')" style="display:inline-flex;align-items:center;gap:8px;cursor:pointer;">${curStatus.label}<i class="fas fa-chevron-down" style="font-size:9px;color:#b0b5bb;"></i></div>
             <div id="tp-drop-status-${taskId}" class="tp-people-dropdown" style="display:none;top:100%;left:0;min-width:160px;z-index:200;">
                 ${statuses.map(s=>`<div class="opt${t.status===s.v?' selected':''}" onclick="tpSetStatus2(${taskId},'${s.v}');tpToggleDropdown('tp-drop-status-${taskId}')">
                     <span style="display:inline-flex;align-items:center;gap:5px;padding:3px 8px;border-radius:10px;background:${s.bg};color:${s.col};font-size:12px;font-weight:600;"><i class="fas fa-circle" style="font-size:5px;"></i>${s.label}</span>
@@ -1088,10 +1113,9 @@ function tpRenderLocal(data) {
         </div>`;
 
         /* Priority */
+        const prioCol={low:'#9aa3ad',medium:'#2f7cc9',high:'#f5801e',urgent:'#e5493a'}[t.priority]||'#9aa3ad';
         const priorityVal=`<div style="position:relative;display:inline-flex;">
-            <div onclick="tpToggleDropdown('tp-drop-priority-${taskId}')" style="display:inline-flex;align-items:center;gap:5px;cursor:pointer;padding:4px 10px;border-radius:12px;background:${curPriority.bg};color:${curPriority.col};font-size:12px;font-weight:600;border:1.5px solid ${curPriority.col}33;transition:opacity .15s;" onmouseover="this.style.opacity='.78'" onmouseout="this.style.opacity='1'">
-                <i class="fas fa-flag" style="font-size:9px;"></i>${curPriority.label}<i class="fas fa-chevron-down" style="font-size:8px;margin-left:3px;"></i>
-            </div>
+            <div onclick="tpToggleDropdown('tp-drop-priority-${taskId}')" style="display:inline-flex;align-items:center;gap:8px;cursor:pointer;">${curPriority.label}<i class="fas fa-chevron-down" style="font-size:9px;color:#b0b5bb;"></i></div>
             <div id="tp-drop-priority-${taskId}" class="tp-people-dropdown" style="display:none;top:100%;left:0;min-width:150px;z-index:200;">
                 ${priorities.map(p=>`<div class="opt${t.priority===p.v?' selected':''}" onclick="tpSetPriority2(${taskId},'${p.v}');tpToggleDropdown('tp-drop-priority-${taskId}')">
                     <span style="display:inline-flex;align-items:center;gap:5px;padding:3px 8px;border-radius:10px;background:${p.bg};color:${p.col};font-size:12px;font-weight:600;"><i class="fas fa-flag" style="font-size:8px;"></i>${p.label}</span>
@@ -1100,52 +1124,48 @@ function tpRenderLocal(data) {
             </div>
         </div>`;
 
-        /* Created */
+        /* Created — "September 25 4:25 pm / ID: 23335" */
         const createdStr=t.createdAt||t.created_at||'';
-        const createdVal=`<div style="display:flex;align-items:center;gap:8px;">
-            <span style="font-size:14px;color:#374151;">${fmtShort(createdStr)}</span>
-            <span style="font-size:11px;color:#9ca3af;background:#f1f5f9;padding:1px 7px;border-radius:8px;">#${taskId}</span>
-            <button onclick="tpCopyTaskId(${taskId},this)" title="Copy ID" style="background:none;border:none;color:#9ca3af;cursor:pointer;padding:2px 5px;border-radius:5px;font-size:11px;line-height:1;transition:color .12s;" onmouseover="this.style.color='#0ea5e9'" onmouseout="this.style.color='#9ca3af'"><i class="fas fa-copy"></i></button>
+        const dispId=t.bitrixId||taskId;
+        const createdVal=`<span>${fmtB24(createdStr)}</span><span style="color:#a2a6ab;">/ ID: ${dispId}</span><button onclick="tpCopyTaskId(${dispId},this)" title="Copy ID" style="background:none;border:none;color:#a2a6ab;cursor:pointer;padding:2px 4px;font-size:13px;"><i class="far fa-copy"></i></button>`;
+
+        /* Fields card (one card, one divider — like Bitrix) */
+        const divider=`<div style="height:1px;background:#eef0f2;margin:6px 20px;"></div>`;
+        const infoCard=`<div class="tp-card" style="padding:6px 0;">
+            ${row('Task owner',creatorVal,'')}
+            ${row('Assignee',`<div style="position:relative;display:inline-flex;flex-wrap:wrap;">${assigneeVal}${assigneeDrop}</div>`,'')}
+            ${row('Deadline',deadlineVal,'far fa-calendar-alt')}
+            ${divider}
+            ${row('Status',statusVal,statusIcon)}
+            ${row('Priority',priorityVal,'far fa-flag',prioCol)}
+            ${row('Created',createdVal,'far fa-calendar-plus')}
         </div>`;
 
-        /* Info card */
-        const infoCard=`<div style="background:#fff;border:1px solid #e9ecef;border-radius:12px;margin:14px 0;">
-            ${infoRow('Task Owner',creatorVal)}
-            ${infoRow('Assignee',`<div style="position:relative;display:inline-flex;flex-wrap:wrap;">${assigneeVal}${assigneeDrop}</div>`)}
-            ${infoRow('Deadline',deadlineVal)}
-            ${infoRow('Status',statusVal)}
-            ${infoRow('Priority',priorityVal)}
-            ${infoRow('Created',createdVal,true)}
+        /* Participants / Observers — hidden until they have people or their chip is clicked */
+        const chipRow=(id,label,list,kind)=>`<div id="${id}" style="display:${list.length?'flex':'none'};align-items:flex-start;min-height:42px;padding:8px 20px;">
+            <span style="flex:0 0 180px;font-size:14px;color:#848688;padding-top:6px;">${label}:</span>
+            <div style="flex:1;min-width:0;position:relative;">${renderChips(list,taskId,kind,employees)}</div></div>`;
+        const peopleCard=`<div id="tp-people-card" class="tp-card" style="display:${(participants.length||observers.length)?'block':'none'};padding:2px 0;overflow:visible;">
+            ${chipRow('tp-row-member','Participants',participants,'member')}
+            ${chipRow('tp-row-observer','Observers',observers,'observer')}
         </div>`;
 
-        /* People card */
-        const peopleCard=`<div id="tp-people-card" style="background:#fff;border:1px solid #e9ecef;border-radius:12px;margin:0 0 14px;overflow:visible;">
-            <div style="display:flex;align-items:flex-start;padding:10px 14px;border-bottom:1px solid #f1f3f5;">
-                <span style="flex-shrink:0;width:120px;font-size:11.5px;color:#9ca3af;font-weight:500;padding-top:5px;">Participants</span>
-                <div style="flex:1;min-width:0;position:relative;">${renderChips(participants,taskId,'member',employees)}</div>
+        /* Project — shown when set, or via its chip */
+        const projectCard=`<div id="tp-row-project" class="tp-card" style="display:${t.project?.name?'block':'none'};padding:2px 0;">
+            <div style="display:flex;align-items:center;min-height:42px;padding:0 20px;"><span style="flex:0 0 180px;font-size:14px;color:#848688;">Project:</span><span style="font-size:15px;color:#2d2d2d;">${esc(t.project?.name||'—')}</span></div>
+        </div>`;
+
+        /* Description — white card, "✎ Edit" inside, "Expand" when long */
+        const descHtml = desc.replace(/(^|[\s(])([\w.+-]+@[\w-]+(?:\.[\w-]+)+)(?=[\s<,.;)]|$)/g,'$1<a href="mailto:$2">$2</a>');
+        const canEditDesc = !!data.canEdit;
+        const descSection=(desc||canEditDesc)?`<div class="tp-card" style="padding:16px 16px 12px;">
+            <div id="tp-desc-wrap" style="position:relative;">
+                <div id="tp-desc-content" style="color:#333;font-size:15px;line-height:1.55;word-break:break-word;${desc?'':'min-height:6px;'}max-height:240px;overflow:hidden;transition:max-height .3s ease;">${descHtml}</div>
+                <div id="tp-desc-fade" style="display:none;position:absolute;bottom:0;left:0;right:0;height:40px;background:linear-gradient(transparent,#fff);pointer-events:none;"></div>
             </div>
-            <div style="display:flex;align-items:flex-start;padding:10px 14px;">
-                <span style="flex-shrink:0;width:120px;font-size:11.5px;color:#9ca3af;font-weight:500;padding-top:5px;">Observers</span>
-                <div style="flex:1;min-width:0;position:relative;">${renderChips(observers,taskId,'observer',employees)}</div>
-            </div>
-        </div>`;
-
-        /* Project card */
-        const projectCard=`<div style="background:#fff;border:1px solid #e9ecef;border-radius:12px;margin:0 0 14px;">
-            <div style="display:flex;align-items:center;min-height:42px;padding:8px 14px;">
-                <span style="flex-shrink:0;width:120px;font-size:11.5px;color:#9ca3af;font-weight:500;">Project</span>
-                <span style="font-size:13px;color:${t.project?.name?'#374151':'#9ca3af'};">${esc(t.project?.name||'—')}</span>
-            </div>
-        </div>`;
-
-        /* Description — bordered card */
-        const descSection=desc?`<div style="border:1.5px solid #e2e8f0;border-radius:10px;background:#fff;margin:14px 0 12px;">
-            <div style="padding:13px 15px 10px;">
-                <div id="tp-desc-wrap" style="position:relative;">
-                    <div id="tp-desc-content" style="color:#374151;font-size:14px;line-height:1.7;word-break:break-word;min-height:52px;max-height:220px;overflow:hidden;transition:max-height .3s ease;">${desc}</div>
-                    <div id="tp-desc-fade" style="display:none;position:absolute;bottom:0;left:0;right:0;height:40px;background:linear-gradient(transparent,#fff);pointer-events:none;"></div>
-                </div>
-                <button id="tp-desc-btn" onclick="tpToggleDesc()" style="display:none;margin-top:6px;background:none;border:none;color:#0ea5e9;font-size:12px;font-weight:600;cursor:pointer;padding:0;"><i class="fas fa-chevron-down" style="margin-right:4px;font-size:10px;"></i>Show more</button>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-top:14px;min-height:22px;">
+                ${canEditDesc?`<span class="tp-lnk" onclick="tpEditOpenFull(${taskId}, window._tpCurrentData)"><i class="fas fa-pen" style="font-size:12px;margin-right:7px;"></i>Edit</span>`:'<span></span>'}
+                <span id="tp-desc-btn" class="tp-lnk" onclick="tpToggleDesc()" style="display:none;">Expand</span>
             </div>
         </div>`:'';
 
@@ -1176,12 +1196,14 @@ function tpRenderLocal(data) {
         const localFilesSec = localFiles.length
             ? sec(`${sLabel('fa-paperclip',`Files (${localFiles.length})`)}<div style="display:flex;flex-wrap:wrap;gap:8px;">${localFileHtml}</div>`)
             : '';
-        const filesSection=`<div id="tp-files-section">
+        const hasFiles = !!(attachSec||localFiles.length);
+        const filesSection=`<div id="tp-files-section" style="display:${hasFiles?'block':'none'};">
             ${attachSec||localFilesSec||sec(`${sLabel('fa-paperclip','Files')}<p style="color:#b0bec5;font-size:14px;margin:0;">No files attached yet. Drag files onto this panel to attach them.</p>`)}
         </div>`;
 
-        /* Checklist section — always rendered */
-        const checklistSection=`<div id="tp-checklist-section" style="padding:14px 0 4px;">
+        /* Checklist section */
+        const hasChecklist = (data.checklists||[]).length>0;
+        const checklistSection=`<div id="tp-checklist-section" class="tp-card" style="display:${hasChecklist?'block':'none'};padding:14px 16px;">
             <p style="color:#9ca3af;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin:0 0 10px;display:flex;align-items:center;gap:6px;"><i class="fas fa-check-square" style="color:#0ea5e9;font-size:9px;"></i>Checklist</p>
             <div id="tp-cl-list-${taskId}" style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px;"></div>
             <div style="display:flex;gap:6px;align-items:center;">
@@ -1192,16 +1214,15 @@ function tpRenderLocal(data) {
             </div>
         </div>`;
 
-        /* Functional tab bar */
-        const tabDefs=[
-            {label:'Files',        fn:`tpTabScroll('tp-files-section')`},
-            {label:'Checklist',    fn:`tpTabScroll('tp-checklist-section')`},
-            {label:'Participants', fn:`tpTabPeople('tp-drop-member-${taskId}')`},
-            {label:'Observers',    fn:`tpTabPeople('tp-drop-observer-${taskId}')`},
+        /* Chips — only the ones that actually do something; highlighted while their block is showing */
+        const chipDefs=[
+            {k:'files',    label:'Files',        icon:'far fa-file',         on:hasFiles,               fn:`tpToggleSection('tp-files-section','files')`},
+            {k:'check',    label:'Checklists',   icon:'far fa-check-square', on:hasChecklist,           fn:`tpToggleSection('tp-checklist-section','check')`},
+            {k:'project',  label:'Project',      icon:'far fa-folder',       on:!!t.project?.name,      fn:`tpToggleRow('tp-row-project','project')`},
+            {k:'members',  label:'Participants', icon:'far fa-user',         on:participants.length>0,  fn:`tpToggleRow('tp-row-member','members',${participants.length},'tp-drop-member-${taskId}')`},
+            {k:'observers',label:'Observers',    icon:'far fa-eye',          on:observers.length>0,     fn:`tpToggleRow('tp-row-observer','observers',${observers.length},'tp-drop-observer-${taskId}')`},
         ];
-        const tabBar=`<div style="overflow-x:auto;scrollbar-width:none;-ms-overflow-style:none;margin:0 0 16px;"><div style="display:flex;gap:6px;min-width:max-content;">
-            ${tabDefs.map(tab=>`<button onclick="${tab.fn}" style="flex-shrink:0;padding:6px 15px;border-radius:8px;border:1px solid #e2e8f0;background:#f8fafc;color:#6b7280;font-size:13px;font-weight:400;cursor:pointer;white-space:nowrap;transition:all .12s;" onmouseover="this.style.background='#f1f5f9';this.style.borderColor='#cbd5e1';" onmouseout="this.style.background='#f8fafc';this.style.borderColor='#e2e8f0';">${tab.label}</button>`).join('')}
-        </div></div>`;
+        const tabBar=`<div style="display:flex;flex-wrap:wrap;gap:10px;margin:0 0 18px;">${chipDefs.map(c=>`<button type="button" id="tp-chip-${c.k}" class="tp-chip${c.on?' on':''}" onclick="${c.fn}"><i class="${c.icon}"></i>${c.label}</button>`).join('')}</div>`;
 
         return descSection+filesSection+checklistSection+infoCard+peopleCard+projectCard+tabBar;
     })();
@@ -1223,36 +1244,23 @@ function tpRenderLocal(data) {
     const isCompleted  = t.status === 'completed';
     const isInProgress = t.status === 'in_progress';
 
-    const startBtn = (!isCompleted && !isInProgress)
-        ? `<button onclick="tpSetStatusQuick(${taskId},'in_progress',this)" style="padding:8px 20px;border-radius:8px;background:#22a35a;border:none;color:#fff;font-size:13px;font-weight:600;cursor:pointer;transition:opacity .15s;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'"><i class="fas fa-play" style="margin-right:5px;font-size:11px;"></i>Start</button>`
-        : '';
-    const completeBtn = !isCompleted
-        ? `<button onclick="tpSetStatusQuick(${taskId},'completed',this)" style="padding:7px 18px;border-radius:8px;background:#fff;border:1.5px solid #e2e8f0;color:#374151;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;" onmouseover="this.style.borderColor='#15803d';this.style.color='#15803d'" onmouseout="this.style.borderColor='#e2e8f0';this.style.color='#374151'"><i class="fas fa-check" style="margin-right:5px;font-size:11px;"></i>Complete</button>`
-        : '';
-    const resumeBtn = isCompleted
-        ? `<button onclick="tpSetStatusQuick(${taskId},'new',this)" style="padding:7px 18px;border-radius:8px;background:#fff;border:1.5px solid #e2e8f0;color:#374151;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;" onmouseover="this.style.borderColor='#0ea5e9';this.style.color='#0ea5e9'" onmouseout="this.style.borderColor='#e2e8f0';this.style.color='#374151'"><i class="fas fa-redo" style="margin-right:5px;font-size:11px;"></i>Resume</button>`
-        : '';
-    const actionBtn = resumeBtn + startBtn + completeBtn;
+    const startBtn    = (!isCompleted && !isInProgress) ? `<button class="tp-btn tp-btn-primary" onclick="tpSetStatusQuick(${taskId},'in_progress',this)">Start</button>` : '';
+    const completeBtn = !isCompleted ? `<button class="tp-btn tp-btn-ghost" onclick="tpSetStatusQuick(${taskId},'completed',this)">Complete</button>` : '';
+    const resumeBtn   = isCompleted  ? `<button class="tp-btn tp-btn-ghost" onclick="tpSetStatusQuick(${taskId},'new',this)">Resume</button>` : '';
 
     $('tp-left-footer').innerHTML = `
-        <div style="display:flex;align-items:center;gap:8px;">
-            ${actionBtn}
+        <div style="display:flex;align-items:center;gap:10px;">
+            ${resumeBtn}${startBtn}${completeBtn}
             <div style="position:relative;">
-                <button onclick="tpToggleDropdown('tp-more-menu')" style="width:34px;height:34px;border-radius:8px;background:#fff;border:1.5px solid #e2e8f0;color:#6b7280;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='#fff'">
-                    <i class="fas fa-ellipsis-h" style="font-size:13px;"></i>
-                </button>
-                <div id="tp-more-menu" class="tp-people-dropdown" style="display:none;bottom:42px;left:0;min-width:170px;">
-                    <div class="opt" style="color:#ef4444;"
-                         onclick="tpDeleteTask(${taskId})">
+                <button class="tp-btn tp-btn-ghost" style="padding:0 14px;" onclick="tpToggleDropdown('tp-more-menu')"><i class="fas fa-ellipsis-h" style="font-size:14px;color:#6b7076;"></i></button>
+                <div id="tp-more-menu" class="tp-people-dropdown" style="display:none;bottom:46px;left:0;min-width:170px;">
+                    <div class="opt" style="color:#ef4444;" onclick="tpDeleteTask(${taskId})">
                         <i class="fas fa-trash" style="color:#ef4444;width:16px;"></i>Delete Task
                     </div>
                 </div>
             </div>
         </div>
-        <div style="display:flex;align-items:center;gap:16px;">
-            <span style="color:#9ca3af;font-size:12.5px;cursor:pointer;transition:color .15s;" onmouseover="this.style.color='#f59e0b'" onmouseout="this.style.color='#9ca3af'"><i class="fas fa-star" style="margin-right:4px;font-size:11px;"></i>Rate task</span>
-            <span style="color:#9ca3af;font-size:12.5px;display:flex;align-items:center;gap:4px;" title="Observers"><i class="fas fa-eye" style="font-size:11px;"></i>${observers.length}</span>
-        </div>`;
+        <div style="display:flex;align-items:center;gap:6px;color:#8b9098;font-size:15px;" title="Observers"><i class="far fa-eye" style="font-size:16px;"></i>${observers.length}</div>`;
 
     // Load checklists from server data
     _tpChecklists[taskId] = (data.checklists || []);
@@ -1261,37 +1269,54 @@ function tpRenderLocal(data) {
     tpRenderLocalFeed(data, taskId);
     setTimeout(()=>{ const m=$('tp-messages'); m.scrollTop=m.scrollHeight; },80);
     $('tp-comment-footer').innerHTML=`
-        <div style="display:flex;gap:8px;align-items:flex-end;">
-            <div style="flex:1;background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:9px;overflow:hidden;transition:border-color .15s;" id="tp-comment-box">
-                <textarea id="tp-comment-text" rows="2" placeholder="Type @ to mention someone…"
-                    style="display:block;width:100%;background:none;border:none;padding:9px 12px 6px;color:#111827;font-size:14px;resize:none;outline:none;line-height:1.5;font-family:inherit;box-sizing:border-box;"
-                    onfocus="document.getElementById('tp-comment-box').style.borderColor='#0ea5e9'"
-                    onblur="document.getElementById('tp-comment-box').style.borderColor='#e2e8f0'"
-                    onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();tpSubmitComment(${taskId});}"></textarea>
-                <div style="display:flex;align-items:center;gap:2px;padding:4px 8px;border-top:1px solid #e9ecef;">
-                    <button type="button" onclick="emojiToggle('tp-comment-text',this)"
-                            title="Emoji" style="background:none;border:none;color:#94a3b8;cursor:pointer;padding:3px 5px;border-radius:6px;font-size:15px;line-height:1;transition:color .12s;"
-                            onmouseover="this.style.color='#0ea5e9'" onmouseout="this.style.color='#94a3b8'">
-                        <i class="far fa-smile-beam"></i>
-                    </button>
-                    <button type="button" onclick="document.getElementById('tp-file-input').click()"
-                            title="Attach file" style="background:none;border:none;color:#94a3b8;cursor:pointer;padding:3px 5px;border-radius:6px;font-size:14px;line-height:1;transition:color .12s;"
-                            onmouseover="this.style.color='#0ea5e9'" onmouseout="this.style.color='#94a3b8'">
-                        <i class="fas fa-paperclip"></i>
-                    </button>
-                    <input type="file" id="tp-file-input" style="display:none" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.zip"
-                           onchange="uploadAndInsert('tp-comment-text','tp-file-input','tp-attach-preview')">
-                </div>
-                <div id="tp-attach-preview" style="display:none;padding:6px 8px 4px;gap:8px;flex-wrap:wrap;border-top:1px solid #e9ecef;"></div>
+        <div id="tp-comment-box" style="position:relative;background:#fff;border-radius:14px;box-shadow:0 1px 4px rgba(0,0,0,.08);min-height:150px;display:flex;flex-direction:column;">
+            <button type="button" onclick="document.getElementById('tp-file-input').click()" title="Attach file"
+                    style="position:absolute;left:14px;top:15px;background:none;border:none;color:#9aa0a6;cursor:pointer;font-size:16px;padding:0;line-height:1;"><i class="fas fa-paperclip"></i></button>
+            <textarea id="tp-comment-text" rows="4" placeholder="Type @ to mention a person…"
+                style="flex:1;width:100%;background:none;border:none;padding:14px 16px 6px 44px;color:#333;font-size:15px;resize:none;outline:none;line-height:1.5;font-family:inherit;box-sizing:border-box;"
+                oninput="tpComposerState()"
+                onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();tpSubmitComment(${taskId});}"></textarea>
+            <div id="tp-attach-preview" style="display:none;padding:6px 14px 4px;gap:8px;flex-wrap:wrap;"></div>
+            <div style="display:flex;align-items:center;justify-content:flex-end;gap:14px;padding:6px 14px 12px;">
+                <button type="button" onclick="emojiToggle('tp-comment-text',this)" title="Emoji"
+                        style="background:none;border:none;color:#9aa0a6;cursor:pointer;font-size:19px;padding:0;line-height:1;"><i class="far fa-smile"></i></button>
+                <button type="button" id="tp-send-btn" onclick="tpSubmitComment(${taskId})" title="Send (Enter)"
+                        style="width:36px;height:36px;border-radius:50%;background:#c5cad0;border:none;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s;"><i class="fas fa-paper-plane" style="font-size:14px;margin-left:-1px;"></i></button>
             </div>
-            <button onclick="tpSubmitComment(${taskId})"
-                style="background:#0ea5e9;border:none;border-radius:9px;padding:9px 16px;color:#fff;font-size:12.5px;font-weight:700;cursor:pointer;transition:opacity .15s;white-space:nowrap;height:38px;flex-shrink:0;align-self:flex-start;margin-top:2px;"
-                onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
-                <i class="fas fa-paper-plane" style="margin-right:4px;font-size:10px;"></i>Send
-            </button>
-        </div>
-        <p style="color:#9ca3af;font-size:10px;margin:5px 0 0 2px;">Enter to send &nbsp;·&nbsp; Shift+Enter for new line</p>`;
+            <input type="file" id="tp-file-input" style="display:none" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.zip"
+                   onchange="uploadAndInsert('tp-comment-text','tp-file-input','tp-attach-preview')">
+        </div>`;
 }
+
+/* ─── Bitrix-style chips + composer state ─────────────── */
+window.tpComposerState = function(){
+    const ta=$('tp-comment-text'), b=$('tp-send-btn'); if(!ta||!b) return;
+    b.style.background = (ta.value||'').trim() ? '#00a8e8' : '#c5cad0';
+};
+window.tpChipSet = function(k,on){ const c=document.getElementById('tp-chip-'+k); if(c) c.classList.toggle('on',on); };
+window.tpToggleSection = function(id,k){
+    const el=document.getElementById(id); if(!el) return;
+    const show = el.style.display==='none';
+    el.style.display = show ? 'block' : 'none';
+    tpChipSet(k,show);
+    if(show) tpTabScroll(id);
+};
+window.tpToggleRow = function(id,k,count,dropId){
+    const row=document.getElementById(id); if(!row) return;
+    if(dropId){                                   // Participants / Observers
+        if(count>0){ tpTabPeople(dropId); return; }     // already has people → just open the picker
+        const card=document.getElementById('tp-people-card');
+        const show = row.style.display==='none';
+        row.style.display = show ? 'flex' : 'none';
+        if(card){ const other=[...card.children].some(c=>c!==row && c.style.display!=='none'); card.style.display=(show||other)?'block':'none'; }
+        tpChipSet(k,show);
+        if(show) setTimeout(()=>tpToggleDropdown(dropId),60);   // after the document click-away handler ran
+    } else {                                      // Project
+        const show = row.style.display==='none';
+        row.style.display = show ? 'block' : 'none';
+        tpChipSet(k,show);
+    }
+};
 
 /* ─── tab navigation helpers ───────────────────────────── */
 window.tpTabScroll = function(id) {
@@ -1441,21 +1466,48 @@ window.tpStopChatPoll = function() {
     if (_chatPollInterval) { clearInterval(_chatPollInterval); _chatPollInterval = null; }
 };
 
+/* ─── "Rahim created this task" card (Bitrix style) ────── */
+window.tpCreatedCard = function(data, iso){
+    const t=data.task||{}, creator=data.creator, assignee=data.assignee;
+    const stLabel={new:'New',pending:'Pending',in_progress:'In Progress',paused:'Paused',completed:'Completed'}[t.status]||t.status||'';
+    let plain=(t.description||'').replace(/\[[^\]]*\]/g,' ').replace(/<[^>]+>/g,' ').replace(/&nbsp;/g,' ').replace(/[ \t]+/g,' ')
+        .split('\n').map(x=>x.trim()).filter(Boolean).join('\n');
+    if(plain.length>160) plain=plain.slice(0,160).trim()+'…';
+    const dtxt=esc(plain).replace(/\n/g,'<br>');
+    const row=(k,v)=>`<tr><td style="font-weight:700;padding:1px 22px 1px 0;white-space:nowrap;vertical-align:top;">${k}:</td><td style="padding:1px 0;vertical-align:top;">${v}</td></tr>`;
+    return `<div style="display:flex;justify-content:flex-start;margin:4px 0;">
+        <div style="max-width:716px;width:100%;background:rgba(255,255,255,.36);border-radius:10px;padding:8px 12px 6px;color:#1d2f2b;font-size:14px;line-height:1.45;">
+            <div><span style="color:#1a4f8f;text-decoration:underline;">${esc(creator?creator.name:'Someone')}</span> created <span style="color:#1a4f8f;">this task</span>.</div>
+            <div style="margin:6px 0 4px;border-left:3px solid #1ea4c1;padding:2px 0 2px 12px;">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;font-weight:700;color:#0d5f9c;"><span style="display:inline-flex;width:24px;height:24px;border-radius:50%;background:#1ea4c1;align-items:center;justify-content:center;flex-shrink:0;"><i class="fas fa-tasks" style="color:#fff;font-size:11px;"></i></span>${esc(t.title||'')}</div>
+                <table style="border-collapse:collapse;font-size:14px;">
+                    ${row('Status',esc(stLabel))}${row('Created by',esc(creator?creator.name:'—'))}${row('Assignee',esc(assignee?assignee.name:'—'))}${row('Deadline',t.deadline?fmtB24Short(t.deadline):'—')}${dtxt?row('Description',dtxt):''}
+                </table>
+            </div>
+            <div style="text-align:right;font-size:11px;color:rgba(0,0,0,.42);">${fmtTimeOnly(iso)}</div>
+        </div>
+    </div>`;
+};
+
 /* ─── feed renderer (called on open + by poller) ──────── */
 window.tpRenderLocalFeed = function(data, taskId) {
-    const feed = data.feed || [];
-    const comments = feed.filter(f => f.type === 'comment');
+    const isCreatedNote = f => (f.type === 'activity' && f.action === 'created') || (f.isSystem && /created this task/i.test(f.text || f.content || ''));
+    const feed = (data.feed || []).filter(f => !isCreatedNote(f));   // replaced by the creation card below
+    const ppl = new Set([data.creator && data.creator.id, data.assignee && data.assignee.id,
+        ...(data.participants || []).map(p => p.id), ...(data.observers || []).map(p => p.id)].filter(Boolean));
     $('tp-chat-title').textContent = 'Task chat';
-    $('tp-chat-count').textContent = comments.length ? comments.length + ' comments' : '';
+    $('tp-chat-count').textContent = ppl.size + (ppl.size === 1 ? ' member' : ' members');
+    const createdIso  = data.task && data.task.createdAt;
+    const createdHead = createdIso ? chatDivider(createdIso) + tpCreatedCard(data, createdIso) : '';
 
     // spacer pushes messages to the bottom when few messages exist
     const _spacer = '<div style="flex:1;min-height:0;pointer-events:none;"></div>';
 
-    if (feed.length) {
+    if (feed.length || createdHead) {
         const localColors = ['#0ea5e9','#6366f1','#10b981','#f59e0b','#ef4444','#8b5cf6','#ec4899'];
         const localColor = name => localColors[(name||'').charCodeAt(0) % localColors.length];
-        let lastDay2 = '', lastAuthor2 = null;
-        $('tp-messages').innerHTML = _spacer + feed.map(f => {
+        let lastDay2 = createdIso ? chatDayKey(createdIso) : '', lastAuthor2 = null;
+        $('tp-messages').innerHTML = _spacer + createdHead + feed.map(f => {
             const iso = f.at || f.created_at || '';
             const day = chatDayKey(iso);
             const div = day !== lastDay2 ? (lastDay2 = day, chatDivider(iso)) : '';
@@ -1489,7 +1541,7 @@ window.tpRenderLocalFeed = function(data, taskId) {
             return div + chatBubble({isMine, name:u.name||'?', nameColor:localColor(u.name||''), text:parseMsg(f.text||f.content||''), time, showName, files:f.files||[]});
         }).join('');
     } else {
-        $('tp-messages').innerHTML = _spacer + `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 0;"><i class="fas fa-comment-slash" style="font-size:28px;color:rgba(255,255,255,.25);margin-bottom:10px;"></i><p style="color:rgba(255,255,255,.45);font-size:12.5px;margin:0;">No comments yet — be the first!</p></div>`;
+        $('tp-messages').innerHTML = _spacer + `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 0;"><i class="fas fa-comment-slash" style="font-size:28px;color:rgba(255,255,255,.55);margin-bottom:10px;"></i><p style="color:rgba(255,255,255,.85);font-size:13px;margin:0;">No comments yet — be the first!</p></div>`;
     }
 
     setTimeout(() => {
@@ -1513,11 +1565,11 @@ window.tpToggleDesc = function() {
     if (expanded) {
         content.style.maxHeight = '280px';
         fade.style.display      = 'block';
-        btn.innerHTML = '<i class="fas fa-chevron-down" style="margin-right:4px;font-size:10px;"></i>Show more';
+        btn.innerHTML = 'Expand';
     } else {
         content.style.maxHeight = 'none';
         fade.style.display      = 'none';
-        btn.innerHTML = '<i class="fas fa-chevron-up" style="margin-right:4px;font-size:10px;"></i>Show less';
+        btn.innerHTML = 'Collapse';
     }
 };
 
@@ -1749,7 +1801,7 @@ window.tpSubmitComment=function(taskId){
         headers:{'Content-Type':'application/json','X-CSRF-TOKEN':TP_CSRF,'Accept':'application/json'},
         body:JSON.stringify({content:fullContent, mentions}),
     }).then(r=>r.json()).then(resp=>{
-        ta.value='';
+        ta.value=''; tpComposerState();
         if(window.clearAttachments) window.clearAttachments('tp-comment-text','tp-attach-preview');
         const now=new Date(), time=fmtTimeOnly(now); // app-timezone, same as the feed re-render
         const el=document.createElement('div');

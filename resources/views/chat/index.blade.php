@@ -70,7 +70,7 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
 
         {{-- Empty state --}}
-        <div id="cp-right-empty" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;background-image:url('{{ asset('pattern-chat.svg') }}');background-size:cover;background-position:center;">
+        <div id="cp-right-empty" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;background-image:url('{{ asset('pattern-chat-teal.svg') }}');background-size:cover;background-position:center;">
             <i class="fas fa-comments" style="font-size:56px;margin-bottom:16px;color:rgba(255,255,255,.6);"></i>
             <p style="font-size:14px;margin:0;font-weight:600;color:rgba(255,255,255,.75);">Select a conversation to start chatting</p>
         </div>
@@ -87,7 +87,7 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
 
         {{-- Messages --}}
-        <div id="cp-msg-area" style="display:none;flex:1;overflow-y:auto;padding:20px 200px;background:linear-gradient(rgba(244,247,249,.9),rgba(244,247,249,.9)),url('{{ asset('pattern-chat.svg') }}');background-size:340px;background-position:center;background-repeat:repeat;background-attachment:local;flex-direction:column;"></div>
+        <div id="cp-msg-area" style="display:none;flex:1;overflow-y:auto;padding:20px 200px;background:#5a9e96 url('{{ asset('pattern-chat-teal.svg') }}') center/cover no-repeat;flex-direction:column;"></div>
 
         {{-- Input --}}
         <div id="cp-input-area" style="display:none;padding:10px 16px 14px;border-top:1px solid #e2e8f0;background:#fff;flex-shrink:0;">

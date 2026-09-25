@@ -36,8 +36,8 @@
 
     <div style="display:flex;align-items:center;gap:10px;flex-shrink:0;">
         <span style="font-size:11.5px;font-weight:500;padding:4px 10px;border-radius:7px;
-             background:{{ ['new'=>'rgba(148,163,184,.2)','in_progress'=>'rgba(27,114,232,.25)','paused'=>'rgba(251,191,36,.2)','completed'=>'rgba(34,197,94,.2)'][$task->status] ?? 'rgba(148,163,184,.2)' }};
-             color:{{ ['new'=>'#cbd5e1','in_progress'=>'#93c5fd','paused'=>'#fde68a','completed'=>'#86efac'][$task->status] ?? '#cbd5e1' }};">
+             background:{{ ['new'=>'rgba(148,163,184,.2)','pending'=>'rgba(56,189,248,.22)','in_progress'=>'rgba(27,114,232,.25)','paused'=>'rgba(251,191,36,.2)','completed'=>'rgba(34,197,94,.2)'][$task->status] ?? 'rgba(148,163,184,.2)' }};
+             color:{{ ['new'=>'#cbd5e1','pending'=>'#7dd3fc','in_progress'=>'#93c5fd','paused'=>'#fde68a','completed'=>'#86efac'][$task->status] ?? '#cbd5e1' }};">
             {{ str_replace('_',' ',ucfirst($task->status)) }}
         </span>
         @if($task->assignee)

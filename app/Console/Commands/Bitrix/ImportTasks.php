@@ -129,9 +129,16 @@ class ImportTasks extends BitrixCommand
                 'task_control'          => ($t['taskControl']          ?? 'N') === 'Y',
                 'stage_id'              => $t['stageId'] ?? null,
                 'sort_index'            => (int)($t['sorting'] ?? 0),
-                'created_at'            => $this->parseDateTime($t['createdDate'] ?? null) ?? now(),
             ]
         );
+
+        // created_at isn't mass-assignable (the old code silently dropped it, so every imported task
+        // showed the import time as "Created"). Write Bitrix's real creation time directly, without
+        // touching updated_at.
+        $created = $this->parseDateTime($t['createdDate'] ?? null);
+        if ($created && $task->created_at?->format('Y-m-d H:i:s') !== $created) {
+            \DB::table('tasks')->where('id', $task->id)->update(['created_at' => $created]);
+        }
 
         // Sync participants (accomplices)
         $participantIds = $this->mapUserIds((array)($t['accomplices'] ?? []));
@@ -148,10 +155,11 @@ class ImportTasks extends BitrixCommand
 
     private function mapStatus(string $s): string
     {
-        // Bitrix: 1=New, 2=In Progress, 3=In Progress, 4=Review/Awaiting, 5=Completed, 6=Deferred
+        // Bitrix: 1=New, 2=Pending, 3=In Progress, 4=Supposedly completed (review), 5=Completed, 6=Deferred
         return match($s) {
             '1'     => 'new',
-            '2','3' => 'in_progress',
+            '2'     => 'pending',
+            '3'     => 'in_progress',
             '4'     => 'in_progress',
             '5'     => 'completed',
             '6'     => 'paused',
@@ -197,7 +205,7 @@ class ImportTasks extends BitrixCommand
     private function parseDateTime(?string $v): ?string
     {
         if (!$v || $v === '0000-00-00T00:00:00+00:00') return null;
-        try { return (new \DateTime($v))->format('Y-m-d H:i:s'); }
+        try { return (new \DateTime($v))->setTimezone(new \DateTimeZone(config('app.timezone')))->format('Y-m-d H:i:s'); }
         catch (\Throwable) { return null; }
     }
 }
