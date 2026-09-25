@@ -2378,7 +2378,7 @@ window.vnSend = function(panel) {
 };
 </script>
 
-<script src="//unpkg.com/alpinejs" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.9/dist/cdn.min.js" defer></script>
 <script>
 function appShell() {
     return {

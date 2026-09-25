@@ -27,6 +27,16 @@ Route::get('/reset-password/{token}', [ResetPasswordController::class, 'showForm
 Route::post('/reset-password', [ResetPasswordController::class, 'reset'])->name('password.update');
 
 // Protected routes
+// Initials avatar for users without an uploaded photo — served locally and cached for a year.
+Route::get('/avatar-initials', function (\Illuminate\Http\Request $r) {
+    $name  = trim((string) $r->query('n', '?'));
+    $words = preg_split('/\s+/u', $name, -1, PREG_SPLIT_NO_EMPTY) ?: ['?'];
+    $ini   = mb_strtoupper(mb_substr($words[0], 0, 1) . (count($words) > 1 ? mb_substr(end($words), 0, 1) : ''));
+    $svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128"><rect width="128" height="128" fill="#6366f1"/>'
+         . '<text x="64" y="64" dy=".35em" text-anchor="middle" fill="#fff" font-family="Arial,Helvetica,sans-serif" font-size="' . (mb_strlen($ini) > 1 ? 52 : 62) . '" font-weight="600">' . e($ini) . '</text></svg>';
+    return response($svg, 200, ['Content-Type' => 'image/svg+xml', 'Cache-Control' => 'public, max-age=31536000, immutable']);
+})->name('avatar.initials');
+
 Route::middleware('auth')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 

@@ -52,7 +52,7 @@ class User extends Authenticatable
         if ($this->avatar) {
             return asset('storage/' . $this->avatar);
         }
-        $initial = strtoupper(substr($this->name, 0, 1));
-        return "https://ui-avatars.com/api/?name={$this->name}&background=6366f1&color=fff&size=128";
+        // Own-server initials avatar (was ui-avatars.com: ~25 external requests per page load)
+        return url('/avatar-initials?n=' . rawurlencode($this->name));
     }
 }
