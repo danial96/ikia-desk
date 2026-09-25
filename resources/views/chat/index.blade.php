@@ -54,9 +54,15 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
 
         {{-- Empty state --}}
-        <div id="cp-right-empty" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;background-image:url('{{ asset('pattern-chat-teal.svg') }}');background-size:cover;background-position:center;">
-            <i class="fas fa-comments" style="font-size:56px;margin-bottom:16px;color:rgba(255,255,255,.6);"></i>
-            <p style="font-size:14px;margin:0;font-weight:600;color:rgba(255,255,255,.75);">Select a conversation to start chatting</p>
+        <div id="cp-right-empty" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(180deg,#ececec 0%,#f3eeec 60%,#f8ebe6 100%);">
+            <div style="position:relative;width:150px;height:120px;margin-bottom:26px;">
+                <div style="position:absolute;left:0;top:14px;width:118px;height:88px;border-radius:14px;background:linear-gradient(135deg,#cfe6fb,#e6f2fd);box-shadow:0 6px 16px rgba(80,140,200,.25);"></div>
+                <div style="position:absolute;left:14px;top:0;width:34px;height:30px;border-radius:9px;background:#6fd6a8;display:flex;align-items:center;justify-content:center;"><i class="fas fa-filter" style="color:#fff;font-size:13px;"></i></div>
+                <div style="position:absolute;right:0;top:34px;width:70px;height:72px;border-radius:38px 38px 30px 30px;background:linear-gradient(180deg,#ffd0cf,#ff9f9c);box-shadow:0 6px 14px rgba(255,120,120,.3);display:flex;align-items:center;justify-content:center;"><i class="far fa-face-smile" style="color:#7a3b3b;font-size:24px;"></i></div>
+            </div>
+            <p style="font-size:20px;margin:0 0 10px;font-weight:500;color:#5c6670;">Select a chat to start communicating</p>
+            <p style="font-size:13px;margin:0 0 12px;color:#8a949c;">or</p>
+            <button onclick="cpNewDirect()" style="background:none;border:1px solid #d3d8dc;border-radius:22px;padding:10px 22px;color:#2067b0;font-size:14px;font-weight:500;cursor:pointer;">Invite users</button>
         </div>
 
         {{-- Header --}}
@@ -201,9 +207,10 @@ document.addEventListener('DOMContentLoaded', function() {
 </div>
 
 <style>
-#cp-wrap { position:relative; }
+#cp-wrap { position:relative; margin:8px 16px 0 12px; border-radius:12px 12px 0 0; overflow:hidden; background:#fff; box-shadow:0 2px 14px rgba(0,0,0,.18); }
 #cp-direct-modal.cp-show, #cp-group-modal.cp-show { display:flex !important; }
-.cp-conv-item { display:flex;align-items:center;gap:14px;padding:11px 16px;cursor:pointer;transition:background .12s;position:relative;margin:0 6px;border-radius:8px; }
+.cp-conv-item { display:flex;align-items:center;gap:14px;padding:10px 16px;min-height:70px;cursor:pointer;transition:background .12s;position:relative;margin:0 6px;border-radius:8px; }
+.cp-conv-item:not(.active)::after { content:'';position:absolute;left:78px;right:10px;bottom:0;height:1px;background:#eef0f2; }
 .cp-conv-item:hover { background:#f4f6f8; }
 .cp-conv-item.active { background:#12b0f0; }
 .cp-conv-item.active .cp-cn, .cp-conv-item.active .cp-cl, .cp-conv-item.active .cp-ct { color:#fff !important; }
@@ -620,7 +627,7 @@ window.cpLikeClick = async function(e, btn, msgId, emoji) {
 };
 
 /* ── Conversation avatar with online dot ── */
-function convAvatar(c, size) {
+function convAvatar(c, size, noDot) {
     const s = size+'px';
     let inner = '';
     if (c.type==='general') inner = `<div style="width:${s};height:${s};border-radius:50%;background:rgba(0,212,232,.2);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><i class="fas fa-globe" style="font-size:${Math.round(size*.42)}px;color:#00D4E8;"></i></div>`;
@@ -630,7 +637,7 @@ function convAvatar(c, size) {
         const initials = (c.name||'?').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
         inner = `<div style="width:${s};height:${s};border-radius:50%;background:rgba(27,114,232,.25);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#60a5fa;font-size:${Math.round(size*.38)}px;font-weight:700;">${initials}</div>`;
     }
-    const dot = (c.type==='direct')
+    const dot = (c.type==='direct' && !noDot)
         ? `<div style="position:absolute;bottom:0;right:0;width:11px;height:11px;border-radius:50%;background:${c.online?'#22c55e':'#f97316'};border:2px solid #fff;"></div>`
         : '';
     return `<div style="position:relative;flex-shrink:0;">${inner}${dot}</div>`;
@@ -667,11 +674,11 @@ function cpRenderConvs(list) {
         return;
     }
     el.innerHTML = list.map(c => {
-        const av      = convAvatar(c, 48);
+        const av      = convAvatar(c, 48, true);
         const lm      = c.lastMsg;
         const unread  = (c.unread && _cpActiveConvId !== c.id) ? c.unread : 0;
         const lastLine = lm
-            ? `<span style="color:${unread?'#0f172a':'#64748b'};font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${unread?'font-weight:600;':''}" class="cp-cl">${lm.byMe?'You: ':(c.type!=='direct'?esc(lm.senderName||'')+': ':'')}${esc(cpPreviewText(lm.text).substring(0,45))}</span>`
+            ? `<span style="color:${unread?'#0f172a':'#64748b'};font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${unread?'font-weight:600;':''}" class="cp-cl">${lm.byMe?'<i class="fas fa-reply" style="font-size:11px;margin-right:7px;color:#9aa5ad;"></i>':(c.type!=='direct'?esc(lm.senderName||'')+': ':'')}${esc(cpPreviewText(lm.text).substring(0,45))}</span>`
             : `<span style="color:#94a3b8;font-size:14px;">No messages yet</span>`;
         const timeStr = lm ? `<span class="cp-ct" style="color:${unread?'#0891b2':'#9aa5ad'};font-size:12px;flex-shrink:0;">${lm.time}</span>` : '';
         const badge   = unread ? `<div style="min-width:18px;height:18px;border-radius:9px;background:#0891b2;color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0 4px;flex-shrink:0;">${unread>99?'99+':unread}</div>` : '';

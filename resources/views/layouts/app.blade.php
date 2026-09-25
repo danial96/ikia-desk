@@ -791,7 +791,8 @@
 @keyframes chatPopupIn  { from{transform:translateX(24px);opacity:0} to{transform:translateX(0);opacity:1} }
 @keyframes chatPopupOut { from{opacity:1;transform:translateX(0)} to{opacity:0;transform:translateX(24px)} }
 @keyframes vnPulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(.7)} }
-.chat-conv-item { display:flex;align-items:center;gap:14px;padding:11px 16px;cursor:pointer;transition:background .12s;margin:0 6px;border-radius:8px; }
+.chat-conv-item { display:flex;align-items:center;gap:14px;padding:10px 16px;min-height:70px;cursor:pointer;transition:background .12s;margin:0 6px;border-radius:8px;position:relative; }
+.chat-conv-item:not(.active)::after { content:'';position:absolute;left:78px;right:10px;bottom:0;height:1px;background:#eef0f2; }
 .chat-conv-item:hover { background:#f4f6f8; }
 .chat-conv-item.active { background:#12b0f0; }
 .chat-conv-item.active .cc-n, .chat-conv-item.active .cc-l, .chat-conv-item.active .cc-t { color:#fff !important; }
@@ -1098,11 +1099,11 @@ function chatRenderConvs(list) {
         return;
     }
     el.innerHTML = list.map(c => {
-        const avatar  = convAvatar(c, 48);
+        const avatar  = convAvatar(c, 48, true);
         const unread  = (c.unread && _activeConvId !== c.id) ? c.unread : 0;
         const lastLine = c.lastMsg
             ? `<span class="cc-l" style="color:${unread?'#111827':'#8a94a6'};font-size:14px;font-weight:${unread?'500':'400'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
-                 ${c.lastMsg.byMe ? 'You: ' : (c.type!=='direct'?escH(c.lastMsg.senderName||'')+': ':'')}${escH(previewText(c.lastMsg.text).substring(0,38))}
+                 ${c.lastMsg.byMe ? '<i class="fas fa-reply" style="font-size:11px;margin-right:7px;color:#9aa5ad;"></i>' : (c.type!=='direct'?escH(c.lastMsg.senderName||'')+': ':'')}${escH(previewText(c.lastMsg.text).substring(0,38))}
                </span>`
             : `<span class="cc-l" style="color:#a3adba;font-size:14px;">No messages yet</span>`;
         const timeStr = c.lastMsg ? `<span class="cc-t" style="color:${unread?'#2f70d6':'#9aa5ad'};font-size:12px;flex-shrink:0;">${c.lastMsg.time}</span>` : '';
@@ -1124,7 +1125,7 @@ function chatRenderConvs(list) {
     }).join('');
 }
 
-function convAvatar(c, size) {
+function convAvatar(c, size, noDot) {
     const s = size + 'px';
     if (c.type === 'general') {
         return `<div style="width:${s};height:${s};border-radius:50%;background:rgba(0,212,232,.2);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><i class="fas fa-globe" style="font-size:${size*0.45}px;color:#00D4E8;"></i></div>`;
