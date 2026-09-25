@@ -69,7 +69,7 @@
 .tp-btn-ghost { background:#fff; border:1px solid #d8dde1; color:#333; font-weight:500; }
 .tp-btn-ghost:hover { background:#f4f6f7; }
 
-.tp-side-btn{width:58px;height:34px;border-radius:17px;background:#2b8fd6;border:none;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:flex-start;padding-left:14px;font-size:14px;box-shadow:0 2px 8px rgba(0,0,0,.25);transition:background .15s;}
+.tp-side-btn{width:44px;height:30px;border-radius:15px;background:#2b8fd6;border:none;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;font-size:13px;box-shadow:0 1px 4px rgba(0,0,0,.2);transition:background .15s;}
 .tp-side-btn:hover{background:#1f7dc0;}
 
 /* Phones/tablets: stack the two columns so the 660px detail column fits */
@@ -86,7 +86,7 @@
      style="display:none;opacity:0;position:fixed;inset:0;z-index:3000;background:rgba(15,23,42,.55);backdrop-filter:blur(4px);overflow:hidden;">
 
     {{-- Side action pills (Bitrix style) — tucked half under the panel edge --}}
-    <div id="tp-side-actions" style="position:absolute;left:14px;top:10px;z-index:10;display:flex;flex-direction:column;gap:10px;">
+    <div id="tp-side-actions" style="position:absolute;left:14px;top:22px;z-index:10;display:flex;flex-direction:column;gap:12px;">
         <button class="tp-side-btn" onclick="tpClose()" title="Close"><i class="fas fa-times"></i></button>
         <button class="tp-side-btn" onclick="tpSideCopyLink()" title="Copy link"><i class="fas fa-link"></i></button>
         <button class="tp-side-btn" onclick="tpSideOpenFull()" title="Open as full page"><i class="fas fa-arrow-down" style="transform:rotate(-45deg);"></i></button>
