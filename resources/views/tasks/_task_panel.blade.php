@@ -480,15 +480,15 @@ const chatDayLabel = v => {
     if(key===chatDayKey(new Date(Date.now()-86400000))) return 'yesterday';
     return d.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric',timeZone:APP_TZ});
 };
-const chatDivider = iso => `<div style="display:flex;align-items:center;justify-content:center;margin:12px 0 8px;"><span style="background:#538b7f;color:#fff;font-size:12px;font-weight:600;padding:3px 14px;border-radius:12px;">${chatDayLabel(iso)}</span></div>`;
+const chatDivider = iso => `<div style="display:flex;align-items:center;justify-content:center;margin:12px 0 8px;"><span style="background:#538b7f;color:#fff;font-size:13px;font-weight:600;padding:3px 14px;border-radius:12px;">${chatDayLabel(iso)}</span></div>`;
 
 /* build a chat bubble — isMine = right green, else left white */
 const chatBubble = ({isMine, name, nameColor, text, time, showName=true, isSystem=false, files=[]}) => {
     if(isSystem) return `
         <div style="display:flex;justify-content:center;margin:5px 0;">
             <div style="max-width:90%;text-align:center;line-height:1.45;background:rgba(255,255,255,.34);border-radius:10px;padding:6px 14px;">
-                <span style="color:#1d2f2b;font-size:13px;">${text}</span>
-                <span style="color:rgba(0,0,0,.4);font-size:11px;margin-left:8px;white-space:nowrap;">${time}</span>
+                <span style="color:#1d2f2b;font-size:14.5px;">${text}</span>
+                <span style="color:rgba(0,0,0,.4);font-size:12px;margin-left:8px;white-space:nowrap;">${time}</span>
             </div>
         </div>`;
     const bg   = isMine ? '#d7f5c9' : '#ffffff';
@@ -496,7 +496,7 @@ const chatBubble = ({isMine, name, nameColor, text, time, showName=true, isSyste
     const tc   = isMine ? '#173a20' : '#1e293b';
     const timec= isMine ? '#5a8a6a' : '#94a3b8';
     const tick = isMine ? '<i class="fas fa-check-double" style="font-size:8px;color:#5a8a6a;margin-left:3px;"></i>' : '';
-    const nameHtml = (!isMine && showName && name) ? `<div style="color:${nameColor||'#0ea5e9'};font-size:13.5px;font-weight:700;margin-bottom:3px;">${esc(name)}</div>` : '';
+    const nameHtml = (!isMine && showName && name) ? `<div style="color:${nameColor||'#0ea5e9'};font-size:14.5px;font-weight:700;margin-bottom:3px;">${esc(name)}</div>` : '';
     const fileIcons = {pdf:'fa-file-pdf',doc:'fa-file-word',docx:'fa-file-word',xls:'fa-file-excel',xlsx:'fa-file-excel',ppt:'fa-file-powerpoint',pptx:'fa-file-powerpoint',zip:'fa-file-zipper',rar:'fa-file-zipper',mp4:'fa-file-video',mov:'fa-file-video',mp3:'fa-file-audio'};
     const imgExts = new Set(['jpg','jpeg','png','gif','webp','svg','bmp']);
     const filesHtml = (files||[]).length ? `<div style="display:flex;flex-direction:column;gap:6px;margin-top:6px;">${(files||[]).map(f=>{
@@ -517,10 +517,10 @@ const chatBubble = ({isMine, name, nameColor, text, time, showName=true, isSyste
         <div style="display:flex;justify-content:${isMine?'flex-end':'flex-start'};margin-bottom:2px;">
             <div style="max-width:78%;background:${bg};border:1px solid ${isMine?'#c3ebb4':'#e8ebef'};border-radius:${br};padding:8px 12px 6px;box-shadow:0 1px 2px rgba(0,0,0,.06);">
                 ${nameHtml}
-                ${text ? `<div style="color:${tc};font-size:14px;line-height:1.5;word-break:break-word;">${text}</div>` : ''}
+                ${text ? `<div style="color:${tc};font-size:15.5px;line-height:1.5;word-break:break-word;">${text}</div>` : ''}
                 ${filesHtml}
                 <div style="text-align:right;margin-top:3px;">
-                    <span style="color:${timec};font-size:10px;">${time}${tick}</span>
+                    <span style="color:${timec};font-size:11.5px;">${time}${tick}</span>
                 </div>
             </div>
         </div>`;
