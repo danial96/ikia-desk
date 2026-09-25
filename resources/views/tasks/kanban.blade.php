@@ -59,7 +59,7 @@
             #kb-scroll{padding-bottom:14px;-webkit-overflow-scrolling:touch;}
         }
         @media (max-width:640px){
-            #kb-scroll > div[style*="width:240px"]{width:82vw !important;}
+            #kb-scroll > div[style*="width:240px"]{width:82vw !important;min-width:82vw !important;max-width:82vw !important;flex-basis:82vw !important;}
         }
         .kb-drag-ghost { opacity:.4; background:#e0f7ff !important; border:2px dashed #00D4E8 !important; border-radius:10px; }
         .kb-drag-chosen { box-shadow:0 8px 24px rgba(0,212,232,.35) !important; transform:rotate(1.5deg) scale(1.02) !important; }
@@ -75,7 +75,7 @@
         </style>
         @foreach($colConfig as $key => $col)
         @php $tasks = $columns[$key] ?? collect(); @endphp
-        <div style="flex-shrink:0;width:240px;display:flex;flex-direction:column;">
+        <div style="flex:0 0 240px;width:240px;min-width:240px;max-width:240px;box-sizing:border-box;display:flex;flex-direction:column;">
 
             {{-- Column header --}}
             <div style="background:{{ $col['bg'] }};height:32px;padding:0 20px 0 {{ $loop->first ? '14px' : '22px' }};margin-bottom:10px;display:flex;align-items:center;gap:7px;clip-path:polygon(0 0,calc(100% - 12px) 0,100% 50%,calc(100% - 12px) 100%,0 100%{{ $loop->first ? '' : ',12px 50%' }});">
