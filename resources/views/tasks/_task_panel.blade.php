@@ -89,7 +89,6 @@
     <div id="tp-side-actions" style="position:absolute;left:14px;top:22px;z-index:10;display:flex;flex-direction:column;gap:12px;">
         <button class="tp-side-btn" onclick="tpClose()" title="Close"><i class="fas fa-times"></i></button>
         <button class="tp-side-btn" onclick="tpSideCopyLink()" title="Copy link"><i class="fas fa-link"></i></button>
-        <button class="tp-side-btn" onclick="tpSideOpenFull()" title="Open as full page"><i class="fas fa-arrow-down" style="transform:rotate(-45deg);"></i></button>
         <button class="tp-side-btn" onclick="tpSideOpenTab()" title="Open in new tab"><i class="far fa-window-restore"></i></button>
     </div>
 
@@ -602,11 +601,18 @@ window.tpOpen = function(type, id) {
 window.tpSideUrl = function(){ return location.origin + location.pathname + '?task=' + _currentTaskId + (_currentTaskType==='b24' ? '&src=b24' : ''); };
 window.tpSideCopyLink = function(){
     const u = tpSideUrl();
-    const done = () => (window.showToast ? showToast('Link copied', 'success') : null);
-    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(u).then(done, ()=>{});
-    else { const t=document.createElement('textarea'); t.value=u; document.body.appendChild(t); t.select(); try{document.execCommand('copy'); done();}catch(e){} t.remove(); }
+    const done = () => { if (window.showToast) showToast('Link copied', 'success'); };
+    const legacy = () => {
+        const t=document.createElement('textarea'); t.value=u; t.setAttribute('readonly','');
+        t.style.cssText='position:fixed;left:-9999px;top:0;opacity:0;';
+        document.body.appendChild(t); t.select(); t.setSelectionRange(0,u.length);
+        let ok=false; try{ ok=document.execCommand('copy'); }catch(e){}
+        t.remove();
+        if (ok) done(); else window.prompt('Copy this link:', u);
+    };
+    if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(u).then(done, legacy);
+    else legacy();
 };
-window.tpSideOpenFull = function(){ if (_currentTaskType==='local') location.href = '/tasks/' + _currentTaskId; else window.open(tpSideUrl(), '_self'); };
 window.tpSideOpenTab = function(){ window.open(tpSideUrl(), '_blank', 'noopener'); };
 
 window.tpClose = function(updateUrl=true) {
