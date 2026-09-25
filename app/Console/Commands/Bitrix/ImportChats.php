@@ -14,6 +14,7 @@ class ImportChats extends BitrixCommand
                             {--webhook= : Use a custom webhook URL instead of BITRIX_WEBHOOK env}
                             {--offset=0 : Skip the first N chats in the recent list}
                             {--skip-with-messages : Skip importMessages for convs that already have messages}
+                            {--only-notes : Import only the webhook user's own "Notes" (saved messages) chat}
                             {--incremental : Read each chat newest-first and stop once a whole page is already imported (much faster than re-reading the full history of every chat)}';
 
     protected $description = 'Import Bitrix24 direct and group chats into the local messenger';
@@ -49,7 +50,9 @@ class ImportChats extends BitrixCommand
 
         $this->info("Webhook user: bitrix_id={$this->webhookUserId}");
         $this->info('Fetching Bitrix24 IM chats...');
-        $chats = $this->fetchAllChats();
+        $chats = $this->option('only-notes')
+            ? [['type' => 'user', 'id' => $this->webhookUserId]]
+            : $this->fetchAllChats();
 
         $offset = (int)$this->option('offset');
         if ($offset > 0) {
@@ -119,6 +122,12 @@ class ImportChats extends BitrixCommand
 
         $webhookLocalId = $this->userMap[$this->webhookUserId] ?? $this->adminId;
 
+        // The dialog with yourself is Bitrix's "Notes" — keep it private in the local Notes chat
+        if ($type === 'user' && $otherId === $this->webhookUserId) {
+            $notes = $this->notesConversation($webhookLocalId);
+            return $this->importMessages($notes, (string)$this->webhookUserId, true);
+        }
+
         if ($type === 'user') {
             // For direct chats: find existing conversation between the two local users
             // (avoids duplicates when same chat is imported from different webhook perspectives)
@@ -157,6 +166,15 @@ class ImportChats extends BitrixCommand
         }
 
         return $this->importMessages($conversation, (string)$dialogId);
+    }
+
+    private function notesConversation(int $localUserId): Conversation
+    {
+        $conv = Conversation::where('type', 'notes')->whereHas('members', fn($q) => $q->where('user_id', $localUserId))->first();
+        if ($conv) return $conv;
+        $conv = Conversation::create(['type' => 'notes', 'name' => 'Notes', 'created_by' => $localUserId]);
+        $this->addMember($conv->id, $localUserId);
+        return $conv;
     }
 
     private function findOrCreateDirectConv(int $otherBxId, int $webhookLocalId, ?int $otherLocalId): Conversation
@@ -205,7 +223,7 @@ class ImportChats extends BitrixCommand
         return $conv;
     }
 
-    private function importMessages(Conversation $conversation, string $dialogId): int
+    private function importMessages(Conversation $conversation, string $dialogId, bool $forceFull = false): int
     {
         $count       = 0;
         $lastId      = null;
@@ -227,7 +245,7 @@ class ImportChats extends BitrixCommand
 
             // Pages come newest-first: once every message on a page is already stored (or is one
             // we never store — system/empty), everything older is stored too, so stop paging.
-            if ($this->option('incremental') && $this->pageFullyImported($messages)) break;
+            if (!$forceFull && $this->option('incremental') && $this->pageFullyImported($messages)) break;
         } while (true);
 
         $allMessages = array_reverse($allMessages);
