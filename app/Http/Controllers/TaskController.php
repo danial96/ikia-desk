@@ -660,15 +660,18 @@ class TaskController extends Controller
             // Capture base query before status filter so clones stay clean
             $baseQuery = clone $query;
 
+            // Sort by last activity (updated_at — bumped by comments/attachments/checklist ticks
+            // too, not just field edits), not creation date, so a task someone just acted on
+            // rises to the top of its column, like Bitrix.
             if ($request->status) {
-                $all = (clone $baseQuery)->whereIn('status', self::expandStatuses([$request->status]))->latest()->limit(200)->get();
+                $all = (clone $baseQuery)->whereIn('status', self::expandStatuses([$request->status]))->latest('updated_at')->limit(200)->get();
                 $completedTotal = $request->status === 'completed'
                     ? $all->count()
                     : (clone $baseQuery)->where('status', 'completed')->count();
             } else {
-                $all = (clone $baseQuery)->where('status', '!=', 'completed')->latest()->limit(500)->get();
+                $all = (clone $baseQuery)->where('status', '!=', 'completed')->latest('updated_at')->limit(500)->get();
                 $completedTotal = (clone $baseQuery)->where('status', 'completed')->count();
-                $all = $all->merge((clone $baseQuery)->where('status', 'completed')->latest()->limit(self::KANBAN_COMPLETED_PAGE)->get());
+                $all = $all->merge((clone $baseQuery)->where('status', 'completed')->latest('updated_at')->limit(self::KANBAN_COMPLETED_PAGE)->get());
             }
 
             // Always include tasks with unseen notifications regardless of status/filter

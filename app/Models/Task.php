@@ -116,6 +116,12 @@ class Task extends Model
             'old_value' => $oldValue,
             'new_value' => $newValue,
         ]);
+        // Commenting, attaching a file, ticking a checklist item etc. only ever touched the
+        // task_activities child table, never the task itself — so "Active" sort (List page) and
+        // the kanban column order (both meant to be last-activity-first, like Bitrix) never
+        // actually moved a task up just because someone commented on it. Bump it here, once, for
+        // every kind of activity instead of chasing each call site individually.
+        $this->touch();
     }
 
     public function getStatusColorAttribute(): string
