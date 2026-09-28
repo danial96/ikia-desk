@@ -643,7 +643,7 @@
         {{-- Team members — only this list scrolls, independent of the chat icon above.
              padding-top/right gives the unread-count badge (it pokes 4px past each avatar's own
              top-right corner) room so overflow-x:hidden doesn't clip it flat. --}}
-        <div style="flex:1;min-height:0;width:100%;overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column;align-items:center;gap:8px;padding:6px 6px 0 0;box-sizing:border-box;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.15) transparent;">
+        <div style="flex:1;min-height:0;width:100%;overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column;align-items:center;gap:8px;padding:6px;box-sizing:border-box;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.15) transparent;">
         @isset($onlineUsers)
         @foreach($onlineUsers as $u)
         <div class="user-avatar-wrap" style="position:relative;flex-shrink:0;">
