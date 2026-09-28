@@ -1451,7 +1451,7 @@
 
         fetch(fetchUrl, { method: fetchMethod, headers: headers, body: fetchBody })
         .then(function(res) { if (!res.ok) throw new Error(res.status); return res.json(); })
-        .then(function() {
+        .then(function(resp) {
             if (isEdit) {
                 var cb = _ntEditOnSaved;
                 ntExitEditMode();
@@ -1464,7 +1464,11 @@
                  'nt_members','nt_observers','nt_attachments','nt_ss_open','nt_ss_ta_show','nt_ss_val']
                 .forEach(function(k){ localStorage.removeItem(k); });
                 closeTaskModal();
-                ntShowToast('Task created successfully!');
+                if (window.showTaskCreatedPopup && resp && resp.task) {
+                    showTaskCreatedPopup(resp.task);
+                } else {
+                    ntShowToast('Task created successfully!');
+                }
                 ntRefreshTaskList();
             }
         })

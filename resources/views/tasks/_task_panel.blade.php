@@ -144,8 +144,17 @@
                 <div style="width:38px;height:38px;border-radius:50%;background:#e8f4fb;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><i class="far fa-comments" style="color:#3a9bd9;font-size:17px;"></i></div>
                 <div style="min-width:0;">
                     <div id="tp-chat-title" style="color:#000;font-size:15px;font-weight:500;line-height:1.25;">Task chat</div>
-                    <div id="tp-chat-count" style="font-size:13px;color:#8b9098;line-height:1.25;margin-top:1px;"></div>
+                    <div id="tp-chat-count" onclick="tpToggleMembersPanel()" style="font-size:13px;color:#8b9098;line-height:1.25;margin-top:1px;cursor:pointer;text-decoration:underline;text-decoration-color:transparent;transition:text-decoration-color .15s;" onmouseover="this.style.textDecorationColor='#8b9098'" onmouseout="this.style.textDecorationColor='transparent'"></div>
                 </div>
+            </div>
+
+            {{-- Members panel (Bitrix-style) — slides in over the chat, click "N members" to open --}}
+            <div id="tp-members-panel" style="display:none;position:absolute;top:0;right:0;bottom:0;width:280px;background:#fff;z-index:60;box-shadow:-4px 0 20px rgba(0,0,0,.12);flex-direction:column;">
+                <div style="flex-shrink:0;height:63px;padding:0 16px;display:flex;align-items:center;gap:12px;border-bottom:1px solid #eef0f2;">
+                    <button onclick="tpToggleMembersPanel()" style="background:none;border:none;color:#6b7280;cursor:pointer;font-size:15px;padding:4px;"><i class="fas fa-arrow-left"></i></button>
+                    <span id="tp-members-count" style="font-size:15px;font-weight:600;color:#111827;"></span>
+                </div>
+                <div id="tp-members-list" style="flex:1;overflow-y:auto;padding:8px 0;"></div>
             </div>
 
             {{-- Messages --}}
@@ -313,6 +322,8 @@ const parseDescText = raw => {
             .replace(/<br\s*\/?>/gi,'\n')
             .replace(/<[^>]+>/g,'')
             .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')
+            .replace(/\[b\]([\s\S]*?)\[\/b\]/gi,'<strong>$1</strong>')
+            .replace(/\[i\]([\s\S]*?)\[\/i\]/gi,'<em>$1</em>')
             .replace(/\[USER=\d+\]([^\[]*)\[\/USER\]/g,'<span style="color:#1a73e8;font-weight:600;">$1</span>')
             .replace(/\[TIMESTAMP=(\d+)\s+FORMAT=[^\]]*\]/g,(_,ts)=>{
                 const d=new Date(parseInt(ts)*1000);
@@ -429,6 +440,8 @@ const parseMsg = txt => {
         }
         const plain = part
             .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')
+            .replace(/\[b\]([\s\S]*?)\[\/b\]/gi,'<strong>$1</strong>')
+            .replace(/\[i\]([\s\S]*?)\[\/i\]/gi,'<em>$1</em>')
             .replace(/\[USER=\d+\]([^\[]*)\[\/USER\]/g,'<span style="color:#1a73e8;font-weight:600;">$1</span>')
             .replace(/\[TIMESTAMP=(\d+)\s+FORMAT=[^\]]*\]/g,(_,ts)=>{
                 const d=new Date(parseInt(ts)*1000);
@@ -578,6 +591,7 @@ const sec = html =>
 
 /* ─── skeleton ─────────────────────────────────────────── */
 function tpSkeleton() {
+    const mp = document.getElementById('tp-members-panel'); if (mp) mp.style.display = 'none';
     $('tp-title').textContent=''; $('tp-task-id').textContent=''; $('tp-source-badge').innerHTML='';
     $('tp-left-body').innerHTML=[60,100,45,80,70,55].map(w=>
         `<div style="padding:16px 0;border-bottom:1px solid #f1f3f5;display:flex;flex-direction:column;gap:8px;">
@@ -1114,6 +1128,36 @@ function tpViewedByBadge(viewedBy, taskId) {
     </div>`;
 }
 
+/* ─── Members panel (Bitrix-style) ─────────────────────── */
+function tpMembersList(data) {
+    const byId = new Map();
+    [data.creator, data.assignee, ...(data.participants||[]), ...(data.observers||[])]
+        .filter(Boolean)
+        .forEach(u => { if (!byId.has(u.id)) byId.set(u.id, u); });
+    return [...byId.values()];
+}
+window.tpToggleMembersPanel = function() {
+    const panel = document.getElementById('tp-members-panel');
+    if (!panel) return;
+    const opening = panel.style.display !== 'flex';
+    if (opening && window._tpCurrentData) tpRenderMembersPanel(window._tpCurrentData);
+    panel.style.display = opening ? 'flex' : 'none';
+};
+function tpRenderMembersPanel(data) {
+    const people = tpMembersList(data);
+    const countEl = document.getElementById('tp-members-count');
+    const listEl  = document.getElementById('tp-members-list');
+    if (countEl) countEl.textContent = 'Members: ' + people.length;
+    if (listEl) listEl.innerHTML = people.map(u => `
+        <div style="display:flex;align-items:center;gap:11px;padding:9px 16px;">
+            ${uAvatar(u, 38)}
+            <div style="min-width:0;">
+                <div style="font-size:13.5px;font-weight:600;color:#111827;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(u.name)}${u.id===ME_LOCAL_ID?' <span style="font-weight:400;color:#9ca3af;">(it&#39;s you)</span>':''}</div>
+                ${u.position ? `<div style="font-size:12px;color:#9ca3af;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(u.position)}</div>` : ''}
+            </div>
+        </div>`).join('');
+}
+
 /* ─── render local task ────────────────────────────────── */
 function tpRenderLocal(data) {
     const t=data.task, feed=data.feed||[], employees=data.employees||[];
@@ -1384,7 +1428,7 @@ function tpRenderLocal(data) {
             <textarea id="tp-comment-text" rows="4" placeholder="Type @ to mention a person…"
                 style="flex:1;min-height:0;overflow-y:auto;width:100%;background:none;border:none;padding:14px 16px 6px 44px;color:#333;font-size:15px;resize:none;outline:none;line-height:1.5;font-family:inherit;box-sizing:border-box;"
                 oninput="tpComposerState()"
-                onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();tpSubmitComment(${taskId});}"></textarea>
+                onkeydown="if(tpBbShortcut(event))return;if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();tpSubmitComment(${taskId});}"></textarea>
             <div id="tp-attach-preview" style="display:none;padding:6px 14px 4px;gap:8px;flex-wrap:wrap;"></div>
             <div style="display:flex;align-items:center;justify-content:flex-end;gap:14px;padding:6px 14px 12px;">
                 <button type="button" onclick="emojiToggle('tp-comment-text',this)" title="Emoji"
@@ -1404,6 +1448,24 @@ function tpRenderLocal(data) {
 window.tpComposerState = function(){
     const ta=$('tp-comment-text'), b=$('tp-send-btn'); if(!ta||!b) return;
     b.style.background = (ta.value||'').trim() ? '#00a8e8' : '#c5cad0';
+};
+// Ctrl/Cmd+B and Ctrl/Cmd+I — wrap the selected text in Bitrix's own [b]/[i] BBCode (parseMsg()
+// already renders these as bold/italic). With nothing selected, just drops the empty tag pair
+// with the cursor left in between, same as every other rich-text box.
+window.tpBbShortcut = function(e) {
+    const key = (e.key || '').toLowerCase();
+    if (!(e.ctrlKey || e.metaKey) || (key !== 'b' && key !== 'i')) return false;
+    e.preventDefault();
+    const tag = key === 'b' ? 'b' : 'i';
+    const ta = e.target;
+    const start = ta.selectionStart, end = ta.selectionEnd;
+    const selected = ta.value.slice(start, end);
+    const wrapped = `[${tag}]${selected}[/${tag}]`;
+    ta.setRangeText(wrapped, start, end, 'end');
+    const cursor = selected ? start + wrapped.length : start + tag.length + 2;
+    ta.selectionStart = ta.selectionEnd = cursor;
+    tpComposerState();
+    return true;
 };
 window.tpChipSet = function(k,on){ const c=document.getElementById('tp-chip-'+k); if(c) c.classList.toggle('on',on); };
 window.tpToggleSection = function(id,k){

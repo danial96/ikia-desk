@@ -222,7 +222,7 @@ class TaskController extends Controller
         }
 
         if ($request->ajax()) {
-            return response()->json(['success' => true]);
+            return response()->json(['success' => true, 'task' => ['id' => $task->id, 'title' => $task->title]]);
         }
         return back()->with('success', 'Task created successfully.');
     }

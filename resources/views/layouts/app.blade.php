@@ -1164,20 +1164,20 @@ function chatShowMsgPopup(conv) {
     const rawText = conv.lastMsg ? conv.lastMsg.text || '' : 'New message';
     const ePreview = previewText(rawText).substring(0, 48).replace(/&/g,'&amp;').replace(/</g,'&lt;');
     popup.style.cssText = 'position:fixed;top:' + (58 + stackCount * 78) + 'px;right:62px;'
-        + 'background:rgba(8,12,52,.97);backdrop-filter:blur(20px);'
-        + 'border:1px solid rgba(0,212,232,.3);border-radius:14px;'
+        + 'background:#fff;backdrop-filter:blur(20px);'
+        + 'border:1px solid #e2e8f0;border-radius:14px;'
         + 'padding:11px 13px;z-index:9997;width:250px;cursor:pointer;'
-        + 'box-shadow:0 8px 40px rgba(0,0,0,.65);'
+        + 'box-shadow:0 8px 30px rgba(0,0,0,.16);'
         + 'transition:top .25s ease;'
         + 'animation:chatPopupIn .28s cubic-bezier(.22,1,.36,1) forwards;';
     popup.innerHTML = '<div style="display:flex;align-items:center;gap:10px;">'
-        + '<div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,rgba(0,212,232,.3),rgba(27,114,232,.3));'
-        +   'flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#00D4E8;">' + initials + '</div>'
+        + '<div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#e0f7fa,#e3f2fd);'
+        +   'flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#0891b2;">' + initials + '</div>'
         + '<div style="flex:1;min-width:0;">'
-        +   '<div style="color:#fff;font-size:12.5px;font-weight:600;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + eName + '</div>'
-        +   '<div style="color:rgba(255,255,255,.5);font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + ePreview + '</div>'
+        +   '<div style="color:#111827;font-size:12.5px;font-weight:600;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + eName + '</div>'
+        +   '<div style="color:#6b7280;font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + ePreview + '</div>'
         + '</div>'
-        + '<button class="cmsgpop-x" style="background:none;border:none;color:rgba(255,255,255,.35);cursor:pointer;font-size:18px;padding:0 0 0 6px;line-height:1;flex-shrink:0;">×</button>'
+        + '<button class="cmsgpop-x" style="background:none;border:none;color:#9ca3af;cursor:pointer;font-size:18px;padding:0 0 0 6px;line-height:1;flex-shrink:0;">×</button>'
         + '</div>';
     popup.querySelector('.cmsgpop-x').addEventListener('click', function(e) {
         e.stopPropagation();
@@ -1201,6 +1201,40 @@ function chatShowMsgPopup(conv) {
         }
     }, 5000);
 }
+
+/* ── Floating popup notification for a newly created task ── */
+window.showTaskCreatedPopup = function(task) {
+    const pid = 'tcreatepop-' + (task.id || Date.now());
+    const old = document.getElementById(pid);
+    if (old) old.remove();
+    const stackCount = document.querySelectorAll('.cmsg-popup').length;
+    const popup = document.createElement('div');
+    popup.id = pid;
+    popup.className = 'cmsg-popup';
+    const eTitle = (task.title || '').replace(/&/g,'&amp;').replace(/</g,'&lt;');
+    const url = task.url || (task.id ? ('/tasks/kanban?task=' + task.id) : '#');
+    popup.style.cssText = 'position:fixed;top:' + (58 + stackCount * 90) + 'px;right:62px;'
+        + 'background:#fff;'
+        + 'border:1px solid #e2e8f0;border-radius:14px;'
+        + 'padding:12px 13px;z-index:9997;width:260px;'
+        + 'box-shadow:0 8px 30px rgba(0,0,0,.16);'
+        + 'transition:top .25s ease;'
+        + 'animation:chatPopupIn .28s cubic-bezier(.22,1,.36,1) forwards;';
+    popup.innerHTML = '<div style="display:flex;align-items:flex-start;gap:10px;">'
+        + '<div style="width:34px;height:34px;border-radius:50%;background:#dcfce7;'
+        +   'flex-shrink:0;display:flex;align-items:center;justify-content:center;"><i class="fas fa-check" style="color:#16a34a;font-size:14px;"></i></div>'
+        + '<div style="flex:1;min-width:0;">'
+        +   '<div style="color:#111827;font-size:12.5px;font-weight:600;margin-bottom:2px;">Task created successfully</div>'
+        +   '<div style="color:#6b7280;font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:8px;">' + eTitle + '</div>'
+        +   '<a href="' + url + '" style="display:inline-block;color:#0ea5e9;font-size:12px;font-weight:600;text-decoration:none;">View task →</a>'
+        + '</div>'
+        + '<button class="tcreatepop-x" style="background:none;border:none;color:#9ca3af;cursor:pointer;font-size:18px;padding:0 0 0 6px;line-height:1;flex-shrink:0;">×</button>'
+        + '</div>';
+    const remove = () => { popup.style.animation = 'chatPopupOut .22s ease-in forwards'; setTimeout(() => { popup.remove(); _repositionMsgPopups(); }, 220); };
+    popup.querySelector('.tcreatepop-x').addEventListener('click', function(e) { e.stopPropagation(); remove(); });
+    document.body.appendChild(popup);
+    setTimeout(() => { if (popup.parentNode) remove(); }, 5000);
+};
 
 /* ── Send sound (short soft swoosh) ── */
 function chatSendSound() {
