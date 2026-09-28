@@ -149,7 +149,7 @@
             </div>
 
             {{-- Members panel (Bitrix-style) — slides in over the chat, click "N members" to open --}}
-            <div id="tp-members-panel" style="display:none;position:absolute;top:0;right:0;bottom:0;width:280px;background:#fff;z-index:60;box-shadow:-4px 0 20px rgba(0,0,0,.12);flex-direction:column;">
+            <div id="tp-members-panel" style="display:flex;position:absolute;top:0;right:0;bottom:0;width:280px;background:#fff;z-index:60;box-shadow:-4px 0 20px rgba(0,0,0,.12);flex-direction:column;transform:translateX(100%);transition:transform .22s cubic-bezier(.4,0,.2,1);will-change:transform;">
                 <div style="flex-shrink:0;height:63px;padding:0 16px;display:flex;align-items:center;gap:12px;border-bottom:1px solid #eef0f2;">
                     <button onclick="tpToggleMembersPanel()" style="background:none;border:none;color:#6b7280;cursor:pointer;font-size:15px;padding:4px;"><i class="fas fa-arrow-left"></i></button>
                     <span id="tp-members-count" style="font-size:15px;font-weight:600;color:#111827;"></span>
@@ -591,7 +591,7 @@ const sec = html =>
 
 /* ─── skeleton ─────────────────────────────────────────── */
 function tpSkeleton() {
-    const mp = document.getElementById('tp-members-panel'); if (mp) mp.style.display = 'none';
+    const mp = document.getElementById('tp-members-panel'); if (mp) mp.style.transform = 'translateX(100%)';
     const tpr = document.getElementById('tp-right'); if (tpr) tpr.style.paddingRight = '';
     $('tp-title').textContent=''; $('tp-task-id').textContent=''; $('tp-source-badge').innerHTML='';
     $('tp-left-body').innerHTML=[60,100,45,80,70,55].map(w=>
@@ -1141,13 +1141,18 @@ window.tpToggleMembersPanel = function() {
     const panel = document.getElementById('tp-members-panel');
     const right = document.getElementById('tp-right');
     if (!panel || !right) return;
-    const opening = panel.style.display !== 'flex';
+    // The panel is always display:flex, sitting translated past #tp-right's own right edge
+    // (which clips it via overflow:hidden) — toggling a transform instead of display:none/flex
+    // means it actually slides in on the GPU, in sync with the padding push below, instead of
+    // just popping into existence the instant display flips while a separate transition runs.
+    const opening = panel.style.transform !== 'translateX(0px)';
     if (opening && window._tpCurrentData) tpRenderMembersPanel(window._tpCurrentData);
-    panel.style.display = opening ? 'flex' : 'none';
+    panel.style.transform = opening ? 'translateX(0)' : 'translateX(100%)';
     // Docked, not overlaid — same technique as the regular chat's Search/About side panels
     // (dockSidePanel): reserve the space with padding so the chat column actually narrows
-    // instead of the panel just floating on top of the messages.
-    right.style.transition = 'padding-right .18s ease';
+    // instead of the panel just floating on top of the messages. Same duration/easing as the
+    // panel's own slide so both move together instead of visibly racing each other.
+    right.style.transition = 'padding-right .22s cubic-bezier(.4,0,.2,1)';
     right.style.paddingRight = opening ? '280px' : '';
 };
 function tpRenderMembersPanel(data) {
