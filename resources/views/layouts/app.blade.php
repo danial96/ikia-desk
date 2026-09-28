@@ -260,13 +260,12 @@
             border-radius: 50%;
             overflow: hidden;
             border: 2px solid transparent;
-            transition: border-color .2s, transform .2s;
+            transition: border-color .2s;
             cursor: pointer;
             flex-shrink: 0;
         }
         .user-avatar-btn:hover {
             border-color: #00D4E8;
-            transform: scale(1.08);
         }
         .user-avatar-btn img { width: 100%; height: 100%; object-fit: cover; }
         .online-dot {
