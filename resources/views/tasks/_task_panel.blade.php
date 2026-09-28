@@ -1541,7 +1541,7 @@ window.tpStartChatPoll = function(taskId) {
     _pollTaskHash  = '';
     _chatPollInterval = setInterval(function() {
         if (!_currentTaskId) { tpStopChatPoll(); return; }
-        fetch(TP_LOCAL_URL + '/' + taskId, {
+        fetch(TP_LOCAL_URL + '/' + taskId + '?background=1', {
             headers: {'X-CSRF-TOKEN': TP_CSRF, 'Accept': 'application/json'}
         }).then(r => r.json()).then(data => {
 

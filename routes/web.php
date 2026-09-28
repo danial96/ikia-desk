@@ -90,7 +90,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/permissions/{employee}', [PermissionController::class, 'update'])->name('permissions.update');
 
     // Local task JSON detail
-    Route::get('/api/local-task/{id}', function ($id) {
+    Route::get('/api/local-task/{id}', function ($id, \Illuminate\Http\Request $request) {
         $task = \App\Models\Task::with([
             'project','assignee','creator',
             'members','observers',
@@ -103,8 +103,13 @@ Route::middleware('auth')->group(function () {
             return response()->json(['error'=>'Forbidden'],403);
         }
         // Bitrix-style read receipt: record that this user just opened the task (upsert, so
-        // reopening only refreshes the timestamp instead of piling up rows).
-        $task->recordViewedBy($user);
+        // reopening only refreshes the timestamp instead of piling up rows). Skipped on the task
+        // panel's own 3s background poll (?background=1) — that fires for every open task panel,
+        // for every user, the whole time it's open, and "viewed" doesn't need sub-minute freshness;
+        // writing it every single tick was pure unnecessary load with no visible benefit.
+        if (!$request->boolean('background')) {
+            $task->recordViewedBy($user);
+        }
 
         // Collect all file IDs that belong to comments (to exclude from task-level file list)
         $commentFileIds = $task->comments->flatMap(fn($c) => $c->files ?? [])->unique()->values();
@@ -167,7 +172,11 @@ Route::middleware('auth')->group(function () {
 
         // Single "✓✓ Viewed by X" line under the latest activity/comment — the most recently
         // active OTHER viewer, provided they've actually seen something newer than it exists yet.
-        $lastFeedAt = $feed->isNotEmpty() ? $feed->max(fn($f) => \Carbon\Carbon::parse($f['at'])) : $task->created_at;
+        // Same instants $feed was built from — reuse the Carbon objects directly instead of
+        // re-parsing every feed item's ISO string on every request (this endpoint is hit every 3s
+        // by the task panel's background poll, for every open task, for every user).
+        $lastFeedAt = collect([$task->comments->max('created_at'), $task->activities->max('created_at'), $task->created_at])
+            ->filter()->max();
         $lastSeenBy = $viewRows->where('user_id', '!=', $user->id)
             ->filter(fn($v) => $v->viewed_at->gte($lastFeedAt)) // gte: DB timestamps are second-precision, so a view in the very same second as the activity still counts as having seen it
             ->sortByDesc('viewed_at')->first();

@@ -71,4 +71,20 @@ class TaskViewedByTest extends TestCase
 
         $this->assertNull($resp->json('lastSeenBy'));
     }
+
+    public function test_the_task_panels_background_poll_does_not_write_a_view_every_3_seconds(): void
+    {
+        // The task panel re-fetches this same endpoint every 3s for as long as it's open, for
+        // every user who has it open — writing a view on every one of those ticks would mean a
+        // constant stream of DB writes with no real benefit (viewing doesn't need that freshness).
+        $owner = User::factory()->create(['is_active' => true]);
+        $task  = Task::create(['title' => 'T', 'created_by' => $owner->id, 'priority' => 'medium', 'status' => 'new']);
+
+        $this->actingAs($owner)->getJson("/api/local-task/{$task->id}?background=1")->assertOk();
+        $this->assertDatabaseCount('task_views', 0);
+
+        // A real (non-background) open still records it as before.
+        $this->actingAs($owner)->getJson("/api/local-task/{$task->id}")->assertOk();
+        $this->assertDatabaseCount('task_views', 1);
+    }
 }
