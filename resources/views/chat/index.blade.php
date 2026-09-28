@@ -448,6 +448,19 @@ document.addEventListener('click', function(e) {
 });
 document.addEventListener('keydown', function(e) { if(e.key==='Escape') { cpHideCtx(); cpHideConvCtx(); cpCancelEdit(); } });
 
+// Move fixed-position popups to body: <main>'s own fade-in animation leaves a lingering
+// transform on it (animation:...both keeps applying its final keyframe forever), and any
+// transform at all turns an element into the containing block for position:fixed descendants
+// instead of the real viewport — so these menus, nested inside <main>, would compute their
+// left/top relative to <main>'s box instead of the actual click position. Matches the same
+// workaround already used for the task panel's own overlay/popups.
+document.addEventListener('DOMContentLoaded', function() {
+    ['cp-ctx-menu','cp-conv-ctx'].forEach(function(id){
+        const el = document.getElementById(id);
+        if (el && el.parentElement !== document.body) document.body.appendChild(el);
+    });
+});
+
 /* ── Conversation context menu ── */
 let _ctxConvId = null;
 function cpHideConvCtx() { document.getElementById('cp-conv-ctx').style.display='none'; _ctxConvId=null; }

@@ -629,8 +629,15 @@
         </div>
         @endif
 
-        {{-- Page content --}}
-        <main style="padding:20px;flex:1;animation:ikiaFadeUp .32s ease both;">
+        {{-- Page content —
+             animation:...both keeps applying its final transform (translateY(0)) forever after it
+             finishes, and ANY transform value (even a no-op one) turns this element into the
+             containing block for every position:fixed descendant instead of the real viewport —
+             that's what was throwing every fixed popup nested in <main> (e.g. the chat
+             conversation's right-click menu) off by however far <main> sits from the true
+             viewport corner. onanimationend drops the animation once it's done playing so
+             transform reverts to none and fixed descendants position correctly again. --}}
+        <main style="padding:20px;flex:1;animation:ikiaFadeUp .32s ease both;" onanimationend="this.style.animation='none'">
             @yield('content')
         </main>
     </div>
