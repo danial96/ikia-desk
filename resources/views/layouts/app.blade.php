@@ -157,8 +157,8 @@
 
 
         /* message actions (Bitrix look): grey "…" circle + "like" circle, picker, and the menu */
-        .cp-msg-actions, .chat-msg-actions { flex-direction: column !important; gap: 6px !important; }
-        .cp-action-btn, .chat-action-btn { width: 30px !important; height: 30px !important; background: rgba(0,0,0,.32) !important; color: #fff !important; font-size: 13px !important; }
+        .cp-msg-actions, .chat-msg-actions { flex-direction: column !important; gap: 4px !important; display: flex !important; }
+        .cp-action-btn, .chat-action-btn { width: 22px !important; height: 22px !important; background: rgba(0,0,0,.32) !important; color: #fff !important; font-size: 10px !important; }
         .cp-action-btn:hover, .chat-action-btn:hover { background: rgba(0,0,0,.5) !important; }
         .cp-action-btn.like, .chat-action-btn.like { background: #fff !important; color: #1f9df0 !important; box-shadow: 0 1px 4px rgba(0,0,0,.25); }
         #cp-ctx-menu, #chat-msg-ctx { border: none !important; border-radius: 16px !important; padding: 8px !important; min-width: 250px !important; box-shadow: 0 10px 36px rgba(0,0,0,.28) !important; }
@@ -859,8 +859,8 @@
 .chat-conv-unread:hover { background:#dcfce7 !important; }
 @keyframes chatFlash { 0%{background:rgba(34,197,94,.2)} 100%{background:#f0fdf4} }
 .chat-msg-outer { position:relative; }
-.chat-msg-actions { display:none;align-items:center;gap:3px;flex-shrink:0; }
-.chat-msg-outer:hover .chat-msg-actions { display:flex; }
+.chat-msg-actions { visibility:hidden;align-items:center;gap:3px;flex-shrink:0; }
+.chat-msg-outer:hover .chat-msg-actions { visibility:visible; }
 .chat-action-btn { width:24px;height:24px;border-radius:50%;background:rgba(0,0,0,.13);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:11px;color:#374151;line-height:1;transition:background .12s;padding:0; }
 .chat-action-btn:hover { background:rgba(0,0,0,.22); }
 #chat-msg-ctx { display:none;position:fixed;z-index:9999;background:#fff;border:1px solid #e2e8f0;border-radius:9px;padding:4px 0;min-width:130px;box-shadow:0 8px 28px rgba(0,0,0,.12); }

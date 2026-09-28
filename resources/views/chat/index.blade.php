@@ -238,8 +238,8 @@ document.addEventListener('DOMContentLoaded', function() {
 @keyframes ctxFade { from{opacity:0;transform:scale(.95)} to{opacity:1;transform:scale(1)} }
 /* ── Message action buttons on hover ── */
 .cp-msg-outer { position:relative; }
-.cp-msg-actions { display:none;align-items:center;gap:3px;flex-shrink:0; }
-.cp-msg-outer:hover .cp-msg-actions { display:flex; }
+.cp-msg-actions { visibility:hidden;align-items:center;gap:3px;flex-shrink:0; }
+.cp-msg-outer:hover .cp-msg-actions { visibility:visible; }
 .cp-action-btn { width:26px;height:26px;border-radius:50%;background:rgba(0,0,0,.13);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px;color:#374151;line-height:1;transition:background .12s;padding:0; }
 .cp-action-btn:hover { background:rgba(0,0,0,.22); }
 </style>
