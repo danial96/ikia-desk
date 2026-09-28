@@ -260,12 +260,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
 <script>
 (function(){
-const ME_ID = {{ auth()->id() }};
+if (typeof window.ME_ID === 'undefined') { window.ME_ID = {{ auth()->id() }}; }
 // Every timestamp rendered client-side uses this — the VIEWER's own chosen timezone (profile →
 // Time zone), so the same instant shows as the right clock time for everyone.
 // (This page's script runs in its own scope, separate from layouts/app.blade.php's, so it needs
 // its own copy of this rather than sharing one declared there.)
-const APP_TZ = @json(auth()->user()?->viewTz() ?? config('app.timezone'));
+if (typeof window.APP_TZ === 'undefined') { window.APP_TZ = @json(auth()->user()?->viewTz() ?? config('app.timezone')); }
 let _cpActiveConvId = null;
 let _cpAllConvs     = [];
 let _cpAllEmps      = [];

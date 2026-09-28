@@ -153,6 +153,10 @@
                  style="flex:1;overflow-y:auto;padding:14px max(18px,calc((100% - 760px)/2)) 28px;display:flex;flex-direction:column;gap:8px;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.35) transparent;background:transparent;">
             </div>
 
+            {{-- "Viewed by" status — pinned above the composer, not part of the scrolling feed, so
+                 it's always visible and updates live as the panel polls, Bitrix-style. --}}
+            <div id="tp-seen-status" style="flex-shrink:0;padding:0 max(18px,calc((100% - 900px)/2));"></div>
+
             {{-- Comment footer --}}
             <div id="tp-comment-footer" style="flex-shrink:0;padding:0 max(18px,calc((100% - 900px)/2)) 18px;background:transparent;">
             </div>
@@ -272,7 +276,7 @@ const TP_B24_URL        = '{{ url("/api/bitrix-task") }}';
 const TP_LOCAL_URL      = '{{ url("/api/local-task") }}';
 const TP_TASKS_URL      = '{{ url("/tasks") }}';
 const TP_CSRF           = '{{ csrf_token() }}';
-const ME_LOCAL_ID       = {{ auth()->id() }};
+if (typeof window.ME_LOCAL_ID === 'undefined') { window.ME_LOCAL_ID = {{ auth()->id() }}; }
 const ME_B24_ID         = {{ (int) env('BITRIX_USER_ID', 155) }};
 
 /* ─── helpers ──────────────────────────────────────────── */
@@ -446,7 +450,7 @@ const parseMsg = txt => {
 // instant to everyone even though it shows as a different clock time per viewer.
 // (This file's script runs in its own scope, separate from layouts/app.blade.php's, so it needs
 // its own copy of this rather than sharing one declared there.)
-const APP_TZ = @json(auth()->user()?->viewTz() ?? config('app.timezone'));
+if (typeof window.APP_TZ === 'undefined') { window.APP_TZ = @json(auth()->user()?->viewTz() ?? config('app.timezone')); }
 
 // Turn a server value into a real instant. Values WITHOUT a timezone ("2026-09-24 18:00:00",
 // "2026-09-24T18:00:00" — how deadlines are stored and written to the activity log) are
@@ -1093,11 +1097,11 @@ function tpRenderB24(data, bxId) {
     setTimeout(()=>{ const m=$('tp-messages'); m.scrollTop=m.scrollHeight; },50);
 }
 
-// "✓✓ Viewed by X" — shown once, under the latest activity/comment, for whoever most recently
-// opened the task after it (Bitrix-style read receipt for the feed itself, not the eye count).
+// "✓✓ Viewed by X" — pinned above the composer (not scrolled away with the feed), for whoever
+// most recently opened the task after the latest activity. Bitrix-style: bold, white, prominent.
 function tpSeenByHtml(seenBy) {
-    return `<div style="display:flex;align-items:center;gap:5px;margin:2px 4px 6px 4px;color:rgba(255,255,255,.55);font-size:11px;">
-        <i class="fas fa-check-double" style="font-size:9px;"></i>Viewed by ${esc(seenBy.name)}
+    return `<div style="display:flex;align-items:center;gap:7px;margin:0 4px 10px 4px;color:#fff;font-size:14px;font-weight:600;">
+        <i class="fas fa-check-double" style="font-size:13px;"></i>Viewed by ${esc(seenBy.name)}
     </div>`;
 }
 
@@ -1658,10 +1662,13 @@ window.tpRenderLocalFeed = function(data, taskId) {
             lastAuthor2 = u.name;
             const createdTs = iso ? Math.floor(new Date(iso).getTime()/1000) : 0;
             return div + chatBubble({isMine, name:u.name||'?', nameColor:localColor(u.name||''), text:parseMsg(f.text||f.content||''), raw:f.text||f.content||'', time, showName, files:f.files||[], msgId:f.id||null, reactions:f.reactions||null, myReactions:f.myReactions||null, parentPreview:f.parentPreview||null, createdTs, editedAt:f.editedAt||null});
-        }).join('') + (data.lastSeenBy ? tpSeenByHtml(data.lastSeenBy) : '');
+        }).join('');
     } else {
         $('tp-messages').innerHTML = _spacer + `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 0;"><i class="fas fa-comment-slash" style="font-size:28px;color:rgba(255,255,255,.55);margin-bottom:10px;"></i><p style="color:rgba(255,255,255,.85);font-size:13px;margin:0;">No comments yet — be the first!</p></div>`;
     }
+
+    const seenEl = $('tp-seen-status');
+    if (seenEl) seenEl.innerHTML = data.lastSeenBy ? tpSeenByHtml(data.lastSeenBy) : '';
 
     setTimeout(() => {
         const m = $('tp-messages');

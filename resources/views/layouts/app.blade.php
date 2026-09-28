@@ -936,11 +936,11 @@ let _pollTimer = null;
 let _lastMsgId = 0;
 let _chatConvType = '', _chatLastAuthor = 0;
 let _chatHasMore = false, _chatFirstTs = 0, _chatFirstId = 0, _chatLoadingOlder = false;   // sender names are only shown in group chats
-const ME_ID = {{ auth()->id() }};
+if (typeof window.ME_ID === 'undefined') { window.ME_ID = {{ auth()->id() }}; }
 // Every timestamp rendered client-side (chat, activity, etc.) uses this — the VIEWER's own
 // chosen timezone (profile → Time zone), so the same instant shows as the right clock time
 // for everyone, not always Asia/Karachi's.
-const APP_TZ = @json(auth()->user()?->viewTz() ?? config('app.timezone'));
+if (typeof window.APP_TZ === 'undefined') { window.APP_TZ = @json(auth()->user()?->viewTz() ?? config('app.timezone')); }
 
 let _chatOtherLastReadTs = 0, _chatOtherLastSeenTs = 0;
 /* WhatsApp-style tick: single grey = sent, double grey = delivered (their client has polled
@@ -2614,7 +2614,7 @@ window.clearAttachments = function(textareaId, previewId) {
 <script>
 // This script tag is its own separate scope (not the popup-chat IIFE above), so the voice-note
 // sender further down needs its own copy of the viewer's timezone too.
-const APP_TZ = @json(auth()->user()?->viewTz() ?? config('app.timezone'));
+if (typeof window.APP_TZ === 'undefined') { window.APP_TZ = @json(auth()->user()?->viewTz() ?? config('app.timezone')); }
 const _igReg = {};
 let _igSeq = 0, _igCurKey = null, _igCurIdx = 0;
 

@@ -658,7 +658,7 @@ kbCheckVersion();
 
 // The VIEWING user's own chosen timezone (profile → Time zone) — this script runs in its own
 // scope, so it needs its own copy rather than sharing the one declared in layouts/app.blade.php.
-const APP_TZ = @json(auth()->user()?->viewTz() ?? config('app.timezone'));
+if (typeof window.APP_TZ === 'undefined') { window.APP_TZ = @json(auth()->user()?->viewTz() ?? config('app.timezone')); }
 
 // "Today" as a calendar date in the viewer's own timezone, independent of their device's own
 // clock/timezone. Returned as a local-midnight Date used only as a date carrier.
