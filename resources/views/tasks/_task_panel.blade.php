@@ -313,10 +313,10 @@ const parseDescText = raw => {
             .replace(/<br\s*\/?>/gi,'\n')
             .replace(/<[^>]+>/g,'')
             .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')
-            .replace(/\[USER=\d+\]([^\[]*)\[\/USER\]/g,'<span style="color:#0ea5e9;font-weight:600;">$1</span>')
+            .replace(/\[USER=\d+\]([^\[]*)\[\/USER\]/g,'<span style="color:#1a73e8;font-weight:600;">$1</span>')
             .replace(/\[TIMESTAMP=(\d+)\s+FORMAT=[^\]]*\]/g,(_,ts)=>{
                 const d=new Date(parseInt(ts)*1000);
-                return '<span style="color:#f59e0b;">'+d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})+'</span>';
+                return '<span style="font-weight:700;">'+d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})+'</span>';
             })
             .replace(/\[url=([^\]]+)\]([^\[]*)\[\/url\]/gi,(_,href,label)=>bbLink(href,label))
             .replace(/\[url\](.*?)\[\/url\]/gi,(_,href)=>bbLink(href,href))
@@ -429,10 +429,10 @@ const parseMsg = txt => {
         }
         const plain = part
             .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')
-            .replace(/\[USER=\d+\]([^\[]*)\[\/USER\]/g,'<span style="color:#0ea5e9;font-weight:600;">$1</span>')
+            .replace(/\[USER=\d+\]([^\[]*)\[\/USER\]/g,'<span style="color:#1a73e8;font-weight:600;">$1</span>')
             .replace(/\[TIMESTAMP=(\d+)\s+FORMAT=[^\]]*\]/g,(_,ts)=>{
                 const d=new Date(parseInt(ts)*1000);
-                return '<span style="color:#f59e0b;">'+d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})+'</span>';
+                return '<span style="font-weight:700;">'+d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})+'</span>';
             })
             .replace(/\[url=([^\]]+)\]([^\[]*)\[\/url\]/gi,(_,href,label)=>bbLink(href,label))
             .replace(/\[url\](.*?)\[\/url\]/gi,(_,href)=>bbLink(href,href))

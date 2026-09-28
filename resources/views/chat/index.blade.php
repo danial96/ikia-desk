@@ -277,6 +277,7 @@ let _cpFirstMsgId   = 0;
 let _cpHasMore      = false;
 let _cpLoadingOlder = false;
 let _cpLoaded       = false;
+let _cpSearchQuery  = '';
 let _cpSelecting      = false;
 let _cpSending        = false;
 let _cpOtherLastReadTs = 0, _cpOtherLastSeenTs = 0;
@@ -293,7 +294,7 @@ function cpTickHtml(createdTs) {
     } else if (_cpOtherLastSeenTs && createdTs && createdTs <= _cpOtherLastSeenTs) {
         icon = 'fa-check-double'; color = 'rgba(0,140,90,.6)';
     }
-    return `<i class="fas ${icon} cp-tick" data-created-ts="${createdTs||0}" style="font-size:9px;color:${color};"></i>`;
+    return `<i class="fas ${icon} cp-tick" data-created-ts="${createdTs||0}" style="font-size:13px;color:${color};"></i>`;
 }
 let _cpConvType       = '';
 let _cpLastAuthorId   = 0;
@@ -702,7 +703,7 @@ async function cpLoad() {
         const prevUnread = _cpLoaded ? Object.fromEntries(_cpAllConvs.map(c => [c.id, c.unread || 0])) : null;
         _cpAllConvs = d.convs || [];
         _cpLoaded   = true;
-        cpRenderConvs(_cpAllConvs);
+        cpRenderFilteredConvs();
         // Flash + sound for conversations where unread count went up (skip active conv — cpPoll handles its sound)
         if (prevUnread) {
             _cpAllConvs.forEach(c => {
@@ -751,9 +752,16 @@ function cpRenderConvs(list) {
 }
 
 window.cpFilterConvs = function(q) {
-    if (!q) { cpRenderConvs(_cpAllConvs); return; }
-    cpRenderConvs(_cpAllConvs.filter(c => c.name.toLowerCase().includes(q.toLowerCase())));
+    _cpSearchQuery = q || '';
+    cpRenderFilteredConvs();
 };
+// Re-render against whatever search text is currently typed — used both by the search box itself
+// and by every background refresh of _cpAllConvs, so a poll landing mid-search doesn't silently
+// wipe the filter back to the full list a few seconds after typing.
+function cpRenderFilteredConvs() {
+    const q = _cpSearchQuery;
+    cpRenderConvs(q ? _cpAllConvs.filter(c => c.name.toLowerCase().includes(q.toLowerCase())) : _cpAllConvs);
+}
 
 /* ── Select conversation ── */
 window.cpSelect = async function(id) {
@@ -798,7 +806,7 @@ window.cpSelect = async function(id) {
         // Zero unread immediately in local cache so badge clears right away
         const _ac = _cpAllConvs.find(c => c.id === id);
         if (_ac) _ac.unread = 0;
-        cpRenderConvs(_cpAllConvs);
+        cpRenderFilteredConvs();
         const ta = document.getElementById('cp-textarea');
         if (ta) ta.focus();
     } catch(e) {

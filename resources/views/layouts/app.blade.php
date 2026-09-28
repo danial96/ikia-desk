@@ -246,9 +246,12 @@
             align-items: center;
             padding: 14px 0;
             gap: 8px;
-            background: rgba(10, 15, 60, 0.08);
-            backdrop-filter: blur(28px) saturate(1.8) brightness(0.95);
-            -webkit-backdrop-filter: blur(28px) saturate(1.8) brightness(0.95);
+            /* Was nearly transparent (0.08) — a busy/bright custom theme behind it (photo themes,
+               sunset gradients, …) bled straight through and washed the avatars out. Opaque enough
+               now to stay a clearly legible dark rail no matter what theme is set. */
+            background: rgba(8, 12, 35, 0.78);
+            backdrop-filter: blur(28px) saturate(1.4) brightness(0.6);
+            -webkit-backdrop-filter: blur(28px) saturate(1.4) brightness(0.6);
             border-left: 1px solid rgba(255,255,255,0.09);
             z-index: 50;
             overflow: hidden;
@@ -260,12 +263,14 @@
             border-radius: 50%;
             overflow: hidden;
             border: 2px solid transparent;
-            transition: border-color .2s;
+            transition: border-color .2s, filter .2s;
             cursor: pointer;
             flex-shrink: 0;
+            filter: brightness(0.92);
         }
         .user-avatar-btn:hover {
             border-color: #00D4E8;
+            filter: brightness(1.15);
         }
         .user-avatar-btn img { width: 100%; height: 100%; object-fit: cover; }
         .online-dot {
@@ -935,6 +940,7 @@ let _allEmps   = [];
 let _pollTimer = null;
 let _lastMsgId = 0;
 let _chatConvType = '', _chatLastAuthor = 0;
+let _chatSearchQuery = '';
 let _chatHasMore = false, _chatFirstTs = 0, _chatFirstId = 0, _chatLoadingOlder = false;   // sender names are only shown in group chats
 if (typeof window.ME_ID === 'undefined') { window.ME_ID = {{ auth()->id() }}; }
 // Every timestamp rendered client-side (chat, activity, etc.) uses this — the VIEWER's own
@@ -956,7 +962,7 @@ function chatTickHtml(createdTs) {
     } else if (_chatOtherLastSeenTs && createdTs && createdTs <= _chatOtherLastSeenTs) {
         icon = 'fa-check-double'; color = 'rgba(0,120,80,.5)';
     }
-    return `<i class="fas ${icon} chat-tick" data-created-ts="${createdTs||0}" style="font-size:9px;color:${color};"></i>`;
+    return `<i class="fas ${icon} chat-tick" data-created-ts="${createdTs||0}" style="font-size:13px;color:${color};"></i>`;
 }
 function chatUpdateSeen() {
     if (_chatConvType !== 'direct') return;
@@ -1042,7 +1048,7 @@ async function chatLoadConvs() {
         const totalUnread = _allConvs.reduce((s,c) => s+(c.unread||0), 0);
         chatUpdateBadge(totalUnread);
         chatUpdateUserBadges();
-        if (_chatOpen) chatRenderConvs(_allConvs);
+        if (_chatOpen) chatRenderFilteredConvs();
         // Only alert for increases after the baseline is established — otherwise every
         // page load/reload would re-announce whatever was already unread beforehand.
         if (!isFirstLoad) {
@@ -1267,9 +1273,16 @@ function convAvatar(c, size, noDot) {
 }
 
 window.chatFilterConvs = function(q) {
-    if (!q) { chatRenderConvs(_allConvs); return; }
-    chatRenderConvs(_allConvs.filter(c => c.name.toLowerCase().includes(q.toLowerCase())));
+    _chatSearchQuery = q || '';
+    chatRenderFilteredConvs();
 };
+// Re-render against whatever search text is currently typed — used both by the search box itself
+// and by every background poll of _allConvs, so a poll landing mid-search doesn't silently wipe
+// the filter back to the full list a few seconds after typing.
+function chatRenderFilteredConvs() {
+    const q = _chatSearchQuery;
+    chatRenderConvs(q ? _allConvs.filter(c => c.name.toLowerCase().includes(q.toLowerCase())) : _allConvs);
+}
 
 /* ── Select conversation ── */
 window.chatSelectConv = async function(id) {
@@ -3356,7 +3369,7 @@ window.MsgUX = (function () {
     function highlightMentions(text) {
         loadMentionNames();   // deferred (not called at module-load time): API_BASE isn't declared yet that early in this script
         if (!mentionRe) return text;
-        return String(text || '').replace(mentionRe, '<span style="color:#0ea5e9;font-weight:600;">@$1</span>');
+        return String(text || '').replace(mentionRe, '<span style="color:#1a73e8;font-weight:600;">@$1</span>');
     }
 
     return { pills, pick, openPicker, forward, task, fillTask, dlAllHtml, dlAllFiles, downloadAll, highlightMentions };
