@@ -485,8 +485,14 @@ const chatDayLabel = v => {
 };
 const chatDivider = iso => `<div style="display:flex;align-items:center;justify-content:center;margin:12px 0 8px;"><span style="background:#538b7f;color:#fff;font-size:13px;font-weight:600;padding:3px 14px;border-radius:12px;">${chatDayLabel(iso)}</span></div>`;
 
+const tpRxnBadge = (reactions, myReactions, msgId) => {
+    if (!msgId || !window.MsgUX) return '';
+    const pills = MsgUX.pills(reactions, ME_LOCAL_ID, 'tpLikeClick', msgId);
+    return `<div id="tp-rxn-${msgId}" style="${pills ? 'display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;' : 'min-height:0;'}">${pills}</div>`;
+};
+
 /* build a chat bubble — isMine = right green, else left white */
-const chatBubble = ({isMine, name, nameColor, text, time, showName=true, isSystem=false, files=[], raw=''}) => {
+const chatBubble = ({isMine, name, nameColor, text, time, showName=true, isSystem=false, files=[], raw='', msgId=null, reactions=null, myReactions=null, parentPreview=null}) => {
     if(isSystem) return `
         <div style="display:flex;justify-content:center;margin:5px 0;">
             <div style="max-width:90%;text-align:center;line-height:1.45;background:rgba(255,255,255,.34);border-radius:10px;padding:6px 14px;">
@@ -516,17 +522,29 @@ const chatBubble = ({isMine, name, nameColor, text, time, showName=true, isSyste
         const fsz=f.size?(f.size>=1048576?(f.size/1048576).toFixed(1)+' MB':Math.round(f.size/1024)+' KB'):'';
         return`<a href="${url}" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:10px;padding:8px 11px;background:rgba(255,255,255,0.75);border:1px solid rgba(0,0,0,0.09);border-radius:10px;text-decoration:none;min-width:180px;max-width:280px;"><div style="width:38px;height:46px;background:${fbg};border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><i class="fas ${ic}" style="color:${fclr};font-size:19px;"></i></div><div style="flex:1;overflow:hidden;"><div style="color:${tc};font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(f.name)}</div>${fsz?`<div style="color:${timec};font-size:10px;margin-top:2px;">${fsz}</div>`:''}</div><i class="fas fa-download" style="color:#94a3b8;font-size:10px;flex-shrink:0;"></i></a>`;
     }).join('')}</div>` : '';
-    return `
-        <div style="display:flex;justify-content:${isMine?'flex-end':'flex-start'};margin-bottom:2px;">
-            <div style="max-width:78%;background:${bg};border:1px solid ${isMine?'#c3ebb4':'#e8ebef'};border-radius:${br};padding:8px 12px 6px;box-shadow:0 1px 2px rgba(0,0,0,.06);">
+    const parentHtml = parentPreview ? `<div style="background:rgba(0,0,0,.05);border-left:3px solid ${isMine?'#5a8a6a':'#94a3b8'};border-radius:6px;padding:5px 9px;margin-bottom:6px;overflow:hidden;">
+        <div style="font-size:11.5px;font-weight:700;color:${isMine?'#2f6a3f':'#475569'};">${esc(parentPreview.author||'')}</div>
+        <div style="font-size:12.5px;color:${tc};opacity:.75;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(parentPreview.text||'')}</div>
+    </div>` : '';
+    const actions = msgId ? `<div class="chat-msg-actions">
+        <button class="chat-action-btn like" onclick="MsgUX.pick(event,this,'tp',${msgId})" title="React"><i class="far fa-thumbs-up"></i></button>
+        <button class="chat-action-btn" onclick="tpCommentCtx(event,this,${msgId},${isMine?'true':'false'})" title="More"><i class="fas fa-ellipsis"></i></button>
+    </div>` : '';
+    const bubbleInner = `
+            <div class="chat-bubble-bg" style="max-width:78%;background:${bg};border:1px solid ${isMine?'#c3ebb4':'#e8ebef'};border-radius:${br};padding:8px 12px 6px;box-shadow:0 1px 2px rgba(0,0,0,.06);">
                 ${nameHtml}
-                ${text ? `<div style="color:${tc};font-size:15.5px;line-height:1.5;word-break:break-word;">${text}</div>` : ''}
+                ${parentHtml}
+                ${text ? `<div data-raw="${esc(raw)}" style="color:${tc};font-size:15.5px;line-height:1.5;word-break:break-word;">${text}</div>` : ''}
                 ${filesHtml}
                 ${window.MsgUX ? (MsgUX.dlAllFiles(files) || MsgUX.dlAllHtml(raw)) : ''}
+                ${tpRxnBadge(reactions, myReactions, msgId)}
                 <div style="text-align:right;margin-top:3px;">
                     <span style="color:${timec};font-size:11.5px;">${time}${tick}</span>
                 </div>
-            </div>
+            </div>`;
+    return `
+        <div class="chat-msg-outer" data-msg-id="${msgId||''}" data-author="${esc(isMine?'You':(name||'Someone'))}" style="display:flex;justify-content:${isMine?'flex-end':'flex-start'};align-items:center;gap:4px;margin-bottom:2px;">
+            ${isMine?actions:''}${bubbleInner}${isMine?'':actions}
         </div>`;
 };
 // Value for <input type="datetime-local"> — the deadline as an app-timezone (Karachi) wall time,
@@ -1318,6 +1336,11 @@ function tpRenderLocal(data) {
     tpRenderLocalFeed(data, taskId);
     setTimeout(()=>{ const m=$('tp-messages'); m.scrollTop=m.scrollHeight; },80);
     $('tp-comment-footer').innerHTML=`
+        <div id="tp-reply-bar" style="display:none;align-items:center;gap:10px;padding:9px 14px;margin-bottom:8px;background:#fff;border-radius:10px;border-left:4px solid #20a0e0;box-shadow:0 1px 3px rgba(0,0,0,.08);">
+            <i class="fas fa-reply" style="color:#20a0e0;font-size:13px;flex-shrink:0;"></i>
+            <div style="flex:1;min-width:0;"><div id="tp-reply-name" style="font-size:12.5px;font-weight:600;color:#20a0e0;"></div><div id="tp-reply-text" style="font-size:13px;color:#6b7680;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></div></div>
+            <button type="button" onclick="tpCancelReply()" title="Cancel" style="background:none;border:none;color:#9aa5ad;font-size:19px;cursor:pointer;line-height:1;flex-shrink:0;">&times;</button>
+        </div>
         <div id="tp-comment-box" style="position:relative;background:#fff;border-radius:14px;box-shadow:0 1px 4px rgba(0,0,0,.08);height:190px;display:flex;flex-direction:column;">
             <button type="button" onclick="document.getElementById('tp-file-input').click()" title="Attach file"
                     style="position:absolute;left:14px;top:15px;background:none;border:none;color:#9aa0a6;cursor:pointer;font-size:16px;padding:0;line-height:1;"><i class="fas fa-paperclip"></i></button>
@@ -1587,7 +1610,7 @@ window.tpRenderLocalFeed = function(data, taskId) {
             const isMine = u.id ? parseInt(u.id) === ME_LOCAL_ID : false;
             const showName = !isMine && u.name !== lastAuthor2;
             lastAuthor2 = u.name;
-            return div + chatBubble({isMine, name:u.name||'?', nameColor:localColor(u.name||''), text:parseMsg(f.text||f.content||''), raw:f.text||f.content||'', time, showName, files:f.files||[]});
+            return div + chatBubble({isMine, name:u.name||'?', nameColor:localColor(u.name||''), text:parseMsg(f.text||f.content||''), raw:f.text||f.content||'', time, showName, files:f.files||[], msgId:f.id||null, reactions:f.reactions||null, myReactions:f.myReactions||null, parentPreview:f.parentPreview||null});
         }).join('');
     } else {
         $('tp-messages').innerHTML = _spacer + `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 0;"><i class="fas fa-comment-slash" style="font-size:28px;color:rgba(255,255,255,.55);margin-bottom:10px;"></i><p style="color:rgba(255,255,255,.85);font-size:13px;margin:0;">No comments yet — be the first!</p></div>`;
@@ -1843,23 +1866,100 @@ window.tpSubmitComment=function(taskId){
     if(!txt&&!attachTags){ ta.focus(); return; }
     const mentions=window._mentionCollect?window._mentionCollect('tp-comment-text'):[];
     const fullContent=txt+(attachTags?(txt?'\n':'')+attachTags:'');
+    const parentId=window._tpReplyToId||null;
     const btn=$('tp-comment-footer').querySelector('button[onclick*="tpSubmitComment"]');
     if(btn){btn.disabled=true;btn.style.opacity='.5';}
     fetch(TP_LOCAL_URL+'/'+taskId+'/comment',{
         method:'POST',
         headers:{'Content-Type':'application/json','X-CSRF-TOKEN':TP_CSRF,'Accept':'application/json'},
-        body:JSON.stringify({content:fullContent, mentions}),
+        body:JSON.stringify({content:fullContent, mentions, parent_id:parentId}),
     }).then(r=>r.json()).then(resp=>{
         ta.value=''; tpComposerState();
         if(window.clearAttachments) window.clearAttachments('tp-comment-text','tp-attach-preview');
+        tpCancelReply();
         const now=new Date(), time=fmtTimeOnly(now); // app-timezone, same as the feed re-render
         const el=document.createElement('div');
-        el.innerHTML=chatBubble({isMine:true, text:parseMsg(fullContent), raw:fullContent, time, showName:false});
+        el.innerHTML=chatBubble({isMine:true, text:parseMsg(fullContent), raw:fullContent, time, showName:false, msgId:resp?.comment?.id||null});
         const msgs=$('tp-messages');
         // remove "no comments" placeholder if present
         const ph=msgs.querySelector('[style*="comment-slash"]'); if(ph) ph.closest('div').remove();
         msgs.appendChild(el.firstElementChild); msgs.scrollTop=msgs.scrollHeight;
     }).catch(()=>showToast('Could not send comment.')).finally(()=>{ if(btn){btn.disabled=false;btn.style.opacity='1';} });
+};
+
+/* ─── reply / like / more menu for a comment (Bitrix style) ────── */
+window.tpStartReply = function(msgId) {
+    const row = document.querySelector(`#tp-messages [data-msg-id="${msgId}"]`);
+    if (!row) return;
+    const raw = row.querySelector('[data-raw]')?.dataset.raw || '';
+    const author = row.dataset.author || 'Someone';
+    const preview = raw.replace(/\[img\][\s\S]*?\[\/img\]/g,'[image]').replace(/\[file name="[^"]*"\][\s\S]*?\[\/file\]/g,'[file]').replace(/\[voice[^\]]*\][\s\S]*?\[\/voice\]/g,'[voice]').replace(/\[\/?\w[^\]]*\]/g,'').trim().slice(0,100);
+    window._tpReplyToId = msgId;
+    const bar = document.getElementById('tp-reply-bar');
+    if (bar) {
+        bar.style.display = 'flex';
+        const n = document.getElementById('tp-reply-name'), t = document.getElementById('tp-reply-text');
+        if (n) n.textContent = author;
+        if (t) t.textContent = preview || '(attachment)';
+    }
+    const ta = document.getElementById('tp-comment-text'); if (ta) ta.focus();
+};
+window.tpCancelReply = function() {
+    window._tpReplyToId = null;
+    const bar = document.getElementById('tp-reply-bar'); if (bar) bar.style.display = 'none';
+};
+window.tpLikeClick = async function(e, btn, msgId, emoji) {
+    if (e) e.stopPropagation();
+    if (btn) btn.style.opacity = '0.5';
+    try {
+        const r = await fetch(`/api/local-task/comments/${msgId}/react`, {
+            method:'POST', headers:{'Content-Type':'application/json','X-CSRF-TOKEN':TP_CSRF,'Accept':'application/json'},
+            body: JSON.stringify({emoji: emoji || '👍'}),
+        });
+        const d = await r.json();
+        const rxnEl = document.getElementById('tp-rxn-'+msgId);
+        if (rxnEl && window.MsgUX) {
+            const rxns = d.reactions || {};
+            const myR  = Object.keys(rxns).filter(k => (rxns[k]||[]).includes(ME_LOCAL_ID));
+            rxnEl.innerHTML = MsgUX.pills(rxns, ME_LOCAL_ID, 'tpLikeClick', msgId);
+            rxnEl.style.display = Object.keys(rxns).length ? 'flex' : 'none';
+            rxnEl.style.flexWrap = 'wrap'; rxnEl.style.gap = '4px'; rxnEl.style.marginTop = '4px';
+        }
+    } catch(err) {}
+    if (btn) btn.style.opacity = '';
+};
+let _tpCtxId = null;
+window.tpCommentCtx = function(e, btn, msgId, isMine) {
+    if (e) e.stopPropagation();
+    let menu = document.getElementById('tp-comment-ctx');
+    if (!menu) {
+        menu = document.createElement('div');
+        menu.id = 'tp-comment-ctx';
+        menu.style.cssText = 'display:none;position:fixed;z-index:9999;background:#fff;border-radius:9px;padding:4px 0;min-width:150px;box-shadow:0 8px 28px rgba(0,0,0,.12);';
+        document.body.appendChild(menu);
+        menu.addEventListener('click', function(ev){
+            const item = ev.target.closest('[data-action]'); if (!item) return;
+            const action = item.dataset.action, id = _tpCtxId;
+            menu.style.display = 'none';
+            if (!id) return;
+            if (action === 'reply') window.tpStartReply(id);
+            else if (action === 'copy') {
+                const row = document.querySelector(`#tp-messages [data-msg-id="${id}"]`);
+                const raw = row?.querySelector('[data-raw]')?.dataset.raw || '';
+                if (navigator.clipboard) navigator.clipboard.writeText(raw).catch(()=>{});
+            }
+        });
+        document.addEventListener('click', function(ev){ if (!ev.target.closest('#tp-comment-ctx') && !ev.target.closest('.chat-action-btn')) menu.style.display = 'none'; });
+    }
+    _tpCtxId = msgId;
+    menu.innerHTML = `<div class="chat-ctx-item" data-action="reply"><span>Reply</span><i class="fas fa-quote-right"></i></div>` +
+        `<div class="chat-ctx-item" data-action="copy"><span>Copy</span><i class="far fa-copy"></i></div>`;
+    menu.style.display = 'block';
+    const r = btn.getBoundingClientRect(), mW = menu.offsetWidth||150, mH = menu.offsetHeight||90;
+    let x = r.left + r.width/2 - mW/2, y = r.bottom + 6;
+    if (y + mH > window.innerHeight - 8) y = r.top - mH - 6;
+    x = Math.max(8, Math.min(x, window.innerWidth - mW - 8)); y = Math.max(8, y);
+    menu.style.left = x + 'px'; menu.style.top = y + 'px';
 };
 
 // ── Drag-and-drop on comments area only ──

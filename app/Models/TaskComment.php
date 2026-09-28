@@ -11,7 +11,7 @@ class TaskComment extends Model
 
     protected $fillable = [
         'task_id', 'user_id', 'content', 'mentions',
-        'bitrix_id', 'is_system', 'files', 'parent_id', 'edited_at',
+        'bitrix_id', 'is_system', 'files', 'parent_id', 'edited_at', 'reactions',
     ];
 
     protected $casts = [
@@ -19,8 +19,10 @@ class TaskComment extends Model
         'files'     => 'array',
         'is_system' => 'boolean',
         'edited_at' => 'datetime',
+        'reactions' => 'array',
     ];
 
     public function task() { return $this->belongsTo(Task::class); }
     public function user() { return $this->belongsTo(User::class); }
+    public function parent() { return $this->belongsTo(TaskComment::class, 'parent_id'); }
 }

@@ -99,7 +99,7 @@ Route::middleware('auth')->group(function () {
         ])->findOrFail($id);
 
         $user = auth()->user();
-        if (!\App\Models\Task::visibleTo($user)->whereKey($task->id)->exists()) {
+        if (!$task->canBeOpenedBy($user)) {
             return response()->json(['error'=>'Forbidden'],403);
         }
 
@@ -108,6 +108,12 @@ Route::middleware('auth')->group(function () {
         $commentFiles = $commentFileIds->isNotEmpty()
             ? \App\Models\TaskFile::whereIn('id', $commentFileIds)->get()->keyBy('id')
             : collect();
+
+        $commentsById = $task->comments->keyBy('id');
+        $plainSnippet = function (?string $t): string {
+            $t = preg_replace(['/\[img\].*?\[\/img\]/s', '/\[file name="[^"]*"\].*?\[\/file\]/s', '/\[voice[^\]]*\].*?\[\/voice\]/s'], ['[image]', '[file]', '[voice]'], (string) $t);
+            return mb_substr(trim(preg_replace('/\s+/u', ' ', $t)), 0, 100);
+        };
 
         $feed = collect();
         foreach ($task->comments as $c) {
@@ -119,10 +125,17 @@ Route::middleware('auth')->group(function () {
                     'downloadUrl' => $f->download_url,
                 ])->values();
 
+            $parent = $c->parent_id ? $commentsById->get($c->parent_id) : null;
+            $reactions = $c->reactions ?? [];
+
             $feed->push(['type'=>'comment','at'=>$c->created_at->toIso8601String(),'id'=>$c->id,
                 'isSystem' => (bool)$c->is_system,
                 'author'=>['id'=>$c->user_id,'name'=>$c->user?->name??'','avatar'=>$c->user?->avatar_url??''],
                 'text'=>$c->content,
+                'parentId' => $c->parent_id,
+                'parentPreview' => $parent ? ['author' => $parent->user?->name ?? '', 'text' => $plainSnippet($parent->content)] : null,
+                'reactions' => $reactions,
+                'myReactions' => array_keys(array_filter($reactions, fn($ids) => in_array($user->id, (array) $ids))),
                 'files'=>$attachments->map(fn($f2) => array_merge($f2, [
                     'isLocal' => !empty($commentFiles->get($f2['id'])?->disk_path),
                 ]))->values(),
@@ -418,14 +431,18 @@ Route::middleware('auth')->group(function () {
             'content'    => 'required|string|max:5000',
             'mentions'   => 'nullable|array',
             'mentions.*' => 'integer',
+            'parent_id'  => 'nullable|integer',
         ]);
         $task    = \App\Models\Task::findOrFail($id);
         $authUser = auth()->user();
-        if (!$authUser->isSuperAdmin() && !$task->isMember($authUser) && $task->created_by !== $authUser->id && $task->assigned_to !== $authUser->id) {
+        // A person @mentioned in this task's comments may reply even though they're not a member —
+        // that's how they got here in the first place.
+        if (!$task->canBeOpenedBy($authUser)) {
             abort(403);
         }
         $mentions = array_values(array_unique(array_map('intval', (array) $request->mentions)));
-        $comment = $task->comments()->create(['user_id'=>auth()->id(),'content'=>$request->content,'mentions'=>$mentions]);
+        $parent   = $request->filled('parent_id') ? $task->comments()->find($request->parent_id) : null;
+        $comment  = $task->comments()->create(['user_id'=>auth()->id(),'content'=>$request->content,'mentions'=>$mentions,'parent_id'=>$parent?->id]);
         $task->logActivity(auth()->user(),'commented',null,null,$request->content);
 
         // Notify creator + assignee + members + observers about new comment
@@ -445,12 +462,46 @@ Route::middleware('auth')->group(function () {
                 auth()->user()->name . ' mentioned you in a comment on "' . $task->title . '"', $task);
         }
 
+        // Replying notifies the original commenter directly, even if they're not otherwise on the task
+        // (they were already able to see it, since they commented on it) and even if they were already
+        // notified above as a member — a reply is a distinct, more specific thing to know about.
+        if ($parent && $parent->user_id && (int) $parent->user_id !== (int) $authUser->id) {
+            \App\Models\Notification::mention([$parent->user_id], $authUser,
+                $authUser->name . ' replied to your comment on "' . $task->title . '"', $task);
+        }
+
         return response()->json([
             'ok'      => true,
             'comment' => ['id'=>$comment->id,'text'=>$comment->content,'at'=>$comment->created_at->toIso8601String(),
                           'author'=>['name'=>auth()->user()->name,'avatar'=>auth()->user()->avatar_url]],
         ]);
     })->name('api.local.comment');
+
+    // Toggle a reaction on a task comment
+    Route::post('/api/local-task/comments/{id}/react', function ($id, \Illuminate\Http\Request $request) {
+        $request->validate(['emoji' => 'required|string|max:8']);
+        $user    = auth()->user();
+        $comment = \App\Models\TaskComment::with('task')->findOrFail($id);
+        $task    = $comment->task;
+        if (!$task || !$task->canBeOpenedBy($user)) {
+            return response()->json(['error' => 'Forbidden'], 403);
+        }
+        $emoji = $request->emoji;
+        $rxns  = $comment->reactions ?? [];
+        $ids   = array_values((array) ($rxns[$emoji] ?? []));
+        $adding = !in_array($user->id, $ids);
+        if ($adding) $ids[] = $user->id;
+        else $ids = array_values(array_filter($ids, fn($v) => $v !== $user->id));
+        if (empty($ids)) unset($rxns[$emoji]); else $rxns[$emoji] = $ids;
+        $comment->update(['reactions' => empty($rxns) ? null : $rxns]);
+
+        if ($adding && !in_array($comment->user_id, [null, $user->id], true)) {
+            \App\Models\Notification::mention([$comment->user_id], $user,
+                $user->name . ' reacted ' . $emoji . ' to your comment on "' . $task->title . '"', $task);
+        }
+
+        return response()->json(['ok' => true, 'reactions' => $rxns]);
+    })->name('api.local.comment.react');
 
     // ── File Upload API ──
     Route::post('/api/upload', function (\Illuminate\Http\Request $request) {

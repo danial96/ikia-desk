@@ -66,6 +66,24 @@ class Task extends Model
     }
 
     /**
+     * Someone @mentioned in a comment can open that one task from the notification — even though
+     * they are not a member/observer/assignee — so they never hit "Forbidden" from the link they
+     * were just given. This never adds them to the task, so it still won't show up in their
+     * Tasks list or Kanban board; they only get in through the direct link.
+     */
+    public function wasMentionedIn(User $user): bool
+    {
+        return $this->comments()->whereJsonContains('mentions', $user->id)->exists();
+    }
+
+    public function canBeOpenedBy(User $user): bool
+    {
+        return $user->canViewAllTasks()
+            || static::visibleTo($user)->whereKey($this->id)->exists()
+            || $this->wasMentionedIn($user);
+    }
+
+    /**
      * Search a task's title, description, or comment contents (any comment matching
      * the term is enough for the task itself to show up in results).
      */
