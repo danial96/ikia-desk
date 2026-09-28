@@ -1382,7 +1382,7 @@ function renderMsgContent(text, isMine) {
             const _su2 = /^https?:\/\//i.test(urlM[1]) ? urlM[1] : '#';
             out += `<a href="${escH(_su2)}" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline;">${escH(urlM[1])}</a>`;
         } else if (part && !(allImgs.length > 1 && !part.trim())) {
-            out += `<span style="white-space:pre-wrap;word-break:break-word;">${linkify(part)}</span>`;
+            out += `<span style="white-space:pre-wrap;word-break:break-word;">${window.MsgUX ? MsgUX.highlightMentions(linkify(part)) : linkify(part)}</span>`;
         }
     });
     return out;
@@ -3234,7 +3234,27 @@ window.MsgUX = (function () {
     }
     function downloadAll(el) { try { postZip(JSON.parse(el.dataset.urls), 'attachments'); } catch (e) {} }
 
-    return { pills, pick, openPicker, forward, task, fillTask, dlAllHtml, dlAllFiles, downloadAll };
+    // ── Highlight @mentions typed via our own autocomplete: plain "@Full Name" text (not Bitrix's
+    // [USER=id]Name[/USER] bbcode, which the older render paths already colour on their own). ──
+    let mentionNames = null, mentionRe = null;
+    function loadMentionNames() {
+        if (mentionNames) return;
+        mentionNames = [];
+        fetch(API_BASE + '/api/employees-list', { headers: { 'Accept': 'application/json' } }).then(r => r.json())
+            .then(list => {
+                mentionNames = (Array.isArray(list) ? list : []).map(u => u.name).filter(Boolean).sort((a, b) => b.length - a.length);
+                mentionRe = mentionNames.length
+                    ? new RegExp('@(' + mentionNames.map(n => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|') + ')(?=\\s|$|[.,!?:;])', 'g')
+                    : null;
+            }).catch(() => {});
+    }
+    loadMentionNames();
+    function highlightMentions(text) {
+        if (!mentionRe) return text;
+        return String(text || '').replace(mentionRe, '<span style="color:#0ea5e9;font-weight:600;">@$1</span>');
+    }
+
+    return { pills, pick, openPicker, forward, task, fillTask, dlAllHtml, dlAllFiles, downloadAll, highlightMentions };
 })();
 
 /* ── CSRF self-healing: a stale token (login in another tab, long-idle tab) no longer breaks actions ── */

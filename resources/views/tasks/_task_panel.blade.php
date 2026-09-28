@@ -423,7 +423,7 @@ const parseMsg = txt => {
                 <i class="fas fa-download" style="color:#94a3b8;font-size:11px;flex-shrink:0;"></i>
             </a>`;
         }
-        return part
+        const plain = part
             .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')
             .replace(/\[USER=\d+\]([^\[]*)\[\/USER\]/g,'<span style="color:#0ea5e9;font-weight:600;">$1</span>')
             .replace(/\[TIMESTAMP=(\d+)\s+FORMAT=[^\]]*\]/g,(_,ts)=>{
@@ -435,6 +435,9 @@ const parseMsg = txt => {
             .replace(/\[\/?\w[^\]]*\]/g,'')
             .replace(/(?<!href=")(https?:\/\/[^\s<>"'[\]]+)/g,'<a href="$1" target="_blank" rel="noopener noreferrer" style="color:#0ea5e9;text-decoration:underline;word-break:break-all;">$1</a>')
             .replace(/\n/g,'<br>');
+        // Highlight "@Full Name" typed via our own @mention autocomplete (Bitrix's own [USER=] mentions
+        // are already coloured above — this covers the ones people type in the desk itself).
+        return window.MsgUX ? MsgUX.highlightMentions(plain) : plain;
     }).join('');
 };
 

@@ -531,7 +531,7 @@ function renderContent(text, isMine) {
         } else if (voiceM) {
             out += window.voiceBubbleHtml ? window.voiceBubbleHtml(voiceM[2]||'', voiceM[1]||'0:00', !!isMine) : '';
         } else if (part && !(allImgs.length > 1 && !part.trim())) {
-            out += `<span style="white-space:pre-wrap;word-break:break-word;">${linkify(part)}</span>`;
+            out += `<span style="white-space:pre-wrap;word-break:break-word;">${window.MsgUX ? MsgUX.highlightMentions(linkify(part)) : linkify(part)}</span>`;
         }
     });
     return out;
