@@ -674,18 +674,18 @@
 {{-- ═══ CHAT PANEL ═══ --}}
 {{-- Chat backdrop overlay (same as task panel) --}}
 <div id="chat-overlay"
-     style="display:none;opacity:0;position:fixed;inset:0;z-index:249;background:rgba(15,23,42,.55);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);transition:opacity .22s ease;"
+     style="display:none;opacity:0;position:fixed;inset:0;z-index:3200;background:rgba(15,23,42,.55);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);transition:opacity .22s ease;"
      onclick="chatClose()"></div>
 
 {{-- Chat panel floating close button (same style as task panel) --}}
 <button id="chat-close-btn" onclick="chatClose()"
-    style="display:none;position:fixed;z-index:251;top:70px;width:42px;height:42px;border-radius:50%;background:#00C4D8;border:none;color:#fff;cursor:pointer;align-items:center;justify-content:center;box-shadow:0 4px 18px rgba(0,196,216,.45);transition:background .15s,transform .15s;"
+    style="display:none;position:fixed;z-index:3202;top:70px;width:42px;height:42px;border-radius:50%;background:#00C4D8;border:none;color:#fff;cursor:pointer;align-items:center;justify-content:center;box-shadow:0 4px 18px rgba(0,196,216,.45);transition:background .15s,transform .15s;"
     onmouseover="this.style.background='#0099aa';this.style.transform='scale(1.08)'"
     onmouseout="this.style.background='#00C4D8';this.style.transform='scale(1)'">
     <i class="fas fa-times" style="font-size:14px;"></i>
 </button>
 
-<div id="chat-panel" style="display:none;position:fixed;top:0;right:52px;bottom:0;width:calc(90% - 52px);z-index:250;display:none;flex-direction:row;box-shadow:-8px 0 40px rgba(0,0,0,.45);animation:chatSlideIn .25s cubic-bezier(.22,1,.36,1);">
+<div id="chat-panel" style="display:none;position:fixed;top:0;right:52px;bottom:0;width:calc(90% - 52px);z-index:3201;display:none;flex-direction:row;box-shadow:-8px 0 40px rgba(0,0,0,.45);animation:chatSlideIn .25s cubic-bezier(.22,1,.36,1);">
 
     {{-- LEFT: Conversation list --}}
     <div id="chat-left" style="width:400px;flex-shrink:0;display:flex;flex-direction:column;background:#fff;border-right:1px solid #e2e8f0;">
@@ -792,7 +792,7 @@
 </div>
 
 {{-- New Direct Chat overlay (inside panel) --}}
-<div id="chat-new-direct-modal" style="display:none;position:fixed;top:0;right:52px;bottom:0;width:calc(90% - 52px);z-index:251;background:rgba(8,12,45,.97);backdrop-filter:blur(28px);flex-direction:column;">
+<div id="chat-new-direct-modal" style="display:none;position:fixed;top:0;right:52px;bottom:0;width:calc(90% - 52px);z-index:3202;background:rgba(8,12,45,.97);backdrop-filter:blur(28px);flex-direction:column;">
     <div style="padding:16px 18px;border-bottom:1px solid rgba(255,255,255,.1);display:flex;align-items:center;gap:10px;">
         <button onclick="chatCloseNewDirect()" style="background:none;border:none;color:rgba(255,255,255,.5);cursor:pointer;font-size:14px;"><i class="fas fa-arrow-left"></i></button>
         <span style="color:#fff;font-size:14px;font-weight:700;">New Direct Message</span>
@@ -811,7 +811,7 @@
 </div>
 
 {{-- New Group Chat overlay --}}
-<div id="chat-new-group-modal" style="display:none;position:fixed;top:0;right:52px;bottom:0;width:calc(90% - 52px);z-index:251;background:rgba(8,12,45,.97);backdrop-filter:blur(28px);flex-direction:column;">
+<div id="chat-new-group-modal" style="display:none;position:fixed;top:0;right:52px;bottom:0;width:calc(90% - 52px);z-index:3202;background:rgba(8,12,45,.97);backdrop-filter:blur(28px);flex-direction:column;">
     <div style="padding:16px 18px;border-bottom:1px solid rgba(255,255,255,.1);display:flex;align-items:center;gap:10px;">
         <button onclick="chatCloseNewGroup()" style="background:none;border:none;color:rgba(255,255,255,.5);cursor:pointer;font-size:14px;"><i class="fas fa-arrow-left"></i></button>
         <span style="color:#fff;font-size:14px;font-weight:700;">New Group Chat</span>
