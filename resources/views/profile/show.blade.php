@@ -330,12 +330,14 @@
                         <div>
                             <label style="display:block;font-size:11px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px;">New Password</label>
                             <input type="password" name="password" placeholder="Leave blank to keep current"
+                                   autocomplete="new-password"
                                    style="{{ $inStyle }}"
                                    onfocus="this.style.borderColor='#0ea5e9'" onblur="this.style.borderColor='#e2e8f0'">
                         </div>
                         <div>
                             <label style="display:block;font-size:11px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px;">Confirm Password</label>
                             <input type="password" name="password_confirmation" placeholder="Repeat new password"
+                                   autocomplete="new-password"
                                    style="{{ $inStyle }}"
                                    onfocus="this.style.borderColor='#0ea5e9'" onblur="this.style.borderColor='#e2e8f0'">
                         </div>
