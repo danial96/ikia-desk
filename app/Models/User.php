@@ -19,6 +19,7 @@ class User extends Authenticatable
         'work_email', 'work_phone', 'personal_phone', 'skype',
         'gender', 'birthday', 'hired_date', 'time_zone',
         'last_login_at', 'bitrix_photo_url', 'last_seen_at',
+        'notify_messages', 'notify_messages_sound', 'notify_tasks', 'notify_tasks_sound',
     ];
 
     protected $hidden = ['password', 'remember_token'];
@@ -32,6 +33,10 @@ class User extends Authenticatable
             'password'  => 'hashed',
             'is_active' => 'boolean',
             'permissions' => 'array',
+            'notify_messages'       => 'boolean',
+            'notify_messages_sound' => 'boolean',
+            'notify_tasks'          => 'boolean',
+            'notify_tasks_sound'    => 'boolean',
         ];
     }
 

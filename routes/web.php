@@ -76,12 +76,14 @@ Route::middleware('auth')->group(function () {
     // Employees
     Route::resource('employees', EmployeeController::class)->except(['create', 'edit', 'show']);
     Route::post('/employees/{employee}/toggle-active', [EmployeeController::class, 'toggleActive'])->name('employees.toggle-active');
+    Route::post('/employees/{employee}/handover-delete', [EmployeeController::class, 'handoverDelete'])->name('employees.handover-delete');
 
     // Profile
     Route::post('/profile/theme', [\App\Http\Controllers\ThemeController::class, 'set'])->name('theme.set');
     Route::post('/profile/theme/custom', [\App\Http\Controllers\ThemeController::class, 'custom'])->name('theme.custom');
     Route::get('/profile', [ProfileController::class, 'show'])->name('profile.show');
     Route::post('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::post('/profile/notifications', [ProfileController::class, 'updateNotifications'])->name('profile.notifications');
     Route::get('/profile/{id}', [ProfileController::class, 'show'])->name('profile.show.user');
     Route::post('/profile/{id}', [ProfileController::class, 'update'])->name('profile.update.user');
 

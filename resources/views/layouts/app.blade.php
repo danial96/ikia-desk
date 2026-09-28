@@ -954,6 +954,17 @@ if (typeof window.ME_ID === 'undefined') { window.ME_ID = {{ auth()->id() }}; }
 // chosen timezone (profile → Time zone), so the same instant shows as the right clock time
 // for everyone, not always Asia/Karachi's.
 if (typeof window.APP_TZ === 'undefined') { window.APP_TZ = @json(auth()->user()?->viewTz() ?? config('app.timezone')); }
+// Per-user notification preferences (profile → Notifications). Declared idempotently, same
+// reasoning as APP_TZ/ME_ID above — this script can run more than once in the same page scope.
+@php
+    $__notifyPrefs = [
+        'messages'       => auth()->user()?->notify_messages ?? true,
+        'messages_sound' => auth()->user()?->notify_messages_sound ?? true,
+        'tasks'          => auth()->user()?->notify_tasks ?? true,
+        'tasks_sound'    => auth()->user()?->notify_tasks_sound ?? true,
+    ];
+@endphp
+if (typeof window.NOTIFY_PREFS === 'undefined') { window.NOTIFY_PREFS = @json($__notifyPrefs); }
 
 let _chatOtherLastReadTs = 0, _chatOtherLastSeenTs = 0;
 /* WhatsApp-style tick: single grey = sent, double grey = delivered (their client has polled
@@ -1121,6 +1132,7 @@ function chatReorderUserRail() {
 /* ── Desktop (browser) notification for new chat messages — like Bitrix ── */
 function chatDesktopNotify(conv) {
     try {
+        if (window.NOTIFY_PREFS && !window.NOTIFY_PREFS.messages) return;
         if (!('Notification' in window) || Notification.permission !== 'granted') return;
         // Skip only when actively looking at this exact conversation
         if (!document.hidden && _chatOpen && _activeConvId === conv.id) return;
@@ -1151,6 +1163,7 @@ function _repositionMsgPopups() {
 
 /* ── Floating popup notification for new messages ── */
 function chatShowMsgPopup(conv) {
+    if (window.NOTIFY_PREFS && !window.NOTIFY_PREFS.messages) return;
     if (_chatOpen && _activeConvId === conv.id) return; // already viewing this conv
     const pid = 'cmsgpop-' + conv.id;
     const old = document.getElementById(pid);
@@ -2935,6 +2948,17 @@ window.vnSend = function(panel) {
 
 <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.9/dist/cdn.min.js" defer></script>
 <script>
+// Per-user notification preferences (profile → Notifications) — this script tag is its own
+// separate scope from the one that already declares this, so it needs its own copy too.
+@php
+    $__notifyPrefs2 = [
+        'messages'       => auth()->user()?->notify_messages ?? true,
+        'messages_sound' => auth()->user()?->notify_messages_sound ?? true,
+        'tasks'          => auth()->user()?->notify_tasks ?? true,
+        'tasks_sound'    => auth()->user()?->notify_tasks_sound ?? true,
+    ];
+@endphp
+if (typeof window.NOTIFY_PREFS === 'undefined') { window.NOTIFY_PREFS = @json($__notifyPrefs2); }
 function appShell() {
     return {
         // On phones/tablets the sidebar starts closed (slide-over); desktop remembers the choice
@@ -3582,6 +3606,7 @@ function escHtml(s) {
 }
 
 function notifPlaySound() {
+    if (window.NOTIFY_PREFS && !window.NOTIFY_PREFS.tasks_sound) return;
     try {
         const ctx = new (window.AudioContext || window.webkitAudioContext)();
         const t = ctx.currentTime;
@@ -3597,6 +3622,7 @@ function notifPlaySound() {
     } catch(e) {}
 }
 function chatPlaySound() {
+    if (window.NOTIFY_PREFS && !window.NOTIFY_PREFS.messages_sound) return;
     try {
         const ctx = new (window.AudioContext || window.webkitAudioContext)();
         const t = ctx.currentTime;
@@ -3618,8 +3644,10 @@ async function notifPoll() {
         const res   = await fetch(API_BASE + '/api/notifications');
         const data  = await res.json();
         const count = data.unread_count || 0;
-        // Play sound + animate badge when new notifications arrive
-        if (_notifPrevCount !== -1 && count > _notifPrevCount) {
+        // Play sound + animate badge when new notifications arrive (unless task notifications
+        // are turned off — the badge count itself still updates below either way, this is just
+        // the proactive "hey, something happened" alert).
+        if (_notifPrevCount !== -1 && count > _notifPrevCount && (!window.NOTIFY_PREFS || window.NOTIFY_PREFS.tasks)) {
             notifPlaySound();
             const badge = document.getElementById('notif-badge');
             if (badge) {

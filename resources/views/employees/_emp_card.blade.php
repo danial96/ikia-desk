@@ -34,6 +34,14 @@
             </button>
         </form>
         @endif
+        {{-- Delete only appears once an employee is deactivated, and always requires picking who
+             their tasks get handed over to first (see empDeleteOpen). --}}
+        @if(auth()->user()->isSuperAdmin() && $emp->id !== auth()->id() && !$emp->is_active)
+        <button type="button" onclick="empDeleteOpen({{ $emp->id }}, {{ json_encode($emp->name) }})"
+                class="px-3 py-1.5 text-xs border border-red-200 text-red-600 rounded-lg hover:bg-red-50 transition">
+            Delete
+        </button>
+        @endif
     </div>
     @if(auth()->user()->isAdmin())
     <button onclick="empEditOpen({{ $emp->toJson() }})"

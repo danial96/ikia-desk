@@ -115,4 +115,22 @@ class ProfileController extends Controller
 
         return back()->with('success', 'Profile updated successfully.');
     }
+
+    /** Notification preferences — always saved for the current user only, no admin/other-profile path. */
+    public function updateNotifications(Request $request)
+    {
+        $user = Auth::user();
+        $data = [
+            'notify_messages'       => $request->boolean('notify_messages'),
+            'notify_messages_sound' => $request->boolean('notify_messages_sound'),
+            'notify_tasks'          => $request->boolean('notify_tasks'),
+            'notify_tasks_sound'    => $request->boolean('notify_tasks_sound'),
+        ];
+        $user->update($data);
+
+        if ($request->wantsJson()) {
+            return response()->json(['ok' => true] + $data);
+        }
+        return back()->with('success', 'Notification preferences saved.');
+    }
 }

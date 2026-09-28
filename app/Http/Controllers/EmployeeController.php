@@ -139,6 +139,87 @@ class EmployeeController extends Controller
         return back()->with('success', 'Employee removed.');
     }
 
+    /**
+     * Delete an already-deactivated employee, handing every one of their task roles (owner,
+     * assignee, participant, observer) over to another active employee first — so no task is
+     * left pointing at a person who no longer exists, and each affected task gets a note
+     * recording who it was handed over to.
+     */
+    public function handoverDelete(Request $request, User $employee)
+    {
+        $actor = Auth::user();
+        if (!$actor->isSuperAdmin()) abort(403);
+        if ($employee->id === $actor->id) {
+            return back()->with('error', 'You cannot delete your own account.');
+        }
+        if ($employee->is_active) {
+            return back()->with('error', 'Deactivate this employee before deleting them.');
+        }
+
+        $request->validate(['handover_to' => 'required|integer|exists:users,id']);
+        if ((int) $request->handover_to === $employee->id) {
+            return back()->with('error', 'Pick someone other than the employee being deleted.');
+        }
+        $handoverUser = User::where('id', $request->handover_to)->where('is_active', true)->first();
+        if (!$handoverUser) {
+            return back()->with('error', 'The handover recipient must be an active employee.');
+        }
+
+        $tasks = \App\Models\Task::where('created_by', $employee->id)
+            ->orWhere('assigned_to', $employee->id)
+            ->orWhereHas('members', fn($q) => $q->where('user_id', $employee->id))
+            ->orWhereHas('observers', fn($q) => $q->where('user_id', $employee->id))
+            ->get();
+
+        DB::transaction(function () use ($tasks, $employee, $handoverUser, $actor) {
+            foreach ($tasks as $task) {
+                $roles = [];
+                if ($task->created_by === $employee->id)  { $task->created_by = $handoverUser->id; $roles[] = 'owner'; }
+                if ($task->assigned_to === $employee->id) { $task->assigned_to = $handoverUser->id; $roles[] = 'assignee'; }
+                $task->save();
+
+                if ($task->members()->where('user_id', $employee->id)->exists()) {
+                    $task->members()->detach($employee->id);
+                    if (!$task->members()->where('user_id', $handoverUser->id)->exists()) {
+                        $task->members()->attach($handoverUser->id);
+                    }
+                    $roles[] = 'participant';
+                }
+                if ($task->observers()->where('user_id', $employee->id)->exists()) {
+                    $task->observers()->detach($employee->id);
+                    if (!$task->observers()->where('user_id', $handoverUser->id)->exists()) {
+                        $task->observers()->attach($handoverUser->id);
+                    }
+                    $roles[] = 'observer';
+                }
+
+                $task->comments()->create([
+                    'user_id'   => $actor->id,
+                    'content'   => "🔄 {$employee->name} handed over to {$handoverUser->name}" . ($roles ? ' (' . implode(', ', $roles) . ')' : '') . '.',
+                    'is_system' => true,
+                ]);
+                $task->logActivity($actor, 'handed_over', null, $employee->name, $handoverUser->name);
+            }
+        });
+
+        // Same conservative rule as a plain delete: only actually remove the row when nothing
+        // else (chat messages, comments, projects, activity log) still references them — tasks no
+        // longer do, since they were just handed over above.
+        $hasOtherHistory = collect([
+            ['projects', 'created_by'],
+            ['messages', 'user_id'],
+            ['task_comments', 'user_id'],
+            ['task_activities', 'user_id'],
+        ])->contains(fn($ref) => DB::table($ref[0])->where($ref[1], $employee->id)->exists());
+
+        if ($hasOtherHistory) {
+            return back()->with('success', "Handed {$tasks->count()} task(s) over to {$handoverUser->name}. {$employee->name} has chat/comment history, so they stay deactivated rather than being deleted.");
+        }
+
+        $employee->delete();
+        return back()->with('success', "Handed {$tasks->count()} task(s) over to {$handoverUser->name} and deleted {$employee->name}.");
+    }
+
     public function toggleActive(User $employee)
     {
         $actor = Auth::user();

@@ -70,8 +70,11 @@
                 </div>
             </div>
             <div style="margin:14px 0 16px;display:flex;gap:6px;flex-wrap:wrap;">
-                <span class="pf-tab on">General</span>
+                <span id="pf-tab-general" class="pf-tab on" onclick="pfShowTab('general')" style="cursor:pointer;">General</span>
                 <a class="pf-tab" href="{{ route('tasks.index', ['assignee_id' => $user->id]) }}">Tasks</a>
+                @if($isOwn)
+                <span id="pf-tab-notifications" class="pf-tab" onclick="pfShowTab('notifications')" style="cursor:pointer;">Notifications</span>
+                @endif
             </div>
 
             <div class="pf-grid" style="display:grid;grid-template-columns:320px 1fr;gap:12px;align-items:start;">
@@ -373,6 +376,39 @@
                             <button type="button" onclick="pfEdit(false)" style="padding:11px 18px;background:none;border:none;color:#333;font-size:15px;cursor:pointer;">Cancel</button>
                         </div>
                     </div>{{-- /pf-edit --}}
+
+                    @if($isOwn)
+                    {{-- Notifications tab — plain div (not the surrounding pf-form: it saves on its
+                         own via fetch, and forms can't nest) --}}
+                    <div id="pf-notifications" class="pf-card" style="display:none;">
+                        <h3><span>Notifications</span></h3>
+                        <div style="display:flex;flex-direction:column;gap:4px;">
+                            <div style="display:flex;flex-direction:column;gap:14px;padding:18px 0;border-bottom:1px solid #f1f3f5;">
+                                <div style="font-size:11px;font-weight:700;color:#9ca3af;letter-spacing:1px;text-transform:uppercase;">Messages</div>
+                                <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;">
+                                    <span style="font-size:14px;color:#333;">Notify me about new messages</span>
+                                    <input type="checkbox" class="pf-notif-toggle" data-key="notify_messages" {{ $user->notify_messages ? 'checked' : '' }}>
+                                </label>
+                                <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;">
+                                    <span style="font-size:14px;color:#333;">Play a sound for new messages</span>
+                                    <input type="checkbox" class="pf-notif-toggle" data-key="notify_messages_sound" {{ $user->notify_messages_sound ? 'checked' : '' }}>
+                                </label>
+                            </div>
+                            <div style="display:flex;flex-direction:column;gap:14px;padding:18px 0;">
+                                <div style="font-size:11px;font-weight:700;color:#9ca3af;letter-spacing:1px;text-transform:uppercase;">Tasks</div>
+                                <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;">
+                                    <span style="font-size:14px;color:#333;">Notify me about task activity</span>
+                                    <input type="checkbox" class="pf-notif-toggle" data-key="notify_tasks" {{ $user->notify_tasks ? 'checked' : '' }}>
+                                </label>
+                                <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;">
+                                    <span style="font-size:14px;color:#333;">Play a sound for task activity</span>
+                                    <input type="checkbox" class="pf-notif-toggle" data-key="notify_tasks_sound" {{ $user->notify_tasks_sound ? 'checked' : '' }}>
+                                </label>
+                            </div>
+                        </div>
+                        <p id="pf-notif-saved" style="font-size:12.5px;color:#16a34a;margin:14px 0 0;display:none;"><i class="fas fa-check"></i> Saved</p>
+                    </div>
+                    @endif
                 </div>
             </div>
         </div>
@@ -385,6 +421,45 @@ function pfEdit(on, scrollId) {
     if (on && scrollId) { var el = document.getElementById(scrollId); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
     if (!on) { document.getElementById('pf-form').reset(); }
 }
+// "General" shows whatever pfEdit's own state already dictates (view or the edit form);
+// "Notifications" replaces both with its own panel. Always exits edit mode first so the two
+// tabs' content never both try to be visible at once (pf-editing's rules use !important).
+window.pfShowTab = function(tab) {
+    document.getElementById('pf-tab-general')?.classList.toggle('on', tab === 'general');
+    document.getElementById('pf-tab-notifications')?.classList.toggle('on', tab === 'notifications');
+    var notif = document.getElementById('pf-notifications');
+    var view  = document.getElementById('pf-view');
+    var org   = document.getElementById('pf-org');
+    if (tab === 'notifications') {
+        pfEdit(false);
+        if (notif) notif.style.display = 'block';
+        if (view) view.style.display = 'none';
+        if (org) org.style.display = 'none';
+    } else {
+        if (notif) notif.style.display = 'none';
+        if (view) view.style.display = '';
+        if (org) org.style.display = '';
+    }
+};
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.pf-notif-toggle').forEach(function(cb) {
+        cb.addEventListener('change', function() {
+            var payload = {};
+            document.querySelectorAll('.pf-notif-toggle').forEach(function(c) { payload[c.dataset.key] = c.checked ? 1 : 0; });
+            fetch('{{ route('profile.notifications') }}', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '', 'Accept': 'application/json' },
+                body: JSON.stringify(payload),
+            }).then(function(r) { return r.json(); }).then(function() {
+                var saved = document.getElementById('pf-notif-saved');
+                if (!saved) return;
+                saved.style.display = 'block';
+                clearTimeout(saved._t);
+                saved._t = setTimeout(function() { saved.style.display = 'none'; }, 2000);
+            }).catch(function() {});
+        });
+    });
+});
 if (location.hash === '#security') document.addEventListener('DOMContentLoaded', function(){ pfEdit(true,'pf-pass'); });
 // Only one field (select OR input) should carry the name at a time.
 function profFieldSwitch(selId, inputId, fieldName) {

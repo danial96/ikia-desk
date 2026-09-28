@@ -280,12 +280,12 @@
 
     // Move modals to body so position:fixed is never inside a transformed parent
     document.addEventListener('DOMContentLoaded', function() {
-        ['emp-add-modal','emp-edit-modal'].forEach(function(id) {
+        ['emp-add-modal','emp-edit-modal','emp-delete-modal'].forEach(function(id) {
             var m = document.getElementById(id);
             if (m && m.parentElement !== document.body) document.body.appendChild(m);
         });
         document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') { empAddClose(); empEditClose(); }
+            if (e.key === 'Escape') { empAddClose(); empEditClose(); empDeleteClose(); }
         });
     });
 
@@ -316,6 +316,44 @@
     window.empEditClose = function() {
         document.getElementById('emp-edit-modal').style.display = 'none';
     };
+
+    /* ── Delete employee (handover their tasks first) ── */
+    var _empHandoverList = null;
+    window.empDeleteOpen = function(id, name) {
+        var modal = document.getElementById('emp-delete-modal');
+        document.getElementById('emp-delete-form').action = '{{ url('/employees') }}/' + id + '/handover-delete';
+        document.getElementById('emp-delete-name').textContent = name;
+        var select = document.getElementById('emp-handover-select');
+        select.innerHTML = '<option value="">Loading…</option>';
+        select.disabled = true;
+        modal.style.display = 'flex';
+        (_empHandoverList ? Promise.resolve(_empHandoverList) : fetch('{{ url('/api/employees-list') }}').then(function(r){ return r.json(); }))
+            .then(function(list) {
+                _empHandoverList = list;
+                select.innerHTML = '<option value="">— Select an employee —</option>' +
+                    list.map(function(u) { return '<option value="' + u.id + '">' + u.name.replace(/</g,'&lt;') + '</option>'; }).join('');
+                select.disabled = false;
+            })
+            .catch(function() { select.innerHTML = '<option value="">Could not load employees</option>'; });
+    };
+    window.empDeleteClose = function() {
+        document.getElementById('emp-delete-modal').style.display = 'none';
+    };
+    document.addEventListener('DOMContentLoaded', function() {
+        var form = document.getElementById('emp-delete-form');
+        if (!form) return;
+        form.addEventListener('submit', function(e) {
+            var select = document.getElementById('emp-handover-select');
+            if (!select.value) {
+                e.preventDefault();
+                alert('Pick who their tasks should be handed over to.');
+                return;
+            }
+            if (!confirm('Delete ' + document.getElementById('emp-delete-name').textContent + '? Every task they own, are assigned to, or are a participant/observer on will move to the person you picked. This cannot be undone.')) {
+                e.preventDefault();
+            }
+        });
+    });
     </script>
 
     {{-- Add Employee Modal --}}
@@ -475,6 +513,25 @@
                 <div class="flex gap-3 pt-2">
                     <button type="button" onclick="empEditClose()" class="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg text-sm hover:bg-gray-50 transition">Cancel</button>
                     <button type="submit" class="flex-1 px-4 py-2.5 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {{-- Delete Employee Modal — handover their tasks first --}}
+    <div id="emp-delete-modal" style="display:none;position:fixed;inset:0;z-index:9999;align-items:center;justify-content:center;padding:16px;background:rgba(0,0,0,.5);overflow:hidden;" onclick="if(event.target===this)empDeleteClose()">
+        <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-6" onclick="event.stopPropagation()">
+            <h2 class="text-lg font-semibold mb-1 text-gray-900">Delete <span id="emp-delete-name"></span>?</h2>
+            <p class="text-sm text-gray-500 mb-5">Pick who takes over their tasks first — every task they own, are assigned to, or are a participant/observer on moves to this person, and each one gets a note recording the handover.</p>
+            <form id="emp-delete-form" method="POST">
+                @csrf
+                <label class="block text-sm font-medium text-gray-700 mb-1">Handover tasks to *</label>
+                <select id="emp-handover-select" name="handover_to" required class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 outline-none text-sm mb-5">
+                    <option value="">— Select an employee —</option>
+                </select>
+                <div class="flex gap-3">
+                    <button type="button" onclick="empDeleteClose()" class="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg text-sm hover:bg-gray-50 transition">Cancel</button>
+                    <button type="submit" class="flex-1 px-4 py-2.5 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 transition">Delete</button>
                 </div>
             </form>
         </div>
