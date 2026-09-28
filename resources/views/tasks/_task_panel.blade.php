@@ -1358,6 +1358,9 @@ function tpRenderLocal(data) {
             <input type="file" id="tp-file-input" style="display:none" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.zip"
                    onchange="uploadAndInsert('tp-comment-text','tp-file-input','tp-attach-preview')">
         </div>`;
+    // The composer above is rebuilt fresh every time a task opens, so the @mention listener
+    // (wired once at page load, when this textarea didn't exist yet) needs re-wiring each time.
+    if (window.mentionAttach) window.mentionAttach('tp-comment-text');
 }
 
 /* ─── Bitrix-style chips + composer state ─────────────── */
