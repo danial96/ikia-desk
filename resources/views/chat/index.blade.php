@@ -399,7 +399,8 @@ document.addEventListener('DOMContentLoaded', function() {
             const raw = textEl ? textEl.dataset.raw || '' : '';
             const senderName = row.dataset.mine === '1' ? 'You' : (row.dataset.sender || 'Someone');
             const preview = raw.replace(/\[img\].*?\[\/img\]/g,'[image]').replace(/\[file name="[^"]*"\].*?\[\/file\]/g,'[file]').replace(/\[voice[^\]]*\].*?\[\/voice\]/g,'[voice]').substring(0, 120);
-            _cpReplyQuote = `> ${raw.replace(/\[img\].*?\[\/img\]/g,'[image]').substring(0,80)}`;
+            _cpReplyToId = msgId;
+            _cpReplyPreview = {author: senderName, text: preview};
             document.getElementById('cp-reply-name').textContent = senderName;
             document.getElementById('cp-reply-text').textContent = preview;
             document.getElementById('cp-reply-bar').style.display = 'flex';
@@ -465,9 +466,10 @@ document.getElementById('cp-conv-ctx').addEventListener('click', async function(
 });
 
 /* ── Reply ── */
-let _cpReplyQuote = '';
+let _cpReplyToId = null, _cpReplyPreview = null;
 window.cpCancelReply = function() {
-    _cpReplyQuote = '';
+    _cpReplyToId = null;
+    _cpReplyPreview = null;
     document.getElementById('cp-reply-bar').style.display = 'none';
 };
 
@@ -542,9 +544,18 @@ function reactionBadge(reactions, myReactions, msgId) {
     return `<div id="cp-rxn-${msgId}" style="${pills ? 'display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;' : 'min-height:0;'}">${pills}</div>`;
 }
 
+function cpQuoteHtml(parentPreview, isMine) {
+    if (!parentPreview) return '';
+    const barColor = isMine ? '#5fa83c' : '#20a0e0';
+    return `<div style="border-left:3px solid ${barColor};padding:3px 8px;margin-bottom:5px;background:rgba(0,0,0,.04);border-radius:4px;overflow:hidden;">
+        <div style="font-size:12.5px;font-weight:600;color:${barColor};">${esc(parentPreview.author||'')}</div>
+        <div style="font-size:13px;color:rgba(0,0,0,.55);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(parentPreview.text||'')}</div>
+    </div>`;
+}
 function bubble(m) {
-    const {isMine, name, avatar, text, time, showName=true, msgId, editedAt, createdTs, isDeleted, reactions, myReactions} = m;
+    const {isMine, name, avatar, text, time, showName=true, msgId, editedAt, createdTs, isDeleted, reactions, myReactions, parentPreview} = m;
     const dataAttrs = msgId ? `data-msg-id="${msgId}" data-mine="${isMine?'1':'0'}" data-created-ts="${createdTs||0}" data-sender="${esc(name||'')}"` : '';
+    const quote = cpQuoteHtml(parentPreview, isMine);
 
     if (isDeleted) {
         const align = isMine ? 'flex-end' : 'flex-start';
@@ -569,6 +580,7 @@ function bubble(m) {
             ${actions}
             <div style="max-width:85%;min-width:0;">
                 <div class="cp-bubble-bg" style="background:#e3f9c9;border-radius:14px 4px 14px 14px;padding:10px 14px 7px;cursor:default;">
+                    ${quote}
                     <div data-msg-text data-raw="${esc(text)}" style="font-size:15.5px;color:#173a20;line-height:1.5;">${content}</div>
                     <div style="display:flex;align-items:center;justify-content:flex-end;gap:4px;margin-top:3px;">
                         ${editedHtml}<span style="font-size:11.5px;color:rgba(0,0,0,.4);">${time}</span>
@@ -591,6 +603,7 @@ function bubble(m) {
         <div style="max-width:85%;min-width:0;">
             ${nm}
             <div class="cp-bubble-bg" style="background:#ffffff;border-radius:4px 14px 14px 14px;padding:10px 14px 7px;cursor:default;">
+                ${quote}
                 <div data-msg-text data-raw="${esc(text)}" style="font-size:15.5px;color:#1e293b;line-height:1.5;">${content}</div>
                 <div style="display:flex;align-items:center;justify-content:flex-end;gap:2px;margin-top:3px;">
                     ${editedHtmlOther}<span style="font-size:11.5px;color:rgba(0,0,0,.4);">${time}</span>
@@ -656,10 +669,16 @@ function convAvatar(c, size, noDot) {
 }
 
 /* ── Load conversations ── */
+// cpLoad() is called from several places (the 3s poll, sending a message, selecting a conv…), so
+// calls can overlap and resolve out of order. This guard makes only the last call started ever
+// apply its result, so a slow, stale response can't overwrite fresher state and hide a notification.
+let _cpLoadSeq = 0;
 async function cpLoad() {
+    const mySeq = ++_cpLoadSeq;
     try {
         const r = await fetch(API_BASE + '/api/chat/convs');
         const d = await r.json();
+        if (mySeq !== _cpLoadSeq) return; // superseded by a newer call
         const prevUnread = _cpLoaded ? Object.fromEntries(_cpAllConvs.map(c => [c.id, c.unread || 0])) : null;
         _cpAllConvs = d.convs || [];
         _cpLoaded   = true;
@@ -835,7 +854,7 @@ function cpRenderMsgs(msgs, scrollToBottom) {
         html += bubble({isMine:m.isMine, name:m.author.name, avatar:m.author.avatar,
             text:m.text||'', time:m.time, showName, msgId:m.id,
             editedAt:m.editedAt, createdTs:m.createdTs, isDeleted,
-            reactions:m.reactions, myReactions:m.myReactions});
+            reactions:m.reactions, myReactions:m.myReactions, parentPreview:m.parentPreview});
         prevAuthor = m.author.id;
         _cpLastAuthorId = m.author.id;
     });
@@ -900,15 +919,15 @@ window.cpSend = async function() {
     ta.value = ''; ta.style.height = 'auto';
     if (window.clearAttachments) window.clearAttachments('cp-textarea', 'cp-attach-preview');
     if (typeof chatSendSound === 'function') chatSendSound();
-    const replyPrefix = _cpReplyQuote ? _cpReplyQuote + '\n\n' : '';
+    const replyToId = _cpReplyToId, replyPreview = _cpReplyPreview;
     cpCancelReply();
-    const fullText = replyPrefix + text + (attachTags ? (text ? '\n' : '') + attachTags : '');
+    const fullText = text + (attachTags ? (text ? '\n' : '') + attachTags : '');
     const now = new Date();
     const timeStr = now.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true,timeZone:'Asia/Karachi'}).toLowerCase();
     const el = document.getElementById('cp-msg-area');
     const _inner = document.getElementById('cp-msg-inner') || el;
 
-    _inner.insertAdjacentHTML('beforeend', bubble({isMine:true, name:'Me', avatar:'', text:fullText, time:timeStr, showName:false}));
+    _inner.insertAdjacentHTML('beforeend', bubble({isMine:true, name:'Me', avatar:'', text:fullText, time:timeStr, showName:false, parentPreview: replyPreview}));
     const _echo = _inner.lastElementChild;
     if (_echo) { _echo.dataset.local = '1'; _echo.dataset.echoText = fullText; }   // lets the poll recognise it instead of adding it twice
     el.scrollTop = el.scrollHeight;
@@ -918,7 +937,7 @@ window.cpSend = async function() {
         const r = await fetch(API_BASE + '/api/chat/convs/' + _cpActiveConvId + '/send', {
             method:'POST',
             headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF},
-            body: JSON.stringify({content:fullText}),
+            body: JSON.stringify({content:fullText, parent_id: replyToId}),
         });
         const d = await r.json();
         if (d.message?.id) {
@@ -1071,7 +1090,7 @@ function cpAppendMsgs(msgs) {
             text: m.text || '', time: m.time, showName: _cpConvType !== 'direct' && !m.isMine && _cpLastAuthorId !== m.author.id,
             msgId: m.id, editedAt: m.editedAt, createdTs: m.createdTs,
             isDeleted: Array.isArray(m.deletedFor) && m.deletedFor.includes(ME_ID),
-            reactions: m.reactions, myReactions: m.myReactions,
+            reactions: m.reactions, myReactions: m.myReactions, parentPreview: m.parentPreview,
         }));
         _cpLastAuthorId = m.author.id;
     });
@@ -1124,7 +1143,7 @@ async function cpLoadOlderMsgs() {
                 html += bubble({isMine:m.isMine, name:m.author.name, avatar:m.author.avatar,
                     text:m.text||'', time:m.time, showName, msgId:m.id,
                     editedAt:m.editedAt, createdTs:m.createdTs, isDeleted,
-                    reactions:m.reactions, myReactions:m.myReactions});
+                    reactions:m.reactions, myReactions:m.myReactions, parentPreview:m.parentPreview});
                 prevAuthor = m.author.id;
             });
 

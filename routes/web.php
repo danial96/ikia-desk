@@ -693,6 +693,10 @@ Route::middleware('auth')->group(function () {
 
         $afterId  = (int)($request->query('after', 0));
         $beforeTs = (int)($request->query('before_ts', 0));
+        $plainMsgSnippet = function (?string $t): string {
+            $t = preg_replace(['/\[img\].*?\[\/img\]/s', '/\[file name="[^"]*"\].*?\[\/file\]/s', '/\[voice[^\]]*\].*?\[\/voice\]/s'], ['[image]', '[file]', '[voice]'], (string) $t);
+            return mb_substr(trim(preg_replace('/\s+/u', ' ', $t)), 0, 100);
+        };
         $msgFmt   = fn($m) => [
             'id'        => $m->id,
             'text'      => $m->content,
@@ -705,6 +709,8 @@ Route::middleware('auth')->group(function () {
             'reactions' => $m->reactions ?? [],
             'myReactions'=> array_keys(array_filter($m->reactions ?? [], fn($ids) => in_array($user->id, (array)$ids))),
             'author'    => ['id'=>$m->user_id,'name'=>$m->user?->name??'','avatar'=>$m->user?->avatar_url??''],
+            'parentId'  => $m->parent_id,
+            'parentPreview' => $m->parent ? ['author' => $m->parent->user?->name ?? '', 'text' => $plainMsgSnippet($m->parent->content)] : null,
         ];
 
         $other = $conv->type === 'direct' ? $conv->members->where('id', '!=', $user->id)->first() : null;
@@ -715,7 +721,7 @@ Route::middleware('auth')->group(function () {
 
         if ($afterId > 0) {
             // Incremental poll — only new messages after given ID
-            $msgs = $conv->messages()->with('user')->reorder()->where('id','>',$afterId)->orderBy('id')->limit(50)->get();
+            $msgs = $conv->messages()->with(['user','parent.user'])->reorder()->where('id','>',$afterId)->orderBy('id')->limit(50)->get();
             if ($msgs->isNotEmpty()) {
                 \App\Models\ConversationMember::where('conversation_id',$conv->id)->where('user_id',$user->id)
                     ->update(['last_read_at'=>now()]);
@@ -728,7 +734,7 @@ Route::middleware('auth')->group(function () {
             // Fetch limit+1 to detect whether more exist without a separate COUNT query
             $beforeDt = \Carbon\Carbon::createFromTimestamp($beforeTs, config('app.timezone'));   // same zone the rows are stored in
             $beforeId = (int) $request->query('before_id', 0);
-            $raw = $conv->messages()->with('user')->reorder()
+            $raw = $conv->messages()->with(['user','parent.user'])->reorder()
                         ->where(function ($q) use ($beforeDt, $beforeId) {
                             $q->where('created_at', '<', $beforeDt);
                             // same-second messages (bulk imports): continue by id so none are skipped
@@ -746,7 +752,7 @@ Route::middleware('auth')->group(function () {
         // Full load — latest 50 messages by created_at (reorder() clears the relationship's default ASC scope)
         \App\Models\ConversationMember::where('conversation_id',$conv->id)->where('user_id',$user->id)
             ->update(['last_read_at'=>now()]);
-        $raw   = $conv->messages()->with('user')->reorder()->latest('created_at')->limit(51)->get();
+        $raw   = $conv->messages()->with(['user','parent.user'])->reorder()->latest('created_at')->limit(51)->get();
         $hasMore = $raw->count() > 50;
         $msgs  = $raw->take(50)->sortBy(fn($m) => $m->created_at->timestamp)->values();
         $online = $other && $other->last_seen_at && $other->last_seen_at->diffInMinutes(now()) < 5;
@@ -830,6 +836,7 @@ Route::middleware('auth')->group(function () {
             'content'     => 'required|string|max:5000',
             'mentions'    => 'nullable|array',
             'mentions.*'  => 'integer',
+            'parent_id'   => 'nullable|integer',
         ]);
         $user = auth()->user();
         $conv = \App\Models\Conversation::with('members')->findOrFail($id);
@@ -844,22 +851,37 @@ Route::middleware('auth')->group(function () {
         $mentions = array_values(array_intersect(array_map('intval', (array) $request->mentions), $memberIds));
         if ($conv->type === 'notes') $mentions = [];
 
-        $msg = $conv->messages()->create(['user_id'=>$user->id,'content'=>$request->content,'mentions'=>$mentions]);
+        // A reply's parent must be a real message in this same conversation, never trust the client blindly.
+        $parent = $request->filled('parent_id') ? $conv->messages()->find($request->parent_id) : null;
+
+        $msg = $conv->messages()->create(['user_id'=>$user->id,'content'=>$request->content,'mentions'=>$mentions,'parent_id'=>$parent?->id]);
         \App\Models\ConversationMember::where('conversation_id',$conv->id)->where('user_id',$user->id)
             ->update(['last_read_at'=>now()]);
 
+        $convName = $conv->type === 'general' ? 'General Chat'
+            : ($conv->type === 'group' ? ($conv->name ?? 'a group') : 'a chat');
+
         if ($mentions) {
-            $convName = $conv->type === 'general' ? 'General Chat'
-                : ($conv->type === 'group' ? ($conv->name ?? 'a group') : 'a chat');
             \App\Models\Notification::mention($mentions, $user,
                 $user->name . ' mentioned you in ' . $convName);
         }
+        if ($parent && $parent->user_id !== $user->id && !in_array($parent->user_id, $mentions)) {
+            \App\Models\Notification::mention([$parent->user_id], $user,
+                $user->name . ' replied to you in ' . $convName);
+        }
+
+        $plainMsgSnippet = function (?string $t): string {
+            $t = preg_replace(['/\[img\].*?\[\/img\]/s', '/\[file name="[^"]*"\].*?\[\/file\]/s', '/\[voice[^\]]*\].*?\[\/voice\]/s'], ['[image]', '[file]', '[voice]'], (string) $t);
+            return mb_substr(trim(preg_replace('/\s+/u', ' ', $t)), 0, 100);
+        };
 
         return response()->json(['ok'=>true,'message'=>[
             'id'=>$msg->id,'text'=>$msg->content,'isMine'=>true,
             'time'=>$msg->created_at->format('g:i a'),'date'=>$msg->created_at->format('Y-m-d'),
             'createdTs'=>$msg->created_at->timestamp,'editedAt'=>null,
             'author'=>['id'=>$user->id,'name'=>$user->name,'avatar'=>$user->avatar_url],
+            'parentId'=>$parent?->id,
+            'parentPreview'=>$parent ? ['author'=>$parent->user?->name??'', 'text'=>$plainMsgSnippet($parent->content)] : null,
         ]]);
     });
 

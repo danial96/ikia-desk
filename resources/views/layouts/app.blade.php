@@ -990,10 +990,17 @@ window.chatClose = function() {
 };
 
 /* ── Conversations ── */
+// Two independent timers call this (the 3s foreground poll and the 15s background one), so calls
+// can overlap and resolve out of order. A monotonic sequence number makes only the LAST call started
+// ever apply its result — an older one resolving late is discarded instead of overwriting fresher
+// state with stale data, which used to occasionally suppress a real notification.
+let _chatLoadSeq = 0;
 async function chatLoadConvs() {
+    const mySeq = ++_chatLoadSeq;
     try {
         const r = await fetch(API_BASE + '/api/chat/convs');
         const d = await r.json();
+        if (mySeq !== _chatLoadSeq) return; // superseded by a newer call — its result already applied
         const isFirstLoad = !_chatBaselineSet;
         const prevUnread = Object.fromEntries(_allConvs.map(c => [c.id, c.unread || 0]));
         _allConvs = d.convs || [];
@@ -1321,7 +1328,7 @@ function chatRenderMsgs(msgs) {
         }
 
         const showName = _chatConvType !== 'direct' && !m.isMine && prevAuthorId !== m.author.id;
-        html += chatBubble({isMine: m.isMine, name: m.author.name, avatar: m.author.avatar, text: m.text, time: m.time, showName, msgId: m.id, createdTs: m.createdTs||0, reactions: m.reactions, myReactions: m.myReactions});
+        html += chatBubble({isMine: m.isMine, name: m.author.name, avatar: m.author.avatar, text: m.text, time: m.time, showName, msgId: m.id, createdTs: m.createdTs||0, reactions: m.reactions, myReactions: m.myReactions, parentId: m.parentId, parentPreview: m.parentPreview});
         prevAuthorId = m.author.id;
         _chatLastAuthor = m.author.id;
     });
@@ -1393,8 +1400,17 @@ function chatRxnBadge(reactions, myReactions, msgId) {
     return `<div id="chat-rxn-${msgId}" style="${pills ? 'display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;' : 'min-height:0;'}">${pills}</div>`;
 }
 
-function chatBubble({isMine, name, avatar, text, time, showName=true, msgId=null, createdTs=0, reactions=null, myReactions=null}) {
+function chatQuoteHtml(parentPreview, isMine) {
+    if (!parentPreview) return '';
+    const barColor = isMine ? '#5fa83c' : '#20a0e0';
+    return `<div style="border-left:3px solid ${barColor};padding:3px 8px;margin-bottom:5px;background:rgba(0,0,0,.04);border-radius:4px;overflow:hidden;">
+        <div style="font-size:12.5px;font-weight:600;color:${barColor};">${escH(parentPreview.author||'')}</div>
+        <div style="font-size:13px;color:rgba(0,0,0,.55);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escH(parentPreview.text||'')}</div>
+    </div>`;
+}
+function chatBubble({isMine, name, avatar, text, time, showName=true, msgId=null, createdTs=0, reactions=null, myReactions=null, parentId=null, parentPreview=null}) {
     const content = renderMsgContent(text, isMine);
+    const quote = chatQuoteHtml(parentPreview, isMine);
     if (isMine) {
         const rawEsc = text.replace(/&/g,'&amp;').replace(/"/g,'&quot;');
         const actions = msgId ? `<div class="chat-msg-actions">
@@ -1406,6 +1422,7 @@ function chatBubble({isMine, name, avatar, text, time, showName=true, msgId=null
             ${actions}
             <div style="max-width:85%;min-width:0;">
                 <div class="chat-bubble-bg" style="background:#e3f9c9;border-radius:14px 4px 14px 14px;padding:10px 14px 7px;">
+                    ${quote}
                     <div data-raw="${rawEsc}" style="font-size:15.5px;color:#173a20;line-height:1.5;">${content}</div>
                     <div style="display:flex;align-items:center;justify-content:flex-end;gap:4px;margin-top:3px;">
                         <span style="font-size:11.5px;color:rgba(0,0,0,.4);">${time}</span>
@@ -1433,6 +1450,7 @@ function chatBubble({isMine, name, avatar, text, time, showName=true, msgId=null
             <div style="max-width:85%;min-width:0;">
                 ${nameHtml}
                 <div class="chat-bubble-bg" style="background:#fff;border-radius:4px 14px 14px 14px;padding:10px 14px 7px;">
+                    ${quote}
                     <div style="font-size:15.5px;color:#1e293b;line-height:1.5;">${content}</div>
                     <span style="font-size:11.5px;color:rgba(0,0,0,.4);display:block;margin-top:3px;text-align:right;">${time}</span>
                 </div>
@@ -1499,9 +1517,10 @@ window.chatLikeClick = async function(e, btn, msgId, emoji) {
     } catch(err) {}
     if (btn) btn.style.opacity = '';
 };
-let _chatReplyQuote = '';
+let _chatReplyToId = null, _chatReplyPreview = null;
 window.chatCancelReply = function() {
-    _chatReplyQuote = '';
+    _chatReplyToId = null;
+    _chatReplyPreview = null;
     document.getElementById('chat-reply-bar').style.display = 'none';
 };
 window.chatCtxReply = function() {
@@ -1511,7 +1530,8 @@ window.chatCtxReply = function() {
     const raw = row ? (row.querySelector('[data-raw]')?.dataset.raw || '') : '';
     const senderName = row?.dataset.mine === '1' ? 'You' : (row?.dataset.sender || 'Someone');
     const preview = raw.replace(/\[img\].*?\[\/img\]/g,'[image]').replace(/\[file name="[^"]*"\].*?\[\/file\]/g,'[file]').replace(/\[voice[^\]]*\].*?\[\/voice\]/g,'[voice]').substring(0,100);
-    _chatReplyQuote = `> ${raw.replace(/\[img\].*?\[\/img\]/g,'[image]').substring(0,80)}`;
+    _chatReplyToId = _chatCtxMsgId;
+    _chatReplyPreview = {author: senderName, text: preview};
     document.getElementById('chat-reply-name').textContent = senderName;
     document.getElementById('chat-reply-text').textContent = preview;
     document.getElementById('chat-reply-bar').style.display = 'flex';
@@ -1625,16 +1645,16 @@ window.chatSend = async function() {
     if (window.clearAttachments) window.clearAttachments('chat-textarea', 'chat-attach-preview');
     chatSendSound();
 
-    const replyPrefix = _chatReplyQuote ? _chatReplyQuote + '\n\n' : '';
+    const replyToId = _chatReplyToId, replyPreview = _chatReplyPreview;
     chatCancelReply();
-    const fullText = replyPrefix + text + (attachTags ? (text ? '\n' : '') + attachTags : '');
+    const fullText = text + (attachTags ? (text ? '\n' : '') + attachTags : '');
 
     // Optimistic render
     const now = new Date();
     const timeStr = now.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true,timeZone:'Asia/Karachi'}).toLowerCase();
     const el = document.getElementById('chat-msg-area');
     const _cInner = document.getElementById('chat-msg-inner') || el;
-    _cInner.insertAdjacentHTML('beforeend', chatBubble({isMine:true, name:'Me', avatar:'', text: fullText, time:timeStr, showName:false}));
+    _cInner.insertAdjacentHTML('beforeend', chatBubble({isMine:true, name:'Me', avatar:'', text: fullText, time:timeStr, showName:false, parentPreview: replyPreview}));
     const _cEcho = _cInner.lastElementChild;
     if (_cEcho) { _cEcho.dataset.local = '1'; _cEcho.dataset.echoText = fullText; }   // lets the poll recognise it instead of adding it twice
     el.scrollTop = el.scrollHeight;
@@ -1643,7 +1663,7 @@ window.chatSend = async function() {
         const r = await fetch(API_BASE + '/api/chat/convs/' + _activeConvId + '/send', {
             method: 'POST',
             headers: {'Content-Type':'application/json','X-CSRF-TOKEN':CSRF},
-            body: JSON.stringify({content: fullText, mentions}),
+            body: JSON.stringify({content: fullText, mentions, parent_id: replyToId}),
         });
         const d = await r.json();
         // Advance _lastMsgId so the next poll skips this just-sent message
@@ -2121,7 +2141,7 @@ async function chatLoadOlder() {
                     prevDate = m.date; prevAuthorId = null;
                 }
                 const showName = _chatConvType !== 'direct' && !m.isMine && prevAuthorId !== m.author.id;
-                html += chatBubble({isMine: m.isMine, name: m.author.name, avatar: m.author.avatar, text: m.text, time: m.time, showName, msgId: m.id, createdTs: m.createdTs||0, reactions: m.reactions, myReactions: m.myReactions});
+                html += chatBubble({isMine: m.isMine, name: m.author.name, avatar: m.author.avatar, text: m.text, time: m.time, showName, msgId: m.id, createdTs: m.createdTs||0, reactions: m.reactions, myReactions: m.myReactions, parentId: m.parentId, parentPreview: m.parentPreview});
                 prevAuthorId = m.author.id;
             });
             const tmp = document.createElement('div'); tmp.innerHTML = html;
@@ -2176,7 +2196,7 @@ function chatAppendMsgs(msgs) {
         inner.insertAdjacentHTML('beforeend', chatBubble({
             isMine: m.isMine, name: m.author.name, avatar: m.author.avatar,
             text: m.text, time: m.time, showName: _chatConvType !== 'direct' && !m.isMine && _chatLastAuthor !== m.author.id, msgId: m.id, createdTs: m.createdTs||0,
-            reactions: m.reactions, myReactions: m.myReactions,
+            reactions: m.reactions, myReactions: m.myReactions, parentId: m.parentId, parentPreview: m.parentPreview,
         }));
         _chatLastAuthor = m.author.id;
     });
