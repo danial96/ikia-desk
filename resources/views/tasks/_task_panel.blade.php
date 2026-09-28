@@ -592,6 +592,7 @@ const sec = html =>
 /* ─── skeleton ─────────────────────────────────────────── */
 function tpSkeleton() {
     const mp = document.getElementById('tp-members-panel'); if (mp) mp.style.display = 'none';
+    const tpr = document.getElementById('tp-right'); if (tpr) tpr.style.paddingRight = '';
     $('tp-title').textContent=''; $('tp-task-id').textContent=''; $('tp-source-badge').innerHTML='';
     $('tp-left-body').innerHTML=[60,100,45,80,70,55].map(w=>
         `<div style="padding:16px 0;border-bottom:1px solid #f1f3f5;display:flex;flex-direction:column;gap:8px;">
@@ -1138,10 +1139,16 @@ function tpMembersList(data) {
 }
 window.tpToggleMembersPanel = function() {
     const panel = document.getElementById('tp-members-panel');
-    if (!panel) return;
+    const right = document.getElementById('tp-right');
+    if (!panel || !right) return;
     const opening = panel.style.display !== 'flex';
     if (opening && window._tpCurrentData) tpRenderMembersPanel(window._tpCurrentData);
     panel.style.display = opening ? 'flex' : 'none';
+    // Docked, not overlaid — same technique as the regular chat's Search/About side panels
+    // (dockSidePanel): reserve the space with padding so the chat column actually narrows
+    // instead of the panel just floating on top of the messages.
+    right.style.transition = 'padding-right .18s ease';
+    right.style.paddingRight = opening ? '280px' : '';
 };
 function tpRenderMembersPanel(data) {
     const people = tpMembersList(data);
