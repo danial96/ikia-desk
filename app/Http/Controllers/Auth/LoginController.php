@@ -43,6 +43,9 @@ class LoginController extends Controller
                 return back()->withErrors(['email' => 'Your account has been deactivated.']);
             }
             $request->session()->regenerate();
+            // last_login_at was only ever set once, at Bitrix import time — it never reflected an
+            // actual desk login, so the "Last Login" shown on the profile was permanently stale.
+            Auth::user()->forceFill(['last_login_at' => now()])->save();
             return redirect()->intended($this->landing());
         }
 
