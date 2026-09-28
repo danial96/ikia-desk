@@ -63,7 +63,11 @@ class ProfileController extends Controller
 
         $request->validate([
             'name'           => 'required|string|max:255',
-            'email'          => 'required|email|unique:users,email,'.$user->id,
+            // The email field is only rendered (name="email") for users allowed to edit it
+            // ($canEditOrg — admins); everyone else sees a read-only div, so it's simply absent
+            // from the request. "sometimes" skips validation when absent instead of failing with
+            // "email is required" on every profile save for non-admin users.
+            'email'          => 'sometimes|required|email|unique:users,email,'.$user->id,
             'phone'          => 'nullable|string|max:30',
             'work_phone'     => 'nullable|string|max:30',
             'personal_phone' => 'nullable|string|max:30',
@@ -84,6 +88,12 @@ class ProfileController extends Controller
             'work_email','position','department','skype',
             'gender','birthday','hired_date','time_zone',
         ]);
+
+        // email/position/department are only shown as editable inputs to admins ($canEditOrg in
+        // the view); strip them here too in case a non-admin crafts the request directly.
+        if (!Auth::user()->isAdmin()) {
+            unset($data['email'], $data['position'], $data['department']);
+        }
 
         if ($request->filled('password')) {
             $data['password'] = Hash::make($request->password);
