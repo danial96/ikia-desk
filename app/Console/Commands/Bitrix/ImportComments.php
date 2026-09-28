@@ -159,7 +159,7 @@ class ImportComments extends BitrixCommand
 
             // withTrashed(): don't create a duplicate for a comment someone deleted locally
             // after it was imported; 'deleted_at' isn't in the payload so it stays deleted.
-            TaskComment::withTrashed()->updateOrCreate(
+            $comment = TaskComment::withTrashed()->updateOrCreate(
                 ['bitrix_id' => $bitrixMsgId],
                 [
                     'task_id'    => $task->id,
@@ -167,10 +167,9 @@ class ImportComments extends BitrixCommand
                     'content'    => $text,
                     'is_system'  => $isSystem,
                     'files'      => $fileIds ?: null,
-                    'created_at' => $date ?? now(),
-                    'updated_at' => $date ?? now(),
                 ]
             );
+            $this->stampRealDate($comment, $date);
             $count++;
         }
 
@@ -205,7 +204,7 @@ class ImportComments extends BitrixCommand
 
             // withTrashed(): don't create a duplicate for a comment someone deleted locally
             // after it was imported; 'deleted_at' isn't in the payload so it stays deleted.
-            TaskComment::withTrashed()->updateOrCreate(
+            $comment = TaskComment::withTrashed()->updateOrCreate(
                 ['bitrix_id' => $bitrixCommentId],
                 [
                     'task_id'    => $task->id,
@@ -213,14 +212,22 @@ class ImportComments extends BitrixCommand
                     'content'    => $text,
                     'is_system'  => false,
                     'files'      => $fileIds ?: null,
-                    'created_at' => $date ?? now(),
-                    'updated_at' => $date ?? now(),
                 ]
             );
+            // created_at/updated_at aren't mass-assignable, so the block above silently drops them and
+            // Eloquent stamps "now" instead — write Bitrix's real date directly, bypassing the guard.
+            $this->stampRealDate($comment, $date);
             $count++;
         }
 
         return $count;
+    }
+
+    /** created_at/updated_at are guarded on TaskComment, so updateOrCreate() can't set them — write them directly. */
+    private function stampRealDate(TaskComment $comment, ?string $date): void
+    {
+        if (!$date) return;
+        \DB::table('task_comments')->where('id', $comment->id)->update(['created_at' => $date, 'updated_at' => $date]);
     }
 
     /** Handle ATTACHED_OBJECTS from old-style forum comments */
