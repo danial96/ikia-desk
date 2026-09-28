@@ -730,6 +730,11 @@ Route::middleware('auth')->group(function () {
             ? \App\Models\ConversationMember::where('conversation_id', $conv->id)->where('user_id', $other->id)->value('last_read_at')
             : null;
         $otherLastReadTs = $otherLastReadTs ? \Carbon\Carbon::parse($otherLastReadTs)->timestamp : null;
+        // "Delivered" (WhatsApp-style double grey tick, before the recipient has actually opened
+        // this conversation): there's no push/ack channel here, so the best available signal is
+        // the recipient's own last_seen_at heartbeat — updated on every poll their browser makes,
+        // regardless of which conversation (if any) they currently have open.
+        $otherLastSeenTs = $other?->last_seen_at?->timestamp;
 
         if ($afterId > 0) {
             // Incremental poll — only new messages after given ID
@@ -738,7 +743,7 @@ Route::middleware('auth')->group(function () {
                 \App\Models\ConversationMember::where('conversation_id',$conv->id)->where('user_id',$user->id)
                     ->update(['last_read_at'=>now()]);
             }
-            return response()->json(['messages' => $msgs->map($msgFmt)->values(), 'otherLastReadTs' => $otherLastReadTs]);
+            return response()->json(['messages' => $msgs->map($msgFmt)->values(), 'otherLastReadTs' => $otherLastReadTs, 'otherLastSeenTs' => $otherLastSeenTs]);
         }
 
         if ($beforeTs > 0) {
@@ -780,6 +785,7 @@ Route::middleware('auth')->group(function () {
             'messages'       => $msgs->map($msgFmt),
             'hasMore'        => $hasMore,
             'otherLastReadTs'=> $otherLastReadTs,
+            'otherLastSeenTs'=> $otherLastSeenTs,
         ]);
     });
 

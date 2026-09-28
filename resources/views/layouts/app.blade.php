@@ -938,6 +938,32 @@ let _chatConvType = '', _chatLastAuthor = 0;
 let _chatHasMore = false, _chatFirstTs = 0, _chatFirstId = 0, _chatLoadingOlder = false;   // sender names are only shown in group chats
 const ME_ID = {{ auth()->id() }};
 
+let _chatOtherLastReadTs = 0, _chatOtherLastSeenTs = 0;
+/* WhatsApp-style tick: single grey = sent, double grey = delivered (their client has polled
+   since this was sent, via last_seen_at — the closest signal available without websockets),
+   double blue = they've actually opened this conversation since (last_read_at). Groups/general/
+   notes have no single "other" party to track, so they just get the delivered-style double tick. */
+function chatTickHtml(createdTs) {
+    let icon = 'fa-check', color = 'rgba(0,0,0,.35)';
+    if (_chatConvType !== 'direct') {
+        icon = 'fa-check-double'; color = 'rgba(0,120,80,.5)';
+    } else if (_chatOtherLastReadTs && createdTs && createdTs <= _chatOtherLastReadTs) {
+        icon = 'fa-check-double'; color = '#0ea5e9';
+    } else if (_chatOtherLastSeenTs && createdTs && createdTs <= _chatOtherLastSeenTs) {
+        icon = 'fa-check-double'; color = 'rgba(0,120,80,.5)';
+    }
+    return `<i class="fas ${icon} chat-tick" data-created-ts="${createdTs||0}" style="font-size:9px;color:${color};"></i>`;
+}
+function chatUpdateSeen() {
+    if (_chatConvType !== 'direct') return;
+    const inner = document.getElementById('chat-msg-inner');
+    if (!inner) return;
+    inner.querySelectorAll('.chat-tick').forEach(el => {
+        const ts = parseInt(el.dataset.createdTs || '0');
+        el.outerHTML = chatTickHtml(ts);
+    });
+}
+
 /* ── Open / Close ── */
 window.chatToggle = function() {
     // On full-page Messenger, don't open popup — navigate there if needed
@@ -1273,6 +1299,8 @@ window.chatSelectConv = async function(id) {
         // Update header
         const conv = d.conv;
         chatUpdateHeader(conv);
+        _chatOtherLastReadTs = d.otherLastReadTs || 0;
+        _chatOtherLastSeenTs = d.otherLastSeenTs || 0;
         const msgs = d.messages || [];
         _chatHasMore = !!d.hasMore; _chatLoadingOlder = false;
         if (msgs.length) {
@@ -1453,7 +1481,7 @@ function chatBubble({isMine, name, avatar, text, time, showName=true, msgId=null
                     <div data-raw="${rawEsc}" style="font-size:15.5px;color:#173a20;line-height:1.5;">${content}</div>
                     <div style="display:flex;align-items:center;justify-content:flex-end;gap:4px;margin-top:3px;">
                         <span style="font-size:11.5px;color:rgba(0,0,0,.4);">${time}</span>
-                        <i class="fas fa-check-double" style="font-size:9px;color:rgba(0,120,80,.5);"></i>
+                        ${chatTickHtml(createdTs)}
                     </div>
                 </div>
                 ${MsgUX.dlAllHtml(text)}
@@ -1696,7 +1724,13 @@ window.chatSend = async function() {
         // Advance _lastMsgId so the next poll skips this just-sent message
         if (d.message?.id) {
             _lastMsgId = Math.max(_lastMsgId, d.message.id);
-            if (_cEcho && _cEcho.dataset.local === '1') { _cEcho.dataset.msgId = d.message.id; _cEcho.dataset.mine = '1'; _cEcho.dataset.createdTs = d.message.createdTs || ''; delete _cEcho.dataset.local; }
+            if (_cEcho && _cEcho.dataset.local === '1') {
+                _cEcho.dataset.msgId = d.message.id; _cEcho.dataset.mine = '1'; _cEcho.dataset.createdTs = d.message.createdTs || ''; delete _cEcho.dataset.local;
+                // The tick was rendered with no createdTs (message wasn't confirmed yet), so it can
+                // never register as delivered/seen until this catches it up to the real value.
+                const tick = _cEcho.querySelector('.chat-tick');
+                if (tick && d.message.createdTs) tick.outerHTML = chatTickHtml(d.message.createdTs);
+            }
         }
         chatLoadConvs(); // refresh conv list for last message
     } catch(e) {}
@@ -2197,6 +2231,11 @@ async function chatPoll() {
                   + (_lastMsgId ? '?after=' + _lastMsgId : '');
         const r = await fetch(url);
         const d = await r.json();
+        if ((d.otherLastReadTs && d.otherLastReadTs !== _chatOtherLastReadTs) || (d.otherLastSeenTs && d.otherLastSeenTs !== _chatOtherLastSeenTs)) {
+            _chatOtherLastReadTs = d.otherLastReadTs || _chatOtherLastReadTs;
+            _chatOtherLastSeenTs = d.otherLastSeenTs || _chatOtherLastSeenTs;
+            chatUpdateSeen();
+        }
         const msgs = d.messages || [];
         if (!msgs.length) return;
         if (_lastMsgId === 0) {
@@ -2804,13 +2843,25 @@ window.vnSend = function(panel) {
                 const el  = document.getElementById('chat-msg-area');
                 const now = new Date();
                 const ts  = now.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true,timeZone:'Asia/Karachi'}).toLowerCase();
-                (document.getElementById('chat-msg-inner') || el).insertAdjacentHTML('beforeend', chatBubble({isMine:true, name:'Me', avatar:'', text:tag, time:ts, showName:false}));
+                const _inner3 = document.getElementById('chat-msg-inner') || el;
+                _inner3.insertAdjacentHTML('beforeend', chatBubble({isMine:true, name:'Me', avatar:'', text:tag, time:ts, showName:false}));
+                const _echo3 = _inner3.lastElementChild;
+                if (_echo3) { _echo3.dataset.local = '1'; _echo3.dataset.echoText = tag; }
                 el.scrollTop = el.scrollHeight;
-                await fetch(API_BASE + '/api/chat/convs/' + _activeConvId + '/send', {
+                const r3 = await fetch(API_BASE + '/api/chat/convs/' + _activeConvId + '/send', {
                     method: 'POST',
                     headers: {'Content-Type':'application/json','X-CSRF-TOKEN':CSRF},
                     body: JSON.stringify({content: tag}),
                 });
+                const d3 = await r3.json();
+                if (d3.message?.id) {
+                    _lastMsgId = Math.max(_lastMsgId, d3.message.id);
+                    if (_echo3 && _echo3.dataset.local === '1') {
+                        _echo3.dataset.msgId = d3.message.id; _echo3.dataset.mine = '1'; _echo3.dataset.createdTs = d3.message.createdTs || ''; delete _echo3.dataset.local;
+                        const tick3 = _echo3.querySelector('.chat-tick');
+                        if (tick3 && d3.message.createdTs) tick3.outerHTML = chatTickHtml(d3.message.createdTs);
+                    }
+                }
                 chatLoadConvs();
             } else if (panel === 'cp' && window.cpSendRaw) {
                 await window.cpSendRaw(tag);

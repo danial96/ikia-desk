@@ -274,7 +274,22 @@ let _cpLoadingOlder = false;
 let _cpLoaded       = false;
 let _cpSelecting      = false;
 let _cpSending        = false;
-let _cpOtherLastReadTs = 0;
+let _cpOtherLastReadTs = 0, _cpOtherLastSeenTs = 0;
+/* WhatsApp-style tick: single grey = sent, double grey = delivered (their client has polled
+   since this was sent, via last_seen_at — the closest signal available without websockets),
+   double blue = they've actually opened this conversation since (last_read_at). Groups/general/
+   notes have no single "other" party to track, so they just get the delivered-style double tick. */
+function cpTickHtml(createdTs) {
+    let icon = 'fa-check', color = 'rgba(0,0,0,.35)';
+    if (_cpConvType !== 'direct') {
+        icon = 'fa-check-double'; color = 'rgba(0,140,90,.6)';
+    } else if (_cpOtherLastReadTs && createdTs && createdTs <= _cpOtherLastReadTs) {
+        icon = 'fa-check-double'; color = '#0ea5e9';
+    } else if (_cpOtherLastSeenTs && createdTs && createdTs <= _cpOtherLastSeenTs) {
+        icon = 'fa-check-double'; color = 'rgba(0,140,90,.6)';
+    }
+    return `<i class="fas ${icon} cp-tick" data-created-ts="${createdTs||0}" style="font-size:9px;color:${color};"></i>`;
+}
 let _cpConvType       = '';
 let _cpLastAuthorId   = 0;
 
@@ -584,7 +599,7 @@ function bubble(m) {
                     <div data-msg-text data-raw="${esc(text)}" style="font-size:15.5px;color:#173a20;line-height:1.5;">${content}</div>
                     <div style="display:flex;align-items:center;justify-content:flex-end;gap:4px;margin-top:3px;">
                         ${editedHtml}<span style="font-size:11.5px;color:rgba(0,0,0,.4);">${time}</span>
-                        <i class="fas fa-check-double" style="font-size:9px;color:rgba(0,140,90,.6);"></i>
+                        ${cpTickHtml(createdTs)}
                     </div>
                 </div>
                 ${MsgUX.dlAllHtml(text)}
@@ -764,6 +779,7 @@ window.cpSelect = async function(id) {
         cpUpdateHeader(d.conv);
         _cpConvType = d.conv?.type || '';
         _cpOtherLastReadTs = d.otherLastReadTs || 0;
+        _cpOtherLastSeenTs = d.otherLastSeenTs || 0;
         const _initMsgs = d.messages || [];
         _cpHasMore = !!d.hasMore;
         cpRenderMsgs(_initMsgs, true);
@@ -942,7 +958,13 @@ window.cpSend = async function() {
         const d = await r.json();
         if (d.message?.id) {
             _cpLastMsgId = Math.max(_cpLastMsgId, d.message.id);
-            if (_echo && _echo.dataset.local === '1') { _echo.dataset.msgId = d.message.id; _echo.dataset.mine = '1'; _echo.dataset.createdTs = d.message.createdTs || ''; delete _echo.dataset.local; }
+            if (_echo && _echo.dataset.local === '1') {
+                _echo.dataset.msgId = d.message.id; _echo.dataset.mine = '1'; _echo.dataset.createdTs = d.message.createdTs || ''; delete _echo.dataset.local;
+                // The tick was rendered with no createdTs (message wasn't confirmed yet), so it can
+                // never register as delivered/seen until this catches it up to the real value.
+                const tick = _echo.querySelector('.cp-tick');
+                if (tick && d.message.createdTs) tick.outerHTML = cpTickHtml(d.message.createdTs);
+            }
         }
         cpLoad();
     } catch(e) {} finally { _cpSending = false; }
@@ -957,6 +979,8 @@ window.cpSendRaw = async function(tag) {
     const _inner2 = document.getElementById('cp-msg-inner') || el;
     _inner2.style.paddingTop = '0';
     _inner2.insertAdjacentHTML('beforeend', bubble({isMine:true, name:'Me', avatar:'', text:tag, time:timeStr, showName:false}));
+    const _echo2 = _inner2.lastElementChild;
+    if (_echo2) { _echo2.dataset.local = '1'; _echo2.dataset.echoText = tag; }
     el.scrollTop = el.scrollHeight;
     _cpMsgCount++;
     _cpSending = true;
@@ -966,7 +990,14 @@ window.cpSendRaw = async function(tag) {
             body: JSON.stringify({content:tag}),
         });
         const d2 = await r2.json();
-        if (d2.message?.id) _cpLastMsgId = Math.max(_cpLastMsgId, d2.message.id);
+        if (d2.message?.id) {
+            _cpLastMsgId = Math.max(_cpLastMsgId, d2.message.id);
+            if (_echo2 && _echo2.dataset.local === '1') {
+                _echo2.dataset.msgId = d2.message.id; _echo2.dataset.mine = '1'; _echo2.dataset.createdTs = d2.message.createdTs || ''; delete _echo2.dataset.local;
+                const tick2 = _echo2.querySelector('.cp-tick');
+                if (tick2 && d2.message.createdTs) tick2.outerHTML = cpTickHtml(d2.message.createdTs);
+            }
+        }
         cpLoad();
     } catch(e) {} finally { _cpSending = false; }
 };
@@ -1038,8 +1069,9 @@ function cpPoll() {
               + (_cpLastMsgId ? '?after=' + _cpLastMsgId : '');
     fetch(url).then(r=>r.json()).then(d => {
         const msgs = d.messages || [];
-        if (d.otherLastReadTs && d.otherLastReadTs !== _cpOtherLastReadTs) {
-            _cpOtherLastReadTs = d.otherLastReadTs;
+        if ((d.otherLastReadTs && d.otherLastReadTs !== _cpOtherLastReadTs) || (d.otherLastSeenTs && d.otherLastSeenTs !== _cpOtherLastSeenTs)) {
+            _cpOtherLastReadTs = d.otherLastReadTs || _cpOtherLastReadTs;
+            _cpOtherLastSeenTs = d.otherLastSeenTs || _cpOtherLastSeenTs;
             cpUpdateSeen();
         }
         if (!msgs.length) return;
@@ -1054,24 +1086,15 @@ function cpPoll() {
     }).catch(()=>{});
 }
 function cpUpdateSeen() {
-    if (_cpConvType !== 'direct' || !_cpOtherLastReadTs) return;
+    if (_cpConvType !== 'direct') return;
     const inner = document.getElementById('cp-msg-inner');
     if (!inner) return;
-    // Remove existing seen indicator
-    inner.querySelectorAll('.cp-seen-indicator').forEach(el => el.remove());
-    // Find last "mine" bubble whose createdTs <= otherLastReadTs
-    const bubbles = [...inner.querySelectorAll('[data-mine="1"]')];
-    let lastSeen = null;
-    for (const b of bubbles) {
-        const ts = parseInt(b.dataset.createdTs || '0');
-        if (ts && ts <= _cpOtherLastReadTs) lastSeen = b;
-    }
-    if (!lastSeen) return;
-    const seenEl = document.createElement('div');
-    seenEl.className = 'cp-seen-indicator';
-    seenEl.style.cssText = 'text-align:right;font-size:10px;color:rgba(255,255,255,.45);margin:-4px 4px 6px 0;padding-right:2px;';
-    seenEl.textContent = 'Seen';
-    lastSeen.insertAdjacentElement('afterend', seenEl);
+    // Re-render every "mine" tick against the latest read/seen thresholds (cheap for a chat's
+    // worth of bubbles, and avoids tracking which ones actually need to change).
+    inner.querySelectorAll('.cp-tick').forEach(el => {
+        const ts = parseInt(el.dataset.createdTs || '0');
+        el.outerHTML = cpTickHtml(ts);
+    });
 }
 function cpAppendMsgs(msgs) {
     const el    = document.getElementById('cp-msg-area');
