@@ -3248,8 +3248,8 @@ window.MsgUX = (function () {
                     : null;
             }).catch(() => {});
     }
-    loadMentionNames();
     function highlightMentions(text) {
+        loadMentionNames();   // deferred (not called at module-load time): API_BASE isn't declared yet that early in this script
         if (!mentionRe) return text;
         return String(text || '').replace(mentionRe, '<span style="color:#0ea5e9;font-weight:600;">@$1</span>');
     }
