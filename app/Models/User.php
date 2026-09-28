@@ -35,6 +35,9 @@ class User extends Authenticatable
         ];
     }
 
+    /** The timezone this user's dates/times should be shown in — falls back to the app default (Asia/Karachi) if they never set one. */
+    public function viewTz(): string { return $this->time_zone ?: config('app.timezone'); }
+
     public function isSuperAdmin(): bool { return $this->role === 'super_admin'; }
     public function isAdmin(): bool { return in_array($this->role, ['super_admin', 'admin']); }
     public function canViewAllTasks(): bool { return $this->isSuperAdmin() || !empty($this->permissions['view_all_tasks']); }

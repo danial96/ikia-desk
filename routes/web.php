@@ -589,7 +589,7 @@ Route::middleware('auth')->group(function () {
                 'members'       => $c->members->count(),
                 'unread'        => $unreadCounts->get($c->id, 0),
                 'online'        => $online,
-                'lastMsg'       => $lm ? ['text'=>$lm->content,'byMe'=>$lm->user_id===$user->id,'senderName'=>$lm->user?->name,'time'=>$lm->created_at->format('g:i a')] : null,
+                'lastMsg'       => $lm ? ['text'=>$lm->content,'byMe'=>$lm->user_id===$user->id,'senderName'=>$lm->user?->name,'time'=>\App\Support\Tz::forViewer($lm->created_at, $user)->format('g:i a')] : null,
             ];
         }
         return response()->json(['convs'=>$list]);
@@ -614,7 +614,7 @@ Route::middleware('auth')->group(function () {
         foreach ($rows as $m) {
             if (!preg_match_all('#https?://[^\s\[\]<>"\']+#i', $strip((string) $m->content), $mm)) continue;
             foreach (array_unique($mm[0]) as $u) {
-                $links[] = ['url' => rtrim($u, '.,;)'), 'messageId' => $m->id, 'author' => $authorOf($m->user_id), 'date' => $m->created_at->format('j M Y')];
+                $links[] = ['url' => rtrim($u, '.,;)'), 'messageId' => $m->id, 'author' => $authorOf($m->user_id), 'date' => \App\Support\Tz::forViewer($m->created_at, $user)->format('j M Y')];
                 if (count($links) >= 300) break 2;
             }
         }
@@ -631,7 +631,7 @@ Route::middleware('auth')->group(function () {
                 $url   = $isImg ? $x[1] : ($x[3] ?? '');
                 if ($url === '') continue;
                 $media[] = ['type' => $isImg ? 'img' : 'file', 'url' => $url, 'name' => $isImg ? basename(parse_url($url, PHP_URL_PATH) ?: 'image') : $x[2],
-                            'messageId' => $m->id, 'author' => $authorOf($m->user_id), 'date' => $m->created_at->format('j M Y')];
+                            'messageId' => $m->id, 'author' => $authorOf($m->user_id), 'date' => \App\Support\Tz::forViewer($m->created_at, $user)->format('j M Y')];
                 if (count($media) >= 200) break 2;
             }
         }
@@ -684,16 +684,19 @@ Route::middleware('auth')->group(function () {
 
         return response()->json([
             'q' => $q,
-            'results' => $rows->map(fn($m) => [
-                'id'        => $m->id,
-                'text'      => mb_substr($plain((string) $m->content), 0, 300),
-                'author'    => $m->user?->name ?? '',
-                'avatar'    => $m->user?->avatar_url ?? '',
-                'isMine'    => $m->user_id === $user->id,
-                'date'      => $m->created_at->format('j M Y'),
-                'time'      => $m->created_at->format('g:i a'),
-                'createdTs' => $m->created_at->timestamp,
-            ])->values(),
+            'results' => $rows->map(function ($m) use ($user, $plain) {
+                $atViewer = \App\Support\Tz::forViewer($m->created_at, $user);
+                return [
+                    'id'        => $m->id,
+                    'text'      => mb_substr($plain((string) $m->content), 0, 300),
+                    'author'    => $m->user?->name ?? '',
+                    'avatar'    => $m->user?->avatar_url ?? '',
+                    'isMine'    => $m->user_id === $user->id,
+                    'date'      => $atViewer->format('j M Y'),
+                    'time'      => $atViewer->format('g:i a'),
+                    'createdTs' => $m->created_at->timestamp,
+                ];
+            })->values(),
         ]);
     });
 
@@ -709,21 +712,27 @@ Route::middleware('auth')->group(function () {
             $t = preg_replace(['/\[img\].*?\[\/img\]/s', '/\[file name="[^"]*"\].*?\[\/file\]/s', '/\[voice[^\]]*\].*?\[\/voice\]/s'], ['[image]', '[file]', '[voice]'], (string) $t);
             return mb_substr(trim(preg_replace('/\s+/u', ' ', $t)), 0, 100);
         };
-        $msgFmt   = fn($m) => [
-            'id'        => $m->id,
-            'text'      => $m->content,
-            'isMine'    => $m->user_id===$user->id,
-            'time'      => $m->created_at->format('g:i a'),
-            'date'      => $m->created_at->format('Y-m-d'),
-            'createdTs' => $m->created_at->timestamp,
-            'editedAt'  => $m->edited_at?->format('g:i a'),
-            'deletedFor'=> $m->deleted_for ?? [],
-            'reactions' => $m->reactions ?? [],
-            'myReactions'=> array_keys(array_filter($m->reactions ?? [], fn($ids) => in_array($user->id, (array)$ids))),
-            'author'    => ['id'=>$m->user_id,'name'=>$m->user?->name??'','avatar'=>$m->user?->avatar_url??''],
-            'parentId'  => $m->parent_id,
-            'parentPreview' => $m->parent ? ['author' => $m->parent->user?->name ?? '', 'text' => $plainMsgSnippet($m->parent->content)] : null,
-        ];
+        $msgFmt   = function ($m) use ($user, $plainMsgSnippet) {
+            // 'time'/'date' are shown as-is (no client-side re-conversion), so they must already
+            // be in the VIEWING user's own timezone — a message near midnight can land on a
+            // different calendar day for them than for Asia/Karachi.
+            $atViewer = \App\Support\Tz::forViewer($m->created_at, $user);
+            return [
+                'id'        => $m->id,
+                'text'      => $m->content,
+                'isMine'    => $m->user_id===$user->id,
+                'time'      => $atViewer->format('g:i a'),
+                'date'      => $atViewer->format('Y-m-d'),
+                'createdTs' => $m->created_at->timestamp,
+                'editedAt'  => $m->edited_at?->format('g:i a'),
+                'deletedFor'=> $m->deleted_for ?? [],
+                'reactions' => $m->reactions ?? [],
+                'myReactions'=> array_keys(array_filter($m->reactions ?? [], fn($ids) => in_array($user->id, (array)$ids))),
+                'author'    => ['id'=>$m->user_id,'name'=>$m->user?->name??'','avatar'=>$m->user?->avatar_url??''],
+                'parentId'  => $m->parent_id,
+                'parentPreview' => $m->parent ? ['author' => $m->parent->user?->name ?? '', 'text' => $plainMsgSnippet($m->parent->content)] : null,
+            ];
+        };
 
         $other = $conv->type === 'direct' ? $conv->members->where('id', '!=', $user->id)->first() : null;
         $otherLastReadTs = $other
@@ -893,9 +902,10 @@ Route::middleware('auth')->group(function () {
             return mb_substr(trim(preg_replace('/\s+/u', ' ', $t)), 0, 100);
         };
 
+        $sentAtViewer = \App\Support\Tz::forViewer($msg->created_at, $user);
         return response()->json(['ok'=>true,'message'=>[
             'id'=>$msg->id,'text'=>$msg->content,'isMine'=>true,
-            'time'=>$msg->created_at->format('g:i a'),'date'=>$msg->created_at->format('Y-m-d'),
+            'time'=>$sentAtViewer->format('g:i a'),'date'=>$sentAtViewer->format('Y-m-d'),
             'createdTs'=>$msg->created_at->timestamp,'editedAt'=>null,
             'author'=>['id'=>$user->id,'name'=>$user->name,'avatar'=>$user->avatar_url],
             'parentId'=>$parent?->id,

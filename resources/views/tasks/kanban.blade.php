@@ -656,10 +656,14 @@ setInterval(kbCheckVersion, 20000);
 document.addEventListener('visibilitychange', () => { if (!document.hidden) kbCheckVersion(); });
 kbCheckVersion();
 
-// "Today" as a calendar date in the app timezone (Asia/Karachi), independent of the
-// viewer's own device timezone. Returned as a local-midnight Date used only as a date carrier.
+// The VIEWING user's own chosen timezone (profile → Time zone) — this script runs in its own
+// scope, so it needs its own copy rather than sharing the one declared in layouts/app.blade.php.
+const APP_TZ = @json(auth()->user()?->viewTz() ?? config('app.timezone'));
+
+// "Today" as a calendar date in the viewer's own timezone, independent of their device's own
+// clock/timezone. Returned as a local-midnight Date used only as a date carrier.
 function kbKarachiToday() {
-    const p = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Karachi', year: 'numeric', month: '2-digit', day: '2-digit' })
+    const p = new Intl.DateTimeFormat('en-CA', { timeZone: APP_TZ, year: 'numeric', month: '2-digit', day: '2-digit' })
         .format(new Date()).split('-').map(Number);
     return new Date(p[0], p[1] - 1, p[2]);
 }

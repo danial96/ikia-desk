@@ -31,7 +31,7 @@
     @endif
 
     @php
-        $dlInfo = $task->kanbanDeadline();
+        $dlInfo = $task->kanbanDeadline(auth()->user());
         $pill = ['overdue' => ['#e0413a', '#e0413a', '#fdecea'], 'today' => ['#e08a00', '#fde8c4', '#fde8c4'], 'normal' => ['#2067b0', '#2067b0', '#fff'], 'done' => ['#7d858c', '#d5d9dd', '#fff']];
     @endphp
     <div style="margin-bottom:8px;">

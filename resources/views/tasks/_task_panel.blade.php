@@ -441,9 +441,12 @@ const parseMsg = txt => {
     }).join('');
 };
 
-// Deadlines are stored/reported in Asia/Karachi — always render in that zone so the
-// date can't shift a day for viewers in another timezone.
-const APP_TZ = 'Asia/Karachi';
+// Deadlines/timestamps are stored canonically in the app's own zone (Asia/Karachi) but rendered
+// in the VIEWING user's own chosen timezone (profile → Time zone), so "6pm" always means the same
+// instant to everyone even though it shows as a different clock time per viewer.
+// (This file's script runs in its own scope, separate from layouts/app.blade.php's, so it needs
+// its own copy of this rather than sharing one declared there.)
+const APP_TZ = @json(auth()->user()?->viewTz() ?? config('app.timezone'));
 
 // Turn a server value into a real instant. Values WITHOUT a timezone ("2026-09-24 18:00:00",
 // "2026-09-24T18:00:00" — how deadlines are stored and written to the activity log) are

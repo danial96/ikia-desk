@@ -937,6 +937,10 @@ let _lastMsgId = 0;
 let _chatConvType = '', _chatLastAuthor = 0;
 let _chatHasMore = false, _chatFirstTs = 0, _chatFirstId = 0, _chatLoadingOlder = false;   // sender names are only shown in group chats
 const ME_ID = {{ auth()->id() }};
+// Every timestamp rendered client-side (chat, activity, etc.) uses this — the VIEWER's own
+// chosen timezone (profile → Time zone), so the same instant shows as the right clock time
+// for everyone, not always Asia/Karachi's.
+const APP_TZ = @json(auth()->user()?->viewTz() ?? config('app.timezone'));
 
 let _chatOtherLastReadTs = 0, _chatOtherLastSeenTs = 0;
 /* WhatsApp-style tick: single grey = sent, double grey = delivered (their client has polled
@@ -1706,7 +1710,7 @@ window.chatSend = async function() {
 
     // Optimistic render
     const now = new Date();
-    const timeStr = now.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true,timeZone:'Asia/Karachi'}).toLowerCase();
+    const timeStr = now.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true,timeZone:APP_TZ}).toLowerCase();
     const el = document.getElementById('chat-msg-area');
     const _cInner = document.getElementById('chat-msg-inner') || el;
     _cInner.insertAdjacentHTML('beforeend', chatBubble({isMine:true, name:'Me', avatar:'', text: fullText, time:timeStr, showName:false, parentPreview: replyPreview}));
@@ -2608,6 +2612,9 @@ window.clearAttachments = function(textareaId, previewId) {
 @keyframes lbFade { from{opacity:0} to{opacity:1} }
 </style>
 <script>
+// This script tag is its own separate scope (not the popup-chat IIFE above), so the voice-note
+// sender further down needs its own copy of the viewer's timezone too.
+const APP_TZ = @json(auth()->user()?->viewTz() ?? config('app.timezone'));
 const _igReg = {};
 let _igSeq = 0, _igCurKey = null, _igCurIdx = 0;
 
@@ -2842,7 +2849,7 @@ window.vnSend = function(panel) {
                 if (!_activeConvId) return;
                 const el  = document.getElementById('chat-msg-area');
                 const now = new Date();
-                const ts  = now.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true,timeZone:'Asia/Karachi'}).toLowerCase();
+                const ts  = now.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true,timeZone:APP_TZ}).toLowerCase();
                 const _inner3 = document.getElementById('chat-msg-inner') || el;
                 _inner3.insertAdjacentHTML('beforeend', chatBubble({isMine:true, name:'Me', avatar:'', text:tag, time:ts, showName:false}));
                 const _echo3 = _inner3.lastElementChild;

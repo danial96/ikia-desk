@@ -6,6 +6,7 @@ use App\Models\Notification;
 use App\Models\Project;
 use App\Models\Task;
 use App\Models\User;
+use App\Support\Tz;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
@@ -176,7 +177,10 @@ class TaskController extends Controller
             'project_id'  => $request->project_id,
             'assigned_to' => $request->assigned_to,
             'priority'    => $request->priority,
-            'deadline'    => $request->deadline,
+            // The deadline picker only ever produces a naive wall-clock string, in the CREATING
+            // user's own chosen timezone — convert to the app's canonical storage zone here so
+            // every viewer's own display conversion later starts from the same true instant.
+            'deadline'    => Tz::toApp($request->deadline),
             'status'      => $request->status ?? 'new',
             'created_by'  => Auth::id(),
         ]);
@@ -272,14 +276,24 @@ class TaskController extends Controller
             'members'     => 'nullable|array',
         ]);
 
+        // The deadline picker sends a naive wall-clock string in the EDITING user's own timezone —
+        // convert it to the app's canonical storage zone up front so both the diff below and the
+        // actual save use the same, correctly-converted value.
+        $deadlineNew = $request->has('deadline') ? Tz::toApp($request->deadline) : null;
+
         $changes = [];
-        foreach (['title', 'assigned_to', 'deadline', 'status', 'priority'] as $field) {
+        foreach (['title', 'assigned_to', 'status', 'priority'] as $field) {
             if ($request->has($field) && $task->$field != $request->$field) {
                 $changes[$field] = ['old' => $task->$field, 'new' => $request->$field];
             }
         }
+        if ($request->has('deadline') && optional($task->deadline)->toDateTimeString() != optional($deadlineNew)->toDateTimeString()) {
+            $changes['deadline'] = ['old' => $task->deadline, 'new' => $deadlineNew];
+        }
 
-        $task->update($request->only('title', 'description', 'project_id', 'assigned_to', 'priority', 'deadline', 'status'));
+        $updateData = $request->only('title', 'description', 'project_id', 'assigned_to', 'priority', 'status');
+        if ($request->has('deadline')) $updateData['deadline'] = $deadlineNew;
+        $task->update($updateData);
 
         if ($request->has('members')) {
             $members = $request->members ?? [];
@@ -418,9 +432,12 @@ class TaskController extends Controller
         }
 
         $oldValue = $task->$field;
-        $task->update([$field => $value ?: null]);
+        // Same as store()/update(): the deadline picker sends a naive wall-clock string in the
+        // ACTING user's own timezone, so convert to the app's canonical storage zone before saving.
+        $newValue = $field === 'deadline' ? Tz::toApp($value) : ($value ?: null);
+        $task->update([$field => $newValue]);
         $logOld = $oldValue;
-        $logNew = $value ?: null;
+        $logNew = $field === 'deadline' ? $newValue : ($value ?: null);
         if ($field === 'assigned_to') {
             $logOld = $logOld ? (User::find($logOld)?->name ?? $logOld) : null;
             $logNew = $logNew ? (User::find($logNew)?->name ?? $logNew) : null;
@@ -458,8 +475,8 @@ class TaskController extends Controller
         return response()->json([
             'success'      => true,
             'assignee'     => $task->assignee ? ['id' => $task->assignee->id, 'name' => $task->assignee->name, 'avatar' => $task->assignee->avatar_url] : null,
-            'deadline'     => $task->deadline ? $task->deadline->format('M d, Y H:i') : null,
-            'deadline_raw' => $task->deadline ? $task->deadline->format('Y-m-d\TH:i') : null,
+            'deadline'     => $task->deadline ? Tz::forViewer($task->deadline, $user)->format('M d, Y H:i') : null,
+            'deadline_raw' => $task->deadline ? Tz::forViewer($task->deadline, $user)->format('Y-m-d\TH:i') : null,
             'status'       => $task->status,
             'priority'     => $task->priority,
             'project'      => $task->project ? ['id' => $task->project->id, 'name' => $task->project->name] : null,
@@ -608,7 +625,9 @@ class TaskController extends Controller
             : [];
 
         $buildColumns = function () use ($request, $user, $unseenTaskIds) {
-            $tz          = 'Asia/Karachi';
+            // Bucket deadlines (overdue/today/this week/…) using the VIEWING user's own timezone,
+            // so "today" means their own calendar day, not always Asia/Karachi's.
+            $tz          = $user->viewTz();
             $now         = now($tz);
             $todayEnd    = now($tz)->endOfDay();
             $weekEnd     = now($tz)->endOfWeek();
@@ -742,12 +761,12 @@ class TaskController extends Controller
                     'desc'     => $t->description,
                     'priority' => $t->priority,
                     'status'   => $t->status,
-                    'deadline' => $t->deadline ? $t->deadline->copy()->setTimezone('Asia/Karachi')->format('M d, Y, g:i A') : null,
+                    'deadline' => $t->deadline ? Tz::forViewer($t->deadline, $user)->format('M d, Y, g:i A') : null,
                     'dl_past'  => (bool) ($t->deadline && $t->deadline->lt(now()) && $t->status !== 'completed'),
                     'project'  => $t->project  ? $t->project->name  : null,
                     'assignee'    => $t->assignee ? ['name' => $t->assignee->name, 'avatar' => $t->assignee->avatar_url] : null,
                     'cover_image' => $t->coverFile->first() ? asset($t->coverFile->first()->disk_path) : null,
-                    'dl'          => $t->kanbanDeadline(),
+                    'dl'          => $t->kanbanDeadline($user),
                     'hot'         => in_array($t->priority, ['high', 'urgent'], true),
                     'members'     => $t->members->pluck('name')->values(),
                     'creator'     => $t->creator ? ['name' => $t->creator->name, 'avatar' => $t->creator->avatar_url] : null,

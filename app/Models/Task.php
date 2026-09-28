@@ -152,10 +152,11 @@ class Task extends Model
      * Kanban-card deadline as Bitrix shows it: "Today, 11:00 pm" / "Tomorrow, 9:00 am" / "September 28, 10:00 pm".
      * kind = overdue | today | normal | done (drives the pill colour). Null when there is no deadline.
      */
-    public function kanbanDeadline(): ?array
+    public function kanbanDeadline(?User $viewer = null): ?array
     {
         if (!$this->deadline) return null;
-        $tz  = config('app.timezone');
+        $viewer ??= auth()->user();
+        $tz  = $viewer?->viewTz() ?? config('app.timezone');
         $d   = $this->deadline->copy()->setTimezone($tz);
         $now = now($tz);
         $time = strtolower($d->format('g:i a'));

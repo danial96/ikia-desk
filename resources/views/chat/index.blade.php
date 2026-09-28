@@ -261,6 +261,11 @@ document.addEventListener('DOMContentLoaded', function() {
 <script>
 (function(){
 const ME_ID = {{ auth()->id() }};
+// Every timestamp rendered client-side uses this — the VIEWER's own chosen timezone (profile →
+// Time zone), so the same instant shows as the right clock time for everyone.
+// (This page's script runs in its own scope, separate from layouts/app.blade.php's, so it needs
+// its own copy of this rather than sharing one declared there.)
+const APP_TZ = @json(auth()->user()?->viewTz() ?? config('app.timezone'));
 let _cpActiveConvId = null;
 let _cpAllConvs     = [];
 let _cpAllEmps      = [];
@@ -939,7 +944,7 @@ window.cpSend = async function() {
     cpCancelReply();
     const fullText = text + (attachTags ? (text ? '\n' : '') + attachTags : '');
     const now = new Date();
-    const timeStr = now.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true,timeZone:'Asia/Karachi'}).toLowerCase();
+    const timeStr = now.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true,timeZone:APP_TZ}).toLowerCase();
     const el = document.getElementById('cp-msg-area');
     const _inner = document.getElementById('cp-msg-inner') || el;
 
@@ -974,7 +979,7 @@ window.cpSend = async function() {
 window.cpSendRaw = async function(tag) {
     if (!_cpActiveConvId) return;
     const now = new Date();
-    const timeStr = now.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true,timeZone:'Asia/Karachi'}).toLowerCase();
+    const timeStr = now.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true,timeZone:APP_TZ}).toLowerCase();
     const el = document.getElementById('cp-msg-area');
     const _inner2 = document.getElementById('cp-msg-inner') || el;
     _inner2.style.paddingTop = '0';
