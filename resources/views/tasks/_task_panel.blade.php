@@ -1106,21 +1106,11 @@ function tpSeenByHtml(seenBy) {
 }
 
 /* ─── "Viewed by" (Bitrix-style eye icon + read-receipt popup) ─── */
+// Just the static count now — no click-to-open popup (removed per request).
 function tpViewedByBadge(viewedBy, taskId) {
     if (!viewedBy || !viewedBy.length) return '';
-    const rows = viewedBy.map(v => `<div class="opt" style="cursor:default;">
-        ${uAvatar(v, 24)}
-        <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(v.name)}</span>
-        <span style="color:#9ca3af;font-size:11px;white-space:nowrap;">${fmtViewedAt(v.viewedAt)}</span>
-    </div>`).join('');
-    return `<div style="position:relative;">
-        <button onclick="tpToggleDropdown('tp-viewedby-${taskId}')" title="Viewed by" style="display:flex;align-items:center;gap:5px;height:34px;padding:0 10px;border:none;background:none;cursor:pointer;color:#8b9098;font-size:13px;">
-            <i class="far fa-eye"></i><span>${viewedBy.length}</span>
-        </button>
-        <div id="tp-viewedby-${taskId}" class="tp-people-dropdown" style="display:none;top:36px;right:0;min-width:240px;">
-            <div style="font-size:11px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.5px;padding:4px 8px 8px;">Viewed by</div>
-            ${rows}
-        </div>
+    return `<div title="Viewed by ${viewedBy.length}" style="display:flex;align-items:center;gap:5px;height:34px;padding:0 10px;color:#8b9098;font-size:13px;">
+        <i class="far fa-eye"></i><span>${viewedBy.length}</span>
     </div>`;
 }
 
