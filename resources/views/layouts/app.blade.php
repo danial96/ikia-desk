@@ -275,6 +275,7 @@
             background: #22c55e;
             border-radius: 50%;
             border: 1.5px solid #080c1f;
+            pointer-events: none; /* sits over the button's corner now that it's a sibling, not a child — never steal its click */
         }
 
         /* ─── MAIN CONTENT ─── */
@@ -639,16 +640,20 @@
 
         <div style="width:28px;height:1px;background:rgba(255,255,255,.08);margin:4px 0;flex-shrink:0;"></div>
 
-        {{-- Team members — only this list scrolls, independent of the chat icon above --}}
-        <div style="flex:1;min-height:0;width:100%;overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column;align-items:center;gap:8px;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.15) transparent;">
+        {{-- Team members — only this list scrolls, independent of the chat icon above.
+             padding-top/right gives the unread-count badge (it pokes 4px past each avatar's own
+             top-right corner) room so overflow-x:hidden doesn't clip it flat. --}}
+        <div style="flex:1;min-height:0;width:100%;overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column;align-items:center;gap:8px;padding:6px 6px 0 0;box-sizing:border-box;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.15) transparent;">
         @isset($onlineUsers)
         @foreach($onlineUsers as $u)
         <div class="user-avatar-wrap" style="position:relative;flex-shrink:0;">
             <button type="button" class="user-avatar-btn" title="{{ $u->name }}" data-uid="{{ $u->id }}"
                     onclick="chatOpenDirect({{ $u->id }})">
                 <img src="{{ $u->avatar_url }}" alt="{{ $u->name }}">
-                <div class="online-dot" style="background:{{ $u->is_online ? '#22c55e' : '#6b7280' }};"></div>
             </button>
+            {{-- Sibling of the button, not a child — the button is circle-clipped (overflow:hidden
+                 for the round avatar), which was cutting this dot off near the corner. --}}
+            <div class="online-dot" style="background:{{ $u->is_online ? '#22c55e' : '#6b7280' }};"></div>
             <span class="user-msg-badge" data-uid="{{ $u->id }}"
                   style="display:none;position:absolute;top:-4px;right:-4px;min-width:17px;height:17px;background:#ef4444;color:#fff;border-radius:9px;font-size:9px;font-weight:700;align-items:center;justify-content:center;padding:0 3px;z-index:10;line-height:1;pointer-events:none;border:2px solid #0a0f3c;box-sizing:border-box;"></span>
         </div>
@@ -2241,7 +2246,7 @@ function chatUpdateBadge(count) {
             const map = {};
             list.forEach(u => { map[u.id] = u.online; });
             document.querySelectorAll('.user-avatar-btn[data-uid]').forEach(function(btn) {
-                const dot = btn.querySelector('.online-dot');
+                const dot = btn.parentElement?.querySelector('.online-dot'); // sibling of the button, inside .user-avatar-wrap
                 if (!dot) return;
                 const uid = +btn.dataset.uid;
                 if (uid in map) dot.style.background = map[uid] ? '#22c55e' : '#6b7280';
