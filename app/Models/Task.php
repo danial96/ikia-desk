@@ -107,6 +107,17 @@ class Task extends Model
             || $this->assigned_to === $user->id;
     }
 
+    public function views() { return $this->hasMany(TaskView::class); }
+
+    /** Record (or refresh) that $user has just opened this task — the "eye" read-receipt, Bitrix-style. */
+    public function recordViewedBy(User $user): void
+    {
+        TaskView::updateOrCreate(
+            ['task_id' => $this->id, 'user_id' => $user->id],
+            ['viewed_at' => now()]
+        );
+    }
+
     public function logActivity(User $user, string $action, string $field = null, $oldValue = null, $newValue = null): void
     {
         $this->activities()->create([

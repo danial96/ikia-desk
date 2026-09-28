@@ -102,6 +102,9 @@ Route::middleware('auth')->group(function () {
         if (!$task->canBeOpenedBy($user)) {
             return response()->json(['error'=>'Forbidden'],403);
         }
+        // Bitrix-style read receipt: record that this user just opened the task (upsert, so
+        // reopening only refreshes the timestamp instead of piling up rows).
+        $task->recordViewedBy($user);
 
         // Collect all file IDs that belong to comments (to exclude from task-level file list)
         $commentFileIds = $task->comments->flatMap(fn($c) => $c->files ?? [])->unique()->values();
@@ -152,6 +155,23 @@ Route::middleware('auth')->group(function () {
         $employees = \App\Models\User::where('is_active',true)->orderBy('name')
             ->get(['id','name','first_name','last_name','position'])->map(fn($u)=>['id'=>$u->id,'name'=>$u->name,'avatar'=>$u->avatar_url]);
 
+        // "Viewed by" (Bitrix-style eye icon): everyone who has ever opened this task, most
+        // recent first, each shown in the VIEWING user's own timezone.
+        $viewRows = $task->views()->with('user')->orderByDesc('viewed_at')->get();
+        $viewedBy = $viewRows->map(fn($v) => [
+            'id'       => $v->user_id,
+            'name'     => $v->user?->name ?? '',
+            'avatar'   => $v->user?->avatar_url ?? '',
+            'viewedAt' => \App\Support\Tz::forViewer($v->viewed_at, $user)->toIso8601String(),
+        ])->values();
+
+        // Single "✓✓ Viewed by X" line under the latest activity/comment — the most recently
+        // active OTHER viewer, provided they've actually seen something newer than it exists yet.
+        $lastFeedAt = $feed->isNotEmpty() ? $feed->max(fn($f) => \Carbon\Carbon::parse($f['at'])) : $task->created_at;
+        $lastSeenBy = $viewRows->where('user_id', '!=', $user->id)
+            ->filter(fn($v) => $v->viewed_at->gte($lastFeedAt)) // gte: DB timestamps are second-precision, so a view in the very same second as the activity still counts as having seen it
+            ->sortByDesc('viewed_at')->first();
+
         return response()->json([
             'task'         => ['id'=>$task->id,'bitrixId'=>$task->bitrix_id,'title'=>$task->title,'description'=>$task->description,
                                'status'=>$task->status,'priority'=>$task->priority,
@@ -164,6 +184,8 @@ Route::middleware('auth')->group(function () {
             'participants' => $task->members->map(fn($u)=>['id'=>$u->id,'name'=>$u->name,'avatar'=>$u->avatar_url])->values(),
             'observers'    => $task->observers->map(fn($u)=>['id'=>$u->id,'name'=>$u->name,'avatar'=>$u->avatar_url])->values(),
             'feed'         => $feed->sortBy('at')->values(),
+            'viewedBy'     => $viewedBy,
+            'lastSeenBy'   => $lastSeenBy ? ['name' => $lastSeenBy->user?->name ?? '', 'viewedAt' => \App\Support\Tz::forViewer($lastSeenBy->viewed_at, $user)->toIso8601String()] : null,
             'employees'    => $employees->values(),
             'canEdit'      => $user->isSuperAdmin() || $task->created_by === $user->id,
             'checklists'   => $task->checklists->sortBy('sort_index')->values()->map(fn($c)=>[

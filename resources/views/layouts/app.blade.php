@@ -237,7 +237,7 @@
 
         /* ─── RIGHT USER PANEL ─── */
         #right-panel {
-            width: 52px;
+            width: 64px;
             flex-shrink: 0;
             position: fixed;
             top: 0; right: 0; bottom: 0;
@@ -255,8 +255,8 @@
         }
         .user-avatar-btn {
             position: relative;
-            width: 36px;
-            height: 36px;
+            width: 40px;
+            height: 40px;
             border-radius: 50%;
             overflow: hidden;
             border: 2px solid transparent;
@@ -284,7 +284,7 @@
             min-width: 0;
             overflow-x: hidden;
             margin-left: 220px;
-            margin-right: 52px;
+            margin-right: 64px;
             min-height: 100vh;
             display: flex;
             flex-direction: column;
@@ -633,8 +633,8 @@
     {{-- ═══ RIGHT USER PANEL ═══ --}}
     <aside id="right-panel">
         {{-- Chat icon — pinned, does not scroll with the avatar list below --}}
-        <button onclick="chatToggle()" title="Messenger" style="position:relative;flex-shrink:0;width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:rgba(0,212,232,.15);color:#00D4E8;margin-bottom:4px;border:none;cursor:pointer;">
-            <i class="fas fa-comment-dots" style="font-size:17px;"></i>
+        <button onclick="chatToggle()" title="Messenger" style="position:relative;flex-shrink:0;width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:rgba(0,212,232,.15);color:#00D4E8;margin-bottom:4px;border:none;cursor:pointer;">
+            <i class="fas fa-comment-dots" style="font-size:19px;"></i>
             <span id="chat-unread-badge" style="display:none;position:absolute;top:-4px;right:-4px;min-width:16px;height:16px;background:#ef4444;color:#fff;border-radius:8px;font-size:9px;font-weight:700;align-items:center;justify-content:center;padding:0 3px;border:2px solid #0a0f3c;line-height:1;"></span>
         </button>
 
@@ -689,7 +689,7 @@
     <i class="fas fa-times" style="font-size:14px;"></i>
 </button>
 
-<div id="chat-panel" style="display:none;position:fixed;top:0;right:52px;bottom:0;width:calc(90% - 52px);z-index:3201;display:none;flex-direction:row;box-shadow:-8px 0 40px rgba(0,0,0,.45);animation:chatSlideIn .25s cubic-bezier(.22,1,.36,1);">
+<div id="chat-panel" style="display:none;position:fixed;top:0;right:64px;bottom:0;width:calc(90% - 64px);z-index:3201;display:none;flex-direction:row;box-shadow:-8px 0 40px rgba(0,0,0,.45);animation:chatSlideIn .25s cubic-bezier(.22,1,.36,1);">
 
     {{-- LEFT: Conversation list --}}
     <div id="chat-left" style="width:400px;flex-shrink:0;display:flex;flex-direction:column;background:#fff;border-right:1px solid #e2e8f0;">
@@ -796,7 +796,7 @@
 </div>
 
 {{-- New Direct Chat overlay (inside panel) --}}
-<div id="chat-new-direct-modal" style="display:none;position:fixed;top:0;right:52px;bottom:0;width:calc(90% - 52px);z-index:3202;background:rgba(8,12,45,.97);backdrop-filter:blur(28px);flex-direction:column;">
+<div id="chat-new-direct-modal" style="display:none;position:fixed;top:0;right:64px;bottom:0;width:calc(90% - 64px);z-index:3202;background:rgba(8,12,45,.97);backdrop-filter:blur(28px);flex-direction:column;">
     <div style="padding:16px 18px;border-bottom:1px solid rgba(255,255,255,.1);display:flex;align-items:center;gap:10px;">
         <button onclick="chatCloseNewDirect()" style="background:none;border:none;color:rgba(255,255,255,.5);cursor:pointer;font-size:14px;"><i class="fas fa-arrow-left"></i></button>
         <span style="color:#fff;font-size:14px;font-weight:700;">New Direct Message</span>
@@ -815,7 +815,7 @@
 </div>
 
 {{-- New Group Chat overlay --}}
-<div id="chat-new-group-modal" style="display:none;position:fixed;top:0;right:52px;bottom:0;width:calc(90% - 52px);z-index:3202;background:rgba(8,12,45,.97);backdrop-filter:blur(28px);flex-direction:column;">
+<div id="chat-new-group-modal" style="display:none;position:fixed;top:0;right:64px;bottom:0;width:calc(90% - 64px);z-index:3202;background:rgba(8,12,45,.97);backdrop-filter:blur(28px);flex-direction:column;">
     <div style="padding:16px 18px;border-bottom:1px solid rgba(255,255,255,.1);display:flex;align-items:center;gap:10px;">
         <button onclick="chatCloseNewGroup()" style="background:none;border:none;color:rgba(255,255,255,.5);cursor:pointer;font-size:14px;"><i class="fas fa-arrow-left"></i></button>
         <span style="color:#fff;font-size:14px;font-weight:700;">New Group Chat</span>

@@ -46,7 +46,7 @@
 .tp-people-dropdown .opt:hover { background:#f1f5f9; }
 .tp-people-dropdown .opt.selected { color:#0ea5e9; }
 /* ── Bitrix-style look ── */
-#tp-overlay { inset:0 52px 0 0 !important; }              /* keep the user rail visible, like Bitrix */
+#tp-overlay { inset:0 64px 0 0 !important; }              /* keep the user rail visible, like Bitrix */
 @media (max-width:1024px){ #tp-overlay { inset:0 !important; } }
 #tp-desc-content a, #tp-left-body .tp-card a { color:#2067b0 !important; text-decoration:none !important; }
 #tp-desc-content a:hover { text-decoration:underline !important; }
@@ -490,6 +490,14 @@ const chatDayLabel = v => {
     return d.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric',timeZone:APP_TZ});
 };
 const chatDivider = iso => `<div style="display:flex;align-items:center;justify-content:center;margin:12px 0 8px;"><span style="background:#538b7f;color:#fff;font-size:13px;font-weight:600;padding:3px 14px;border-radius:12px;">${chatDayLabel(iso)}</span></div>`;
+
+// "today 7:27 pm" / "yesterday 10:05 pm" / "Sep 22 2:39 am" — Bitrix's own "Viewed by" style.
+const fmtViewedAt = iso => {
+    const d = parseAppDate(iso); if (!d) return '';
+    const label = chatDayLabel(iso);
+    const day = (label === 'today' || label === 'yesterday') ? label : d.toLocaleDateString('en-US', {month: 'short', day: 'numeric', timeZone: APP_TZ});
+    return day + ' ' + fmtTimeOnly(iso);
+};
 
 const tpRxnBadge = (reactions, myReactions, msgId) => {
     if (!msgId || !window.MsgUX) return '';
@@ -1085,6 +1093,33 @@ function tpRenderB24(data, bxId) {
     setTimeout(()=>{ const m=$('tp-messages'); m.scrollTop=m.scrollHeight; },50);
 }
 
+// "✓✓ Viewed by X" — shown once, under the latest activity/comment, for whoever most recently
+// opened the task after it (Bitrix-style read receipt for the feed itself, not the eye count).
+function tpSeenByHtml(seenBy) {
+    return `<div style="display:flex;align-items:center;gap:5px;margin:2px 4px 6px 4px;color:rgba(255,255,255,.55);font-size:11px;">
+        <i class="fas fa-check-double" style="font-size:9px;"></i>Viewed by ${esc(seenBy.name)}
+    </div>`;
+}
+
+/* ─── "Viewed by" (Bitrix-style eye icon + read-receipt popup) ─── */
+function tpViewedByBadge(viewedBy, taskId) {
+    if (!viewedBy || !viewedBy.length) return '';
+    const rows = viewedBy.map(v => `<div class="opt" style="cursor:default;">
+        ${uAvatar(v, 24)}
+        <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(v.name)}</span>
+        <span style="color:#9ca3af;font-size:11px;white-space:nowrap;">${fmtViewedAt(v.viewedAt)}</span>
+    </div>`).join('');
+    return `<div style="position:relative;">
+        <button onclick="tpToggleDropdown('tp-viewedby-${taskId}')" title="Viewed by" style="display:flex;align-items:center;gap:5px;height:34px;padding:0 10px;border:none;background:none;cursor:pointer;color:#8b9098;font-size:13px;">
+            <i class="far fa-eye"></i><span>${viewedBy.length}</span>
+        </button>
+        <div id="tp-viewedby-${taskId}" class="tp-people-dropdown" style="display:none;top:36px;right:0;min-width:240px;">
+            <div style="font-size:11px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.5px;padding:4px 8px 8px;">Viewed by</div>
+            ${rows}
+        </div>
+    </div>`;
+}
+
 /* ─── render local task ────────────────────────────────── */
 function tpRenderLocal(data) {
     const t=data.task, feed=data.feed||[], employees=data.employees||[];
@@ -1113,6 +1148,7 @@ function tpRenderLocal(data) {
     window._tpCurrentData = data;
     const hot = (t.priority==='high'||t.priority==='urgent');
     $('tp-header-actions').innerHTML = `
+        ${tpViewedByBadge(data.viewedBy, taskId)}
         <button onclick="tpSetPriority2(${taskId},'${hot?'medium':'high'}')" title="${hot?'High priority — click to clear':'Mark as high priority'}" style="width:34px;height:34px;border:none;background:none;cursor:pointer;font-size:17px;color:${hot?'#f5801e':'#a5abb2'};"><i class="fas fa-fire-alt"></i></button>
         <div style="position:relative;">
             <button onclick="tpToggleDropdown('tp-hdr-menu')" style="width:34px;height:34px;border:none;background:none;cursor:pointer;font-size:17px;color:#a5abb2;"><i class="fas fa-bars"></i></button>
@@ -1622,7 +1658,7 @@ window.tpRenderLocalFeed = function(data, taskId) {
             lastAuthor2 = u.name;
             const createdTs = iso ? Math.floor(new Date(iso).getTime()/1000) : 0;
             return div + chatBubble({isMine, name:u.name||'?', nameColor:localColor(u.name||''), text:parseMsg(f.text||f.content||''), raw:f.text||f.content||'', time, showName, files:f.files||[], msgId:f.id||null, reactions:f.reactions||null, myReactions:f.myReactions||null, parentPreview:f.parentPreview||null, createdTs, editedAt:f.editedAt||null});
-        }).join('');
+        }).join('') + (data.lastSeenBy ? tpSeenByHtml(data.lastSeenBy) : '');
     } else {
         $('tp-messages').innerHTML = _spacer + `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 0;"><i class="fas fa-comment-slash" style="font-size:28px;color:rgba(255,255,255,.55);margin-bottom:10px;"></i><p style="color:rgba(255,255,255,.85);font-size:13px;margin:0;">No comments yet — be the first!</p></div>`;
     }
