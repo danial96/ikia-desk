@@ -132,6 +132,7 @@ Route::middleware('auth')->group(function () {
                 'isSystem' => (bool)$c->is_system,
                 'author'=>['id'=>$c->user_id,'name'=>$c->user?->name??'','avatar'=>$c->user?->avatar_url??''],
                 'text'=>$c->content,
+                'editedAt' => $c->edited_at?->format('g:i a'),
                 'parentId' => $c->parent_id,
                 'parentPreview' => $parent ? ['author' => $parent->user?->name ?? '', 'text' => $plainSnippet($parent->content)] : null,
                 'reactions' => $reactions,
@@ -476,6 +477,17 @@ Route::middleware('auth')->group(function () {
                           'author'=>['name'=>auth()->user()->name,'avatar'=>auth()->user()->avatar_url]],
         ]);
     })->name('api.local.comment');
+
+    // Edit your own task comment (same 24h window as chat message edits)
+    Route::patch('/api/local-task/comments/{id}', function ($id, \Illuminate\Http\Request $request) {
+        $request->validate(['content' => 'required|string|max:5000']);
+        $user    = auth()->user();
+        $comment = \App\Models\TaskComment::findOrFail($id);
+        if ((int) $comment->user_id !== (int) $user->id) return response()->json(['error' => 'Forbidden'], 403);
+        if ($comment->created_at->diffInHours(now()) > 24) return response()->json(['error' => 'Too late to edit'], 403);
+        $comment->update(['content' => $request->content, 'edited_at' => now()]);
+        return response()->json(['ok' => true, 'editedAt' => $comment->edited_at->format('g:i a')]);
+    });
 
     // Toggle a reaction on a task comment
     Route::post('/api/local-task/comments/{id}/react', function ($id, \Illuminate\Http\Request $request) {

@@ -495,7 +495,7 @@ const tpRxnBadge = (reactions, myReactions, msgId) => {
 };
 
 /* build a chat bubble — isMine = right green, else left white */
-const chatBubble = ({isMine, name, nameColor, text, time, showName=true, isSystem=false, files=[], raw='', msgId=null, reactions=null, myReactions=null, parentPreview=null}) => {
+const chatBubble = ({isMine, name, nameColor, text, time, showName=true, isSystem=false, files=[], raw='', msgId=null, reactions=null, myReactions=null, parentPreview=null, createdTs=0, editedAt=null}) => {
     if(isSystem) return `
         <div style="display:flex;justify-content:center;margin:5px 0;">
             <div style="max-width:90%;text-align:center;line-height:1.45;background:rgba(255,255,255,.34);border-radius:10px;padding:6px 14px;">
@@ -531,8 +531,9 @@ const chatBubble = ({isMine, name, nameColor, text, time, showName=true, isSyste
     </div>` : '';
     const actions = msgId ? `<div class="chat-msg-actions">
         <button class="chat-action-btn like" onclick="MsgUX.pick(event,this,'tp',${msgId})" title="React"><i class="far fa-thumbs-up"></i></button>
-        <button class="chat-action-btn" onclick="tpCommentCtx(event,this,${msgId},${isMine?'true':'false'})" title="More"><i class="fas fa-ellipsis"></i></button>
+        <button class="chat-action-btn" onclick="tpCommentCtx(event,this,${msgId},${isMine?'true':'false'},${createdTs||0})" title="More"><i class="fas fa-ellipsis"></i></button>
     </div>` : '';
+    const editedHtml = editedAt ? `<span style="font-size:11px;color:${timec};font-style:italic;margin-right:4px;">edited</span>` : '';
     const bubbleInner = `
             <div class="chat-bubble-bg" style="max-width:78%;background:${bg};border:1px solid ${isMine?'#c3ebb4':'#e8ebef'};border-radius:${br};padding:8px 12px 6px;box-shadow:0 1px 2px rgba(0,0,0,.06);">
                 ${nameHtml}
@@ -542,7 +543,7 @@ const chatBubble = ({isMine, name, nameColor, text, time, showName=true, isSyste
                 ${window.MsgUX ? (MsgUX.dlAllFiles(files) || MsgUX.dlAllHtml(raw)) : ''}
                 ${tpRxnBadge(reactions, myReactions, msgId)}
                 <div style="text-align:right;margin-top:3px;">
-                    <span style="color:${timec};font-size:11.5px;">${time}${tick}</span>
+                    ${editedHtml}<span style="color:${timec};font-size:11.5px;">${time}${tick}</span>
                 </div>
             </div>`;
     return `
@@ -1616,7 +1617,8 @@ window.tpRenderLocalFeed = function(data, taskId) {
             const isMine = u.id ? parseInt(u.id) === ME_LOCAL_ID : false;
             const showName = !isMine && u.name !== lastAuthor2;
             lastAuthor2 = u.name;
-            return div + chatBubble({isMine, name:u.name||'?', nameColor:localColor(u.name||''), text:parseMsg(f.text||f.content||''), raw:f.text||f.content||'', time, showName, files:f.files||[], msgId:f.id||null, reactions:f.reactions||null, myReactions:f.myReactions||null, parentPreview:f.parentPreview||null});
+            const createdTs = iso ? Math.floor(new Date(iso).getTime()/1000) : 0;
+            return div + chatBubble({isMine, name:u.name||'?', nameColor:localColor(u.name||''), text:parseMsg(f.text||f.content||''), raw:f.text||f.content||'', time, showName, files:f.files||[], msgId:f.id||null, reactions:f.reactions||null, myReactions:f.myReactions||null, parentPreview:f.parentPreview||null, createdTs, editedAt:f.editedAt||null});
         }).join('');
     } else {
         $('tp-messages').innerHTML = _spacer + `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 0;"><i class="fas fa-comment-slash" style="font-size:28px;color:rgba(255,255,255,.55);margin-bottom:10px;"></i><p style="color:rgba(255,255,255,.85);font-size:13px;margin:0;">No comments yet — be the first!</p></div>`;
@@ -1868,6 +1870,29 @@ window.tpEditSubmit = function() {
 window.tpSubmitComment=function(taskId){
     const ta=$('tp-comment-text');
     const txt=(ta.value||'').trim();
+
+    if (window._tpEditingId) {
+        if (!txt) return;
+        const id = window._tpEditingId;
+        tpCancelEdit();
+        fetch('/api/local-task/comments/'+id, {
+            method:'PATCH',
+            headers:{'Content-Type':'application/json','X-CSRF-TOKEN':TP_CSRF,'Accept':'application/json'},
+            body: JSON.stringify({content: txt}),
+        }).then(r=>r.json()).then(resp=>{
+            if (resp?.error) { showToast(resp.error === 'Too late to edit' ? 'Too late to edit this comment.' : 'Could not edit the comment.'); return; }
+            const row = document.querySelector(`#tp-messages [data-msg-id="${id}"]`);
+            const t = row?.querySelector('[data-raw]');
+            if (t) {
+                t.dataset.raw = txt;
+                t.innerHTML = parseMsg(txt);
+                const meta = t.parentElement.querySelector('div[style*="text-align:right"]');
+                if (meta && !meta.querySelector('.tp-edited')) meta.insertAdjacentHTML('afterbegin', '<span class="tp-edited" style="font-size:11px;color:rgba(0,0,0,.4);margin-right:4px;font-style:italic;">edited</span>');
+            }
+        }).catch(()=>showToast('Could not edit the comment.'));
+        return;
+    }
+
     const attachTags=window.getAttachmentTags?window.getAttachmentTags('tp-comment-text'):'';
     if(!txt&&!attachTags){ ta.focus(); return; }
     const mentions=window._mentionCollect?window._mentionCollect('tp-comment-text'):[];
@@ -1914,6 +1939,33 @@ window.tpCancelReply = function() {
     window._tpReplyToId = null;
     const bar = document.getElementById('tp-reply-bar'); if (bar) bar.style.display = 'none';
 };
+window._tpEditingId = null;
+window.tpStartEdit = function(msgId) {
+    const row = document.querySelector(`#tp-messages [data-msg-id="${msgId}"]`);
+    const raw = row?.querySelector('[data-raw]')?.dataset.raw || '';
+    if (!raw) return;
+    tpCancelReply();
+    window._tpEditingId = msgId;
+    const ta = document.getElementById('tp-comment-text');
+    if (ta) { ta.value = raw; ta.focus(); ta.selectionStart = ta.selectionEnd = ta.value.length; tpComposerState(); }
+    let bar = document.getElementById('tp-edit-bar');
+    if (!bar) {
+        bar = document.createElement('div');
+        bar.id = 'tp-edit-bar';
+        bar.style.cssText = 'display:flex;align-items:center;gap:10px;padding:9px 14px;margin-bottom:8px;background:#fff;border-radius:10px;border-left:4px solid #20a0e0;box-shadow:0 1px 3px rgba(0,0,0,.08);';
+        bar.innerHTML = '<i class="fas fa-pen" style="color:#20a0e0;font-size:13px;flex-shrink:0;"></i><span style="flex:1;min-width:0;"><span style="display:block;font-size:12.5px;font-weight:600;color:#20a0e0;">Editing comment</span><span id="tp-edit-snip" style="display:block;font-size:13px;color:#6b7680;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span></span><button type="button" onclick="tpCancelEdit()" title="Cancel" style="background:none;border:none;color:#9aa5ad;font-size:19px;cursor:pointer;line-height:1;flex-shrink:0;">&times;</button>';
+        const footer = document.getElementById('tp-comment-footer');
+        footer.insertBefore(bar, footer.firstChild);
+    }
+    bar.style.display = 'flex';
+    const snip = document.getElementById('tp-edit-snip');
+    if (snip) snip.textContent = raw.replace(/\s+/g, ' ').slice(0, 120);
+};
+window.tpCancelEdit = function() {
+    window._tpEditingId = null;
+    const ta = document.getElementById('tp-comment-text'); if (ta) { ta.value = ''; tpComposerState(); }
+    const bar = document.getElementById('tp-edit-bar'); if (bar) bar.style.display = 'none';
+};
 window.tpLikeClick = async function(e, btn, msgId, emoji) {
     if (e) e.stopPropagation();
     if (btn) btn.style.opacity = '0.5';
@@ -1935,7 +1987,7 @@ window.tpLikeClick = async function(e, btn, msgId, emoji) {
     if (btn) btn.style.opacity = '';
 };
 let _tpCtxId = null;
-window.tpCommentCtx = function(e, btn, msgId, isMine) {
+window.tpCommentCtx = function(e, btn, msgId, isMine, createdTs) {
     if (e) e.stopPropagation();
     let menu = document.getElementById('tp-comment-ctx');
     if (!menu) {
@@ -1949,6 +2001,7 @@ window.tpCommentCtx = function(e, btn, msgId, isMine) {
             menu.style.display = 'none';
             if (!id) return;
             if (action === 'reply') window.tpStartReply(id);
+            else if (action === 'edit') window.tpStartEdit(id);
             else if (action === 'copy') {
                 const row = document.querySelector(`#tp-messages [data-msg-id="${id}"]`);
                 const raw = row?.querySelector('[data-raw]')?.dataset.raw || '';
@@ -1958,8 +2011,12 @@ window.tpCommentCtx = function(e, btn, msgId, isMine) {
         document.addEventListener('click', function(ev){ if (!ev.target.closest('#tp-comment-ctx') && !ev.target.closest('.chat-action-btn')) menu.style.display = 'none'; });
     }
     _tpCtxId = msgId;
+    const row = document.querySelector(`#tp-messages [data-msg-id="${msgId}"]`);
+    const raw = row?.querySelector('[data-raw]')?.dataset.raw || '';
+    const canEdit = isMine && (Date.now()/1000 - (createdTs||0)) < 86400 && !/\[(img|file|voice)/i.test(raw);
     menu.innerHTML = `<div class="chat-ctx-item" data-action="reply"><span>Reply</span><i class="fas fa-quote-right"></i></div>` +
-        `<div class="chat-ctx-item" data-action="copy"><span>Copy</span><i class="far fa-copy"></i></div>`;
+        `<div class="chat-ctx-item" data-action="copy"><span>Copy</span><i class="far fa-copy"></i></div>` +
+        (canEdit ? `<div class="chat-ctx-item" data-action="edit"><span>Edit</span><i class="fas fa-pen"></i></div>` : '');
     menu.style.display = 'block';
     const r = btn.getBoundingClientRect(), mW = menu.offsetWidth||150, mH = menu.offsetHeight||90;
     let x = r.left + r.width/2 - mW/2, y = r.bottom + 6;
