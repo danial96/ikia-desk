@@ -1046,6 +1046,29 @@ function chatUpdateUserBadges() {
             }
         }
     });
+    chatReorderUserRail();
+}
+
+/* The "team members" rail on the right is rendered once at page load, sorted by who last
+   messaged you — but that order goes stale the moment a new message arrives during the session
+   (only the unread badge used to update). Re-rank it after every poll so whoever just messaged
+   you jumps to the top live, same as the conversation list itself already does. */
+function chatReorderUserRail() {
+    const wraps = document.querySelectorAll('.user-avatar-wrap');
+    if (!wraps.length) return;
+    const container = wraps[0].parentElement;
+    const rank = new Map();
+    let i = 0;
+    _allConvs.forEach(c => { if (c.type === 'direct' && c.other_user_id && !rank.has(c.other_user_id)) rank.set(c.other_user_id, i++); });
+    const arr = [...wraps];
+    const ranked = arr.map((el, idx) => {
+        const uid = parseInt(el.querySelector('.user-avatar-btn')?.dataset.uid || '0', 10);
+        return { el, r: rank.has(uid) ? rank.get(uid) : (1e6 + idx) };
+    });
+    ranked.sort((a, b) => a.r - b.r);
+    const changed = ranked.some((x, idx) => x.el !== arr[idx]);
+    if (!changed) return;
+    ranked.forEach(x => container.appendChild(x.el));
 }
 
 /* ── Desktop (browser) notification for new chat messages — like Bitrix ── */
