@@ -110,7 +110,8 @@ class TaskController extends Controller
             $query->where(function ($q) use ($user) {
                 $q->where('created_by', $user->id)
                   ->orWhere('assigned_to', $user->id)
-                  ->orWhereHas('members', fn($m) => $m->where('user_id', $user->id));
+                  ->orWhereHas('members', fn($m) => $m->where('user_id', $user->id))
+                  ->orWhereHas('observers', fn($o) => $o->where('user_id', $user->id));
             });
         }
 
@@ -636,6 +637,11 @@ class TaskController extends Controller
                           $sub->from('task_members')
                               ->whereColumn('task_members.task_id', 'tasks.id')
                               ->where('task_members.user_id', $user->id);
+                      })
+                      ->orWhereExists(function ($sub) use ($user) {
+                          $sub->from('task_observers')
+                              ->whereColumn('task_observers.task_id', 'tasks.id')
+                              ->where('task_observers.user_id', $user->id);
                       });
                 });
             }
