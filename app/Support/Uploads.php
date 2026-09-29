@@ -41,4 +41,22 @@ class Uploads
         if ($clean === '') return $url;
         return $url . '/' . rawurlencode($clean) . '?name=' . rawurlencode($clean);
     }
+
+    /**
+     * Resolves a relative "/uploads/..." path that may carry the decorative trailing
+     * "/Original Name.ext" segment urlWithName() appends. Returns [absolute path, nice name],
+     * either of which is null on failure / when there was no decorative segment to read.
+     */
+    public static function resolveWithName(string $relative): array
+    {
+        $abs = self::resolve($relative);
+        if ($abs) return [$abs, null];
+        if (str_contains($relative, '/')) {
+            $dir = pathinfo($relative, PATHINFO_DIRNAME);
+            $tail = pathinfo($relative, PATHINFO_BASENAME);
+            $abs = self::resolve($dir);
+            if ($abs) return [$abs, $tail];
+        }
+        return [null, null];
+    }
 }

@@ -2029,6 +2029,13 @@ window.tpSubmitComment=function(taskId){
     }).catch(()=>showToast('Could not send comment.')).finally(()=>{ if(btn){btn.disabled=false;btn.style.opacity='1';} });
 };
 
+// The drop/paste attach modal (layouts/app.blade.php) lives in a completely separate <script>
+// scope and can't see this file's own `let _currentTaskId` — it can only reach it through a
+// window-level function like this one. Without it, tgt.send() for 'tp-comment-text' silently
+// no-ops every time (typeof _currentTaskId is 'undefined' from that other scope), so a dropped
+// file just sits as a pending attachment instead of actually sending.
+window.tpSubmitCurrentComment = function () { if (_currentTaskId) tpSubmitComment(_currentTaskId); };
+
 /* ─── reply / like / more menu for a comment (Bitrix style) ────── */
 window.tpStartReply = function(msgId) {
     const row = document.querySelector(`#tp-messages [data-msg-id="${msgId}"]`);

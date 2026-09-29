@@ -260,32 +260,30 @@ Route::middleware('auth')->group(function () {
         $request->validate(['urls' => 'required|array|min:1|max:200', 'urls.*' => 'string|max:500', 'name' => 'nullable|string|max:80']);
         $files = [];
         foreach ($request->input('urls') as $u) {
-            if (!preg_match('#/uploads/(.+)$#', parse_url($u, PHP_URL_PATH) ?: $u, $m)) continue;
-            $abs = \App\Support\Uploads::resolve(rawurldecode($m[1]));
+            $path = parse_url($u, PHP_URL_PATH) ?: $u;
+            if (!preg_match('#/uploads/(.+)$#', $path, $m)) continue;
+            // The real name may live in a decorative trailing path segment (Uploads::urlWithName)
+            // or in ?name= — our own uploads only ever get a real name from one of those, since
+            // the file on disk is just a generated id with nothing else to go on.
+            [$abs, $niceFromPath] = \App\Support\Uploads::resolveWithName(rawurldecode($m[1]));
             if (!$abs) continue;
+            parse_str(parse_url($u, PHP_URL_QUERY) ?: '', $qs);
             // drop the import prefixes (chat_123_, tatt_456_ …) so people get the original file name
-            $files[] = [preg_replace('/^(?:chat|tatt|tdirect|disk)_\d+_/', '', basename($abs)), $abs];
+            $nice = $niceFromPath ?? ($qs['name'] ?? null) ?? preg_replace('/^(?:chat|tatt|tdirect|disk)_\d+_/', '', basename($abs));
+            $files[] = [$nice, $abs];
         }
         return $zipOut($files, $request->input('name') ?: 'attachments');
     })->name('api.download.zip');
 
     // ── Serve uploaded/imported files (private storage, auth required) ──
     Route::get('/uploads/{path}', function ($path, \Illuminate\Http\Request $request) {
-        $full = \App\Support\Uploads::resolve($path);
-
         // New links append a decorative "/Original Name.ext" segment after the real storage
         // path (e.g. /uploads/up_xxx.jpg/Bussiness-card-01.jpg) purely so a browser's own
         // Save-As picks up the real name too — Chrome's native image viewer, for one, saves
         // by the URL's last path segment and ignores Content-Disposition when you view an
         // image as its own tab and press Ctrl+S. Existing nested storage paths (Bitrix synced
-        // files under uploads/bitrix/...) resolve directly and never hit this fallback.
-        $niceFromPath = null;
-        if (!$full && str_contains($path, '/')) {
-            $dir = pathinfo($path, PATHINFO_DIRNAME);
-            $tail = pathinfo($path, PATHINFO_BASENAME);
-            $full = \App\Support\Uploads::resolve($dir);
-            if ($full) $niceFromPath = $tail;
-        }
+        // files under uploads/bitrix/...) resolve directly and never hit that fallback.
+        [$full, $niceFromPath] = \App\Support\Uploads::resolveWithName($path);
         if (!$full) abort(404);
 
         // The file on disk is stored under a generated id (up_<uniqid>.ext), not the name the user

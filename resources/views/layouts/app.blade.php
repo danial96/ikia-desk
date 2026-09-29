@@ -1887,7 +1887,7 @@ window.msgImgMosaic = function (urls, galKey) {
     const TARGETS = {
         'chat-textarea':   { preview: 'chat-attach-preview', area: () => { const a = document.getElementById('chat-msg-area'); return a && (a.firstElementChild || a); }, send: () => window.chatSend && chatSend() },
         'cp-textarea':     { preview: 'cp-attach-preview',   area: () => document.getElementById('cp-msg-inner') || document.getElementById('cp-msg-area'), send: () => window.cpSend && cpSend() },
-        'tp-comment-text': { preview: 'tp-attach-preview',   area: () => document.getElementById('tp-messages'), send: () => window.tpSubmitComment && typeof _currentTaskId !== 'undefined' && tpSubmitComment(_currentTaskId) },
+        'tp-comment-text': { preview: 'tp-attach-preview',   area: () => document.getElementById('tp-messages'), send: () => window.tpSubmitCurrentComment && tpSubmitCurrentComment() },
     };
     const esc = s => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     const isImg = f => (f.type || '').startsWith('image/');
