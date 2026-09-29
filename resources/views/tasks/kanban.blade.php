@@ -596,6 +596,11 @@ function kbAjaxFilter() {
     const sv = (document.getElementById('tsf-input') || {}).value;
     if (sv && sv.trim()) params.set('search', sv.trim());
 
+    // This is AJAX, not a real navigation, so the URL never updated on its own — clearing the
+    // search (or any filter) left the old ?search=... sitting in the address bar, and reloading
+    // the page re-applied it right back. Keep the URL in sync with whatever's actually filtered.
+    history.replaceState(null, '', location.pathname + (params.toString() ? '?' + params.toString() : ''));
+
     document.querySelectorAll('[id^="kb-col-"]').forEach(c => { c.style.opacity = '0.35'; c.style.transition = 'opacity 0.15s'; });
 
     fetch('{{ route("tasks.kanban") }}?' + params.toString() + '&_t=' + Date.now(), {

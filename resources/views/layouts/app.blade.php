@@ -263,14 +263,14 @@
             border-radius: 50%;
             overflow: hidden;
             border: 2px solid transparent;
-            transition: border-color .2s, filter .2s;
+            transition: border-color .2s, opacity .2s;
             cursor: pointer;
             flex-shrink: 0;
-            filter: brightness(0.92);
+            opacity: .55;
         }
         .user-avatar-btn:hover {
             border-color: #00D4E8;
-            filter: brightness(1.15);
+            opacity: 1;
         }
         .user-avatar-btn img { width: 100%; height: 100%; object-fit: cover; }
         .online-dot {
@@ -779,7 +779,7 @@
                         <button type="button" onclick="vnStart('chat')" title="Voice note" style="background:none;border:none;color:#9aa5ad;cursor:pointer;padding:0;font-size:17px;line-height:1;"><i class="fas fa-microphone"></i></button>
                         <button type="button" id="chat-send-btn" onclick="chatSend()" title="Send" style="width:38px;height:38px;border-radius:50%;background:#c5cad0;border:none;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s;"><i class="fas fa-paper-plane" style="font-size:15px;margin-left:-1px;"></i></button>
                     </div>
-                    <input type="file" id="chat-file-input" style="display:none" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.zip"
+                    <input type="file" id="chat-file-input" multiple style="display:none" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.zip"
                            onchange="uploadAndInsert('chat-textarea','chat-file-input','chat-attach-preview')">
                     <div id="chat-attach-preview" style="display:none;padding:6px 14px 8px;gap:8px;flex-wrap:wrap;border-top:1px solid #eef1f3;"></div>
                 </div>
@@ -1892,6 +1892,65 @@ window.msgImgMosaic = function (urls, galKey) {
         } catch (e) { return file; }
     }
 
+    // Bitrix-style queue: the photos upload ONE BY ONE, each becoming its own message as soon as
+    // it's done (not all bundled into one). Shared by the caption modal's own Send button and by
+    // dropSendDirect() below (files dropped straight onto a chat, no modal at all).
+    async function sendFilesQueue(files2, textareaId, caption, raw) {
+        const tgt = TARGETS[textareaId]; if (!tgt) return;
+        const ta = document.getElementById(textareaId); if (!ta) return;
+        let pending = null;
+        try {
+            const area = tgt.area && tgt.area();
+            const q = files2.map(f => ({ f, st: 'wait', url: isImg(f) ? URL.createObjectURL(f) : null }));
+            const imgsQ = () => q.filter(it => it.url && it.st !== 'cancel' && it.st !== 'sent');
+            const veil = it =>
+                '<div style="position:absolute;inset:0;background:rgba(0,0,0,.30);display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-size:12px;gap:4px;">' +
+                '<span data-cancel="' + q.indexOf(it) + '" title="Don\'t send this one" style="width:38px;height:38px;border-radius:50%;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;font-size:20px;cursor:pointer;pointer-events:auto;">&times;</span>' +
+                (it.st === 'up' ? '<span><i class="fas fa-spinner fa-spin" style="margin-right:4px;"></i>Uploading…</span>' : '<span>Waiting…</span>') + '</div>';
+            const paint = () => {
+                if (!pending) return;
+                const list = imgsQ();
+                const tile = it => '<img src="' + it.url + '" style="width:100%;height:100%;object-fit:cover;display:block;">' + veil(it);
+                pending.firstElementChild.innerHTML = list.length === 1
+                    ? '<div style="position:relative;width:280px;max-width:100%;border-radius:8px;overflow:hidden;"><img src="' + list[0].url + '" style="width:100%;display:block;">' + veil(list[0]) + '</div>'
+                    : imgMosaic(list.map(tile));
+                pending.querySelectorAll('[data-cancel]').forEach(x => x.onclick = () => { const it = q[+x.dataset.cancel]; if (it && it.st !== 'up') { it.st = 'cancel'; paint(); } });
+            };
+            if (area && imgsQ().length) {
+                pending = document.createElement('div');
+                pending.setAttribute('data-pending-upload', '1');
+                pending.style.cssText = 'display:flex;justify-content:flex-end;margin:4px 0;';
+                pending.innerHTML = '<div style="background:#e3f9c9;border-radius:14px 4px 14px 14px;padding:6px;"></div>';
+                area.appendChild(pending); paint();
+                if (area.parentElement) area.parentElement.scrollTop = area.parentElement.scrollHeight + 9999;
+                if (area.scrollHeight > area.clientHeight) area.scrollTop = area.scrollHeight + 9999;
+            }
+            // one message per photo, in order: upload → send → next (the first one carries the caption)
+            let sent = 0;
+            const keep = ta.value;
+            for (const it of q) {
+                if (it.st === 'cancel') continue;
+                it.st = 'up'; paint();
+                await window.uploadFileDirect(raw ? it.f : await shrink(it.f), textareaId, tgt.preview);
+                ta.value = sent === 0 ? (caption || keep) : '';
+                const r = tgt.send();
+                if (r && typeof r.then === 'function') await r; else await new Promise(res => setTimeout(res, 350));
+                it.st = 'sent'; sent++;
+                if (pending) { area.appendChild(pending); paint(); }   // the still-waiting photos stay below what was already sent
+                if (area && area.parentElement) area.parentElement.scrollTop = area.parentElement.scrollHeight + 9999;
+            }
+            if (pending) { pending.remove(); pending = null; }
+            if (!sent && caption) { ta.value = caption; tgt.send(); }   // everything was cancelled but there is a caption
+        } catch (e) { if (pending) pending.remove(); if (window.showToast) showToast('Upload failed.'); }
+    }
+    // Dropping files straight onto a chat/comment box sends them right away — no caption prompt,
+    // no extra click. (Pasting still opens the modal below: a pasted screenshot commonly wants a
+    // caption typed before it's sent, which drag-drop doesn't really need.)
+    window.dropSendDirect = function(files, textareaId) {
+        if (!TARGETS[textareaId] || !files || !files.length) return;
+        sendFilesQueue(Array.from(files), textareaId, '', false);
+    };
+
     window.openPasteModal = function(files, textareaId) {
         const tgt = TARGETS[textareaId]; if (!tgt || !files.length) return;
         const ta = document.getElementById(textareaId); if (!ta) return;
@@ -2057,7 +2116,8 @@ window.msgImgMosaic = function (urls, galKey) {
         if (!hit) return;
         e.preventDefault(); e.stopPropagation();
         const files = Array.from(e.dataTransfer.files);
-        if (window._pasteModalAdd) window._pasteModalAdd(files); else openPasteModal(files, hit.z.ta);
+        // a genuine drop (modal not already open) sends right away — no caption prompt
+        if (window._pasteModalAdd) window._pasteModalAdd(files); else dropSendDirect(files, hit.z.ta);
     }, true);
 
     // any pasted file (screenshot, image, document) in a chat / comment box opens the popup;
@@ -2500,9 +2560,17 @@ const _pendingAtts = {};
 
 window.uploadAndInsert = async function(textareaId, fileInputId, previewId) {
     const input = document.getElementById(fileInputId);
-    const file  = input.files[0];
-    if (!file) return;
-
+    const files = Array.from(input.files || []);
+    if (!files.length) return;
+    // Multiple files picked at once: upload and attach each one in turn, same as dropping
+    // several files does via uploadFileDirect — one attachment chip per file, all still on the
+    // SAME message (unlike a drop, which sends each as its own separate message).
+    for (const file of files) {
+        await uploadOneAndInsert(file, textareaId, previewId);
+    }
+    input.value = '';
+};
+async function uploadOneAndInsert(file, textareaId, previewId) {
     const ta = document.getElementById(textareaId);
     const origPH = ta.placeholder;
     ta.placeholder = 'Uploading...';
@@ -2549,9 +2617,8 @@ window.uploadAndInsert = async function(textareaId, fileInputId, previewId) {
         ta.placeholder = origPH;
         ta.disabled    = false;
         ta.focus();
-        input.value    = '';
     }
-};
+}
 
 window.removeAttachment = function(textareaId, attId, previewId) {
     if (_pendingAtts[textareaId]) {

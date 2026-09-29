@@ -1448,7 +1448,7 @@ function tpRenderLocal(data) {
                 <button type="button" id="tp-send-btn" onclick="tpSubmitComment(${taskId})" title="Send (Enter)"
                         style="width:36px;height:36px;border-radius:50%;background:#c5cad0;border:none;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s;"><i class="fas fa-paper-plane" style="font-size:14px;margin-left:-1px;"></i></button>
             </div>
-            <input type="file" id="tp-file-input" style="display:none" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.zip"
+            <input type="file" id="tp-file-input" multiple style="display:none" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.zip"
                    onchange="uploadAndInsert('tp-comment-text','tp-file-input','tp-attach-preview')">
         </div>`;
     // The composer above is rebuilt fresh every time a task opens, so the @mention listener
