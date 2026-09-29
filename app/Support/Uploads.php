@@ -26,4 +26,19 @@ class Uploads
 
         return str_starts_with($full, $root . DIRECTORY_SEPARATOR) ? $full : null;
     }
+
+    /**
+     * Public "/uploads/..." URL for a stored relative path, with the original filename appended
+     * as a decorative trailing path segment (not just a query string) — a browser's own Save-As
+     * can default to the URL's last path segment and ignore Content-Disposition entirely (Chrome
+     * does this for an image viewed as its own tab), so the real name needs to live in the path.
+     */
+    public static function urlWithName(string $relative, ?string $originalName): string
+    {
+        $url = asset($relative);
+        if (!$originalName) return $url;
+        $clean = basename(str_replace(['/', '\\'], '', $originalName));
+        if ($clean === '') return $url;
+        return $url . '/' . rawurlencode($clean) . '?name=' . rawurlencode($clean);
+    }
 }

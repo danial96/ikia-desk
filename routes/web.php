@@ -272,11 +272,26 @@ Route::middleware('auth')->group(function () {
     // ── Serve uploaded/imported files (private storage, auth required) ──
     Route::get('/uploads/{path}', function ($path, \Illuminate\Http\Request $request) {
         $full = \App\Support\Uploads::resolve($path);
+
+        // New links append a decorative "/Original Name.ext" segment after the real storage
+        // path (e.g. /uploads/up_xxx.jpg/Bussiness-card-01.jpg) purely so a browser's own
+        // Save-As picks up the real name too — Chrome's native image viewer, for one, saves
+        // by the URL's last path segment and ignores Content-Disposition when you view an
+        // image as its own tab and press Ctrl+S. Existing nested storage paths (Bitrix synced
+        // files under uploads/bitrix/...) resolve directly and never hit this fallback.
+        $niceFromPath = null;
+        if (!$full && str_contains($path, '/')) {
+            $dir = pathinfo($path, PATHINFO_DIRNAME);
+            $tail = pathinfo($path, PATHINFO_BASENAME);
+            $full = \App\Support\Uploads::resolve($dir);
+            if ($full) $niceFromPath = $tail;
+        }
         if (!$full) abort(404);
 
         // The file on disk is stored under a generated id (up_<uniqid>.ext), not the name the user
-        // uploaded it as — callers pass the real name via ?name= so downloads show that instead.
-        $niceName = trim((string) $request->query('name'));
+        // uploaded it as — callers pass the real name via the path above or ?name= so downloads
+        // show that instead.
+        $niceName = $niceFromPath ?? trim((string) $request->query('name'));
         $niceName = $niceName !== '' ? basename(str_replace(['/', '\\'], '', $niceName)) : basename($full);
 
         // Anything that can carry a <script> and render in a browser tab (html/svg/xml/...) must
@@ -406,7 +421,7 @@ Route::middleware('auth')->group(function () {
                 'name'        => $tf->name,
                 'mime'        => $tf->mime_type,
                 'size'        => $tf->size,
-                'downloadUrl' => asset('uploads/' . $filename) . '?name=' . rawurlencode($origName),
+                'downloadUrl' => \App\Support\Uploads::urlWithName('uploads/' . $filename, $origName),
             ],
         ]);
     });
@@ -596,7 +611,7 @@ Route::middleware('auth')->group(function () {
             // The stored filename is a generated id (up_<uniqid>.ext), not what the user picked —
             // carry the original name in the URL so a later download shows it instead of the id.
             return response()->json([
-                'url'  => asset('uploads/' . $filename) . '?name=' . rawurlencode($origName),
+                'url'  => \App\Support\Uploads::urlWithName('uploads/' . $filename, $origName),
                 'name' => $origName,
                 'mime' => $mime,
                 'ext'  => $ext,
