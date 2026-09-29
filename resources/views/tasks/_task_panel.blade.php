@@ -787,22 +787,29 @@ window.tpToggleMemberUI = function(taskId,userId,type) {
     const key=type+'-'+taskId, st=(window._tpPS||{})[key];
     const fn=type==='observer'?tpToggleObserver:tpToggleMember;
     const dropId='tp-drop-'+type+'-'+taskId;
-    const drop=$(dropId);
-    if(!st||!drop){ fn(taskId,userId,()=>fetch(TP_LOCAL_URL+'/'+taskId,{headers:{'X-CSRF-TOKEN':TP_CSRF,'Accept':'application/json'}}).then(r=>r.json()).then(d=>tpRenderLocal(d))); return; }
-    // Optimistic: update chips + dropdown in place right away, save in the background
+    if(!st||!$(dropId)){ fn(taskId,userId,()=>fetch(TP_LOCAL_URL+'/'+taskId,{headers:{'X-CSRF-TOKEN':TP_CSRF,'Accept':'application/json'}}).then(r=>r.json()).then(d=>tpRenderLocal(d))); return; }
+    // Optimistic: update chips + dropdown in place right away, save in the background.
+    // drop/holder are looked up FRESH every call, not captured once — apply() replaces its own
+    // ancestor's innerHTML, which detaches the very nodes a stale reference would point at, so
+    // reverting after a failed save (a second apply() call) crashed instead of showing the toast.
     const apply=(list)=>{
-        const holder=drop.parentElement, q=drop.querySelector('input')?.value||'', sc=drop.querySelector('.opts')?.scrollTop||0;
+        const drop=$(dropId); if(!drop) return;
+        const holder=drop.parentElement; if(!holder||!holder.parentElement) return;
+        const q=drop.querySelector('input')?.value||'', sc=drop.querySelector('.opts')?.scrollTop||0;
         holder.parentElement.innerHTML=renderChips(list,taskId,type,st.employees);
-        const nd=$(dropId); nd.style.display='block';
-        const inp=nd.querySelector('input'); inp.value=q; tpFilterDrop(dropId,q); nd.querySelector('.opts').scrollTop=sc;
-        if(q) inp.focus();
+        const nd=$(dropId); if(!nd) return;
+        nd.style.display='block';
+        const inp=nd.querySelector('input'); if(inp) inp.value=q;
+        tpFilterDrop(dropId,q);
+        const opts=nd.querySelector('.opts'); if(opts) opts.scrollTop=sc;
+        if(q&&inp) inp.focus();
     };
     const before=st.list.slice();
     const has=before.some(u=>u.id===userId);
     const emp=st.employees.find(e=>e.id===userId);
     apply(has?before.filter(u=>u.id!==userId):before.concat(emp?[emp]:[]));
     fn(taskId,userId,(resp)=>{
-        if(resp&&resp.success===false){ showToast('Update failed.'); const d=$(dropId); if(d) apply(before); }
+        if(resp&&resp.success===false){ showToast(resp.message||'Update failed. You may not have permission.'); apply(before); }
     });
 };
 document.addEventListener('click',function(e){

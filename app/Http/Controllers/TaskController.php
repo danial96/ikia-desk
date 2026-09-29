@@ -487,7 +487,7 @@ class TaskController extends Controller
     public function toggleParticipant(Request $request, Task $task)
     {
         $user = Auth::user();
-        if (!$user->isSuperAdmin() && $task->created_by !== $user->id) {
+        if (!$user->isSuperAdmin() && $task->created_by !== $user->id && $task->assigned_to !== $user->id) {
             return response()->json(['success' => false], 403);
         }
         $uid = (int) $request->user_id;
@@ -510,7 +510,7 @@ class TaskController extends Controller
     public function toggleObserver(Request $request, Task $task)
     {
         $user = Auth::user();
-        if (!$user->isSuperAdmin() && $task->created_by !== $user->id) {
+        if (!$user->isSuperAdmin() && $task->created_by !== $user->id && $task->assigned_to !== $user->id) {
             return response()->json(['success' => false], 403);
         }
         $uid = (int) $request->user_id;
