@@ -270,18 +270,28 @@ Route::middleware('auth')->group(function () {
     })->name('api.download.zip');
 
     // ── Serve uploaded/imported files (private storage, auth required) ──
-    Route::get('/uploads/{path}', function ($path) {
+    Route::get('/uploads/{path}', function ($path, \Illuminate\Http\Request $request) {
         $full = \App\Support\Uploads::resolve($path);
         if (!$full) abort(404);
+
+        // The file on disk is stored under a generated id (up_<uniqid>.ext), not the name the user
+        // uploaded it as — callers pass the real name via ?name= so downloads show that instead.
+        $niceName = trim((string) $request->query('name'));
+        $niceName = $niceName !== '' ? basename(str_replace(['/', '\\'], '', $niceName)) : basename($full);
+
         // Anything that can carry a <script> and render in a browser tab (html/svg/xml/...) must
         // download rather than execute inline — otherwise an uploaded file could run script in an
         // authenticated user's session under our own origin (stored XSS via file upload).
         $renderRisk = ['html','htm','xhtml','shtml','mhtml','xml','svg'];
         $ext = strtolower(pathinfo($full, PATHINFO_EXTENSION));
         if (in_array($ext, $renderRisk)) {
-            return response()->download($full, basename($full), ['Content-Type' => 'application/octet-stream']);
+            return response()->download($full, $niceName, ['Content-Type' => 'application/octet-stream']);
         }
-        return response()->file($full);
+        return response()->file($full, [
+            'Content-Disposition' => \Symfony\Component\HttpFoundation\HeaderUtils::makeDisposition(
+                \Symfony\Component\HttpFoundation\HeaderUtils::DISPOSITION_INLINE, $niceName
+            ),
+        ]);
     })->where('path', '.*')->name('uploads.show');
 
     // ── Bitrix Disk file proxy (download on-demand, cache locally) ──
@@ -370,8 +380,8 @@ Route::middleware('auth')->group(function () {
         $origName = $file->getClientOriginalName();
         $mime     = $file->getClientMimeType() ?? '';
         $ext      = strtolower($file->getClientOriginalExtension());
-        $allowed  = ['jpg','jpeg','png','gif','webp','pdf','doc','docx','xls','xlsx','ppt','pptx','txt','zip','mp3','mp4','mov','avi','csv','webm','ogg'];
-        if (!in_array($ext, $allowed)) abort(422, 'File type not allowed.');
+        $blocked  = ['exe','bat','cmd','com','msi','scr','dll','sh','bin','apk','jar','js','mjs','vbs','ps1','php','phtml','php3','php4','php5','cgi','pl','py','asp','aspx','jsp'];
+        if (in_array($ext, $blocked)) abort(422, 'File type not allowed.');
         $fileSize = $file->getSize() ?: 0;
         $filename = 'up_' . uniqid() . '.' . $ext;
         @mkdir(\App\Support\Uploads::path(), 0755, true);
@@ -391,7 +401,7 @@ Route::middleware('auth')->group(function () {
                 'name'        => $tf->name,
                 'mime'        => $tf->mime_type,
                 'size'        => $tf->size,
-                'downloadUrl' => asset('uploads/' . $filename),
+                'downloadUrl' => asset('uploads/' . $filename) . '?name=' . rawurlencode($origName),
             ],
         ]);
     });
@@ -578,8 +588,10 @@ Route::middleware('auth')->group(function () {
 
             $file->move($uploadPath, $filename);
 
+            // The stored filename is a generated id (up_<uniqid>.ext), not what the user picked —
+            // carry the original name in the URL so a later download shows it instead of the id.
             return response()->json([
-                'url'  => asset('uploads/' . $filename),
+                'url'  => asset('uploads/' . $filename) . '?name=' . rawurlencode($origName),
                 'name' => $origName,
                 'mime' => $mime,
                 'ext'  => $ext,

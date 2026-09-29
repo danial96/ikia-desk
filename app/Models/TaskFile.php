@@ -17,7 +17,10 @@ class TaskFile extends Model
     public function getDownloadUrlAttribute(): string
     {
         if ($this->disk_path) {
-            return asset($this->disk_path);
+            // disk_path points at the generated storage filename, not what the user uploaded —
+            // carry the original name so downloading shows it instead of the generated id.
+            $url = asset($this->disk_path);
+            return $this->name ? $url . '?name=' . rawurlencode($this->name) : $url;
         }
         return $this->bitrix_download_url ?? '#';
     }
