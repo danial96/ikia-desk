@@ -273,6 +273,14 @@ Route::middleware('auth')->group(function () {
     Route::get('/uploads/{path}', function ($path) {
         $full = \App\Support\Uploads::resolve($path);
         if (!$full) abort(404);
+        // Anything that can carry a <script> and render in a browser tab (html/svg/xml/...) must
+        // download rather than execute inline — otherwise an uploaded file could run script in an
+        // authenticated user's session under our own origin (stored XSS via file upload).
+        $renderRisk = ['html','htm','xhtml','shtml','mhtml','xml','svg'];
+        $ext = strtolower(pathinfo($full, PATHINFO_EXTENSION));
+        if (in_array($ext, $renderRisk)) {
+            return response()->download($full, basename($full), ['Content-Type' => 'application/octet-stream']);
+        }
         return response()->file($full);
     })->where('path', '.*')->name('uploads.show');
 
@@ -556,8 +564,11 @@ Route::middleware('auth')->group(function () {
             $origName = $file->getClientOriginalName();
             $mime     = $file->getClientMimeType() ?? '';
             $ext      = strtolower($file->getClientOriginalExtension()) ?: 'bin';
-            $allowed  = ['jpg','jpeg','png','gif','webp','pdf','doc','docx','xls','xlsx','ppt','pptx','txt','zip','mp3','mp4','mov','avi','csv','webm','ogg'];
-            if (!in_array($ext, $allowed)) return response()->json(['error'=>'File type not allowed.'],422);
+            // Internal team tool (Bitrix replacement) — people attach all sorts of work files
+            // (xml exports, html reports, etc.), so block only what's actually dangerous to
+            // serve back rather than maintaining an allowlist that keeps missing legitimate types.
+            $blocked  = ['exe','bat','cmd','com','msi','scr','dll','sh','bin','apk','jar','js','mjs','vbs','ps1','php','phtml','php3','php4','php5','cgi','pl','py','asp','aspx','jsp'];
+            if (in_array($ext, $blocked)) return response()->json(['error'=>'File type not allowed.'],422);
             $filename = 'up_' . uniqid() . '.' . $ext;
 
             $uploadPath = \App\Support\Uploads::path();

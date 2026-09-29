@@ -155,7 +155,6 @@
                 {{-- Description --}}
                 <div class="nt-sec" style="padding-top:4px;padding-bottom:12px;border-bottom:none;">
                     <input type="file" id="nt-desc-file" multiple
-                           accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.zip"
                            style="display:none" onchange="ntDescUploadFiles(this)">
                     <div id="nt-desc-card"
                          style="border:1.5px solid #e2e8f0;border-radius:10px;background:#fff;overflow:hidden;transition:border-color .15s;">

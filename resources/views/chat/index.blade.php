@@ -109,8 +109,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         <button type="button" onclick="vnStart('cp')" title="Voice note" style="background:none;border:none;color:#9aa5ad;cursor:pointer;padding:0;font-size:17px;line-height:1;"><i class="fas fa-microphone"></i></button>
                         <button type="button" id="cp-send-btn" onclick="cpSend()" title="Send" style="width:38px;height:38px;border-radius:50%;background:#c5cad0;border:none;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s;"><i class="fas fa-paper-plane" style="font-size:15px;margin-left:-1px;"></i></button>
                     </div>
-                    <input type="file" id="cp-file-input" multiple style="display:none" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.zip"
-                           onchange="uploadAndInsert('cp-textarea','cp-file-input','cp-attach-preview')">
+                    <input type="file" id="cp-file-input" multiple style="display:none" onchange="uploadAndInsert('cp-textarea','cp-file-input','cp-attach-preview')">
                     <div id="cp-attach-preview" style="display:none;padding:6px 14px 8px;gap:8px;flex-wrap:wrap;border-top:1px solid #eef1f3;"></div>
                 </div>
             </div>
