@@ -52,16 +52,28 @@ class TaskFieldPermissionTest extends TestCase
         $this->assertNull($task->fresh()->deadline);
     }
 
-    public function test_assignee_cannot_reassign_the_task(): void
+    public function test_assignee_can_reassign_the_task(): void
     {
         $creator  = $this->makeUser();
         $assignee = $this->makeUser();
         $other    = $this->makeUser();
         $task     = Task::create(['title' => 'T', 'created_by' => $creator->id, 'assigned_to' => $assignee->id, 'priority' => 'medium', 'status' => 'in_progress']);
 
-        // Assignee may manage deadline/priority but not hand the task to someone else.
-        $this->setField($task, $assignee, 'assigned_to', $other->id)->assertForbidden();
-        $this->assertSame($assignee->id, $task->fresh()->assigned_to);
+        // The current assignee can hand the task off to someone else, same as deadline/priority.
+        $this->setField($task, $assignee, 'assigned_to', $other->id)->assertOk()->assertJson(['success' => true]);
+        $this->assertSame($other->id, $task->fresh()->assigned_to);
+    }
+
+    public function test_plain_participant_cannot_reassign_the_task(): void
+    {
+        $creator     = $this->makeUser();
+        $participant = $this->makeUser();
+        $other       = $this->makeUser();
+        $task        = Task::create(['title' => 'T', 'created_by' => $creator->id, 'priority' => 'medium', 'status' => 'in_progress']);
+        $task->members()->attach($participant->id);
+
+        $this->setField($task, $participant, 'assigned_to', $other->id)->assertForbidden();
+        $this->assertNull($task->fresh()->assigned_to);
     }
 
     public function test_creator_can_reassign_the_task(): void

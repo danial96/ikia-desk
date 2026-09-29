@@ -419,13 +419,14 @@ class TaskController extends Controller
                 || $task->created_by === $user->id;
             if (!$canUpdateStatus) return response()->json(['success' => false, 'message' => 'Not authorized'], 403);
         } else {
-            // deadline/priority: Super Admin, creator, or assignee (matches the kanban drag
-            // policy in move()) — plain participants/observers cannot. assigned_to/project_id
-            // (reassigning or moving the task) stay creator/admin-only.
-            $isDeadlineOrPriority = in_array($field, ['deadline', 'priority']);
+            // deadline/priority/assigned_to: Super Admin, creator, or the current assignee (matches
+            // the kanban drag policy in move()) — plain participants/observers cannot. The assignee
+            // can hand a task off to someone else, same as they can change its deadline/priority.
+            // project_id (moving the task to a different project) stays creator/admin-only.
+            $assigneeCanEdit = in_array($field, ['deadline', 'priority', 'assigned_to']);
             $canEdit = $user->isSuperAdmin()
                 || $task->created_by === $user->id
-                || ($isDeadlineOrPriority && $task->assigned_to === $user->id);
+                || ($assigneeCanEdit && $task->assigned_to === $user->id);
             if (!$canEdit) {
                 return response()->json(['success' => false, 'message' => 'Not authorized'], 403);
             }

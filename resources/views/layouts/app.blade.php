@@ -1893,23 +1893,10 @@ window.msgImgMosaic = function (urls, galKey) {
     const isImg = f => (f.type || '').startsWith('image/');
     const MIME_EXT = {'image/png':'png','image/jpeg':'jpg','image/jpg':'jpg','image/gif':'gif','image/webp':'webp','image/bmp':'bmp'};
 
-    // downscale big screenshots/photos unless the user ticked "Don't compress images"
-    async function shrink(file) {
-        if (!isImg(file) || file.type === 'image/gif' || file.type === 'image/svg+xml' || file.size < 700 * 1024) return file;
-        try {
-            const bmp = await createImageBitmap(file);
-            const max = 1800, k = Math.min(1, max / Math.max(bmp.width, bmp.height));
-            const c = document.createElement('canvas'); c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k);
-            const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); g.drawImage(bmp, 0, 0, c.width, c.height);
-            const blob = await new Promise(r => c.toBlob(r, 'image/jpeg', 0.85));
-            if (!blob || blob.size >= file.size) return file;
-            return new File([blob], (file.name || 'image').replace(/\.[^.]+$/, '') + '.jpg', { type: 'image/jpeg' });
-        } catch (e) { return file; }
-    }
 
     // Bitrix-style queue: the photos upload ONE BY ONE, each becoming its own message as soon as
     // it's done (not all bundled into one). Used by the caption modal's own Send button.
-    async function sendFilesQueue(files2, textareaId, caption, raw) {
+    async function sendFilesQueue(files2, textareaId, caption) {
         const tgt = TARGETS[textareaId]; if (!tgt) return;
         const ta = document.getElementById(textareaId); if (!ta) return;
         let pending = null;
@@ -1945,7 +1932,7 @@ window.msgImgMosaic = function (urls, galKey) {
             for (const it of q) {
                 if (it.st === 'cancel') continue;
                 it.st = 'up'; paint();
-                await window.uploadFileDirect(raw ? it.f : await shrink(it.f), textareaId, tgt.preview);
+                await window.uploadFileDirect(it.f, textareaId, tgt.preview);
                 ta.value = sent === 0 ? (caption || keep) : '';
                 const r = tgt.send();
                 if (r && typeof r.then === 'function') await r; else await new Promise(res => setTimeout(res, 350));
@@ -1974,8 +1961,7 @@ window.msgImgMosaic = function (urls, galKey) {
             <div id="pm-list" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;"></div>
             <button type="button" id="pm-more" style="display:inline-flex;align-items:center;gap:6px;border:1px solid #dfe3e6;background:#fff;border-radius:16px;padding:6px 14px;color:#6b7680;font-size:13px;cursor:pointer;"><i class="fas fa-paperclip" style="font-size:11px;"></i>Add more</button>
             <input type="file" id="pm-file" multiple style="display:none">
-            <label style="display:flex;align-items:center;gap:9px;margin:16px 0 14px;font-size:14px;color:#333;cursor:pointer;"><input type="checkbox" id="pm-raw" style="width:18px;height:18px;">Don't compress images</label>
-            <div style="position:relative;"><textarea id="pm-text" rows="3" placeholder="Add text" style="width:100%;box-sizing:border-box;border:1.5px solid #cfd6da;border-radius:10px;padding:12px 14px 40px;font-size:14.5px;outline:none;resize:none;font-family:inherit;"></textarea>
+            <div style="position:relative;margin-top:16px;"><textarea id="pm-text" rows="3" placeholder="Add text" style="width:100%;box-sizing:border-box;border:1.5px solid #cfd6da;border-radius:10px;padding:12px 14px 40px;font-size:14.5px;outline:none;resize:none;font-family:inherit;"></textarea>
                 <button type="button" id="pm-send" title="Send" style="position:absolute;right:10px;bottom:10px;width:36px;height:36px;border-radius:50%;background:#0075fd;border:none;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;"><i class="fas fa-paper-plane" style="font-size:14px;margin-left:-1px;"></i></button></div>
         </div>`;
         document.body.appendChild(ov);
@@ -2014,10 +2000,10 @@ window.msgImgMosaic = function (urls, galKey) {
 
         $('pm-send').onclick = async function() {
             const btn = this; btn.disabled = true; btn.style.opacity = '.55';
-            const raw = $('pm-raw').checked, caption = $('pm-text').value.trim();
+            const caption = $('pm-text').value.trim();
             const files2 = list.slice();
             close();
-            await sendFilesQueue(files2, textareaId, caption, raw);
+            await sendFilesQueue(files2, textareaId, caption);
         };
     };
 
