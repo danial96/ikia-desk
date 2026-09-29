@@ -148,11 +148,9 @@
         }
         @keyframes rippleAnim { to { transform:scale(4); opacity:0; } }
 
-        /* Smooth focus ring */
         input:focus, textarea:focus, select:focus {
             outline: none;
-            box-shadow: 0 0 0 2.5px rgba(0,212,232,.4);
-            transition: box-shadow .18s;
+            box-shadow: none;
         }
 
 
