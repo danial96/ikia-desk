@@ -954,6 +954,23 @@ if (typeof window.ME_ID === 'undefined') { window.ME_ID = {{ auth()->id() }}; }
 // chosen timezone (profile → Time zone), so the same instant shows as the right clock time
 // for everyone, not always Asia/Karachi's.
 if (typeof window.APP_TZ === 'undefined') { window.APP_TZ = @json(auth()->user()?->viewTz() ?? config('app.timezone')); }
+// docx/xlsx can't render natively in a browser tab — route those through the in-app previewer
+// (mammoth.js / SheetJS) instead of letting them just download. Everything else (pdf, images,
+// legacy doc/ppt, etc.) keeps linking straight at the file as before.
+if (typeof window.fileViewHref === 'undefined') {
+    window.fileViewHref = function(url) {
+        if (!url) return url;
+        try {
+            const u = new URL(url, location.origin);
+            const name = u.searchParams.get('name') || u.pathname.split('/').pop() || '';
+            const ext = name.split('.').pop().toLowerCase();
+            if (ext === 'docx' || ext === 'xlsx' || ext === 'xls') {
+                return '/doc-viewer?src=' + encodeURIComponent(u.href);
+            }
+        } catch (e) {}
+        return url;
+    };
+}
 // Per-user notification preferences (profile → Notifications). Declared idempotently, same
 // reasoning as APP_TZ/ME_ID above — this script can run more than once in the same page scope.
 @php
@@ -1502,7 +1519,7 @@ function renderMsgContent(text, isMine) {
             out += `<img src="${escH(imgM[1])}" style="max-width:280px;max-height:220px;object-fit:cover;border-radius:8px;display:block;margin:4px 0;cursor:zoom-in;transition:opacity .15s;" loading="lazy" onmouseover="this.style.opacity='.88'" onmouseout="this.style.opacity='1'" onclick="${fn}">`;
         } else if (fileM) {
             const _fu = /^(https?:\/\/|\/)/i.test(fileM[2]) ? fileM[2] : '#';
-            out += `<a href="${escH(_fu)}" target="_blank" rel="noopener"
+            out += `<a href="${escH(fileViewHref(_fu))}" target="_blank" rel="noopener"
                 style="display:inline-flex;align-items:center;gap:6px;background:rgba(0,0,0,.12);border-radius:7px;padding:5px 10px;color:inherit;text-decoration:none;font-size:11.5px;margin:3px 0;">
                 <i class="fas fa-file" style="opacity:.7;"></i>${escH(fileM[1])}
             </a>`;

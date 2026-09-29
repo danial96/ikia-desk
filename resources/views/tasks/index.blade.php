@@ -182,7 +182,8 @@ function b24lRenderPanel_REMOVED(data) {
                 const ext=(f.name.split('.').pop()||'').toLowerCase();
                 const icon=fileIcons[ext]||'fa-file';
                 const sz=f.size?Math.round(f.size/1024)+' KB':'';
-                return `<a href="${f.downloadUrl||'#'}" target="_blank" style="display:flex;align-items:center;gap:10px;padding:9px 12px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:9px;text-decoration:none;transition:background .15s;" onmouseover="this.style.background='rgba(0,212,232,.08)'" onmouseout="this.style.background='rgba(255,255,255,.05)'">
+                const fUrl=f.downloadUrl||'#';
+                return `<a href="${window.fileViewHref?fileViewHref(fUrl):fUrl}" target="_blank" style="display:flex;align-items:center;gap:10px;padding:9px 12px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:9px;text-decoration:none;transition:background .15s;" onmouseover="this.style.background='rgba(0,212,232,.08)'" onmouseout="this.style.background='rgba(255,255,255,.05)'">
                     <i class="fas ${icon}" style="font-size:18px;color:#00D4E8;width:22px;flex-shrink:0;"></i>
                     <div style="flex:1;min-width:0;"><p style="color:rgba(255,255,255,.85);font-size:12.5px;font-weight:500;margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${f.name}</p>${sz?`<p style="color:rgba(255,255,255,.35);font-size:11px;margin:2px 0 0;">${sz}</p>`:''}</div>
                     <i class="fas fa-download" style="font-size:12px;color:rgba(255,255,255,.3);flex-shrink:0;"></i>

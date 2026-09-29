@@ -294,6 +294,11 @@ Route::middleware('auth')->group(function () {
         ]);
     })->where('path', '.*')->name('uploads.show');
 
+    // Docx/xlsx preview — the actual file is fetched and rendered client-side (mammoth.js /
+    // SheetJS) from the already-authenticated /uploads/{path} URL, so this route only has to
+    // serve the static viewer shell.
+    Route::get('/doc-viewer', fn () => view('doc-viewer'))->name('doc.viewer');
+
     // ── Bitrix Disk file proxy (download on-demand, cache locally) ──
     Route::get('/api/disk-file/{id}', function ($id) {
         $id = (int)$id;
