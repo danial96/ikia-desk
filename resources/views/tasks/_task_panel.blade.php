@@ -624,7 +624,16 @@ window.tpOpen = function(type, id) {
     panel.classList.add('tp-entering');
     setTimeout(()=>panel.classList.remove('tp-entering'),300);
     document.body.style.overflow='hidden';
-    tpSkeleton();
+
+    // Show whatever we last saw for this task instantly instead of a blank skeleton — a fresh
+    // copy is still fetched right away below and swapped in silently if anything actually
+    // changed, so this never shows stale data for more than a moment.
+    window._tpCache = window._tpCache || {};
+    const cacheKey = type + ':' + id;
+    const cached = window._tpCache[cacheKey];
+    if (cached) { if (type==='b24') tpRenderB24(cached,id); else tpRenderLocal(cached); }
+    else tpSkeleton();
+
     const sp=new URLSearchParams(location.search);
     sp.set('task',id);
     if(type==='b24') sp.set('src','b24'); else sp.delete('src');
@@ -633,10 +642,12 @@ window.tpOpen = function(type, id) {
     fetch(url,{headers:{'X-CSRF-TOKEN':TP_CSRF,'Accept':'application/json'}})
         .then(r=>r.json())
         .then(data=>{
-            if(type==='b24') tpRenderB24(data,id);
-            else { tpRenderLocal(data); tpStartChatPoll(id); }
+            const changed = !cached || JSON.stringify(data) !== JSON.stringify(cached);
+            window._tpCache[cacheKey] = data;
+            if(type==='b24') { if (changed) tpRenderB24(data,id); }
+            else { if (changed) tpRenderLocal(data); tpStartChatPoll(id); }
         })
-        .catch(()=>{ $('tp-left-body').innerHTML='<p style="color:#ef4444;padding:24px 0;">Could not load task details.</p>'; });
+        .catch(()=>{ if (!cached) $('tp-left-body').innerHTML='<p style="color:#ef4444;padding:24px 0;">Could not load task details.</p>'; });
 
     // Mark this task's notifications as read + remove card badge
     if (type === 'local') {

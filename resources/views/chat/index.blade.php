@@ -792,13 +792,30 @@ window.cpSelect = async function(id) {
     cpCancelEdit();
     document.querySelectorAll('.cp-conv-item').forEach(el => el.classList.toggle('active', +el.dataset.id === id));
     const msgArea = document.getElementById('cp-msg-area');
-    msgArea.innerHTML = '<div style="flex:1 0 auto;display:flex;align-items:center;justify-content:center;"><i class="fas fa-spinner fa-spin" style="font-size:22px;color:rgba(255,255,255,.3);"></i></div>';
     document.getElementById('cp-right-empty').style.display = 'none';
     document.getElementById('cp-right-head').style.display  = 'flex';
     try { const _c0 = _cpAllConvs.find(c => c.id === id); if (_c0) cpUpdateHeader(_c0); } catch(e) {}
     msgArea.style.display        = 'flex';
     msgArea.style.flexDirection  = 'column';
     document.getElementById('cp-input-area').style.display  = 'block';
+
+    // Show whatever we last saw in this conversation instantly instead of a blank spinner — a
+    // fresh copy is still fetched right away below and swapped in silently if anything actually
+    // changed, so this never shows stale data for more than a moment.
+    window._cpMsgCache = window._cpMsgCache || {};
+    const _cpCached = window._cpMsgCache[id];
+    if (_cpCached) {
+        cpRenderMsgs(_cpCached.messages, true);
+        _cpConvType = _cpCached.convType || '';
+        _cpHasMore  = !!_cpCached.hasMore;
+        if (_cpCached.messages.length) {
+            _cpLastMsgId  = Math.max(..._cpCached.messages.map(m => m.id));
+            _cpFirstMsgTs = Math.min(..._cpCached.messages.map(m => m.createdTs));
+            _cpFirstMsgId = Math.min(..._cpCached.messages.filter(m => m.createdTs === _cpFirstMsgTs).map(m => m.id));
+        }
+    } else {
+        msgArea.innerHTML = '<div style="flex:1 0 auto;display:flex;align-items:center;justify-content:center;"><i class="fas fa-spinner fa-spin" style="font-size:22px;color:rgba(255,255,255,.3);"></i></div>';
+    }
 
     try {
         const r = await fetch(API_BASE + '/api/chat/convs/' + id + '/msgs');
@@ -809,7 +826,9 @@ window.cpSelect = async function(id) {
         _cpOtherLastSeenTs = d.otherLastSeenTs || 0;
         const _initMsgs = d.messages || [];
         _cpHasMore = !!d.hasMore;
-        cpRenderMsgs(_initMsgs, true);
+        const _cpChanged = !_cpCached || JSON.stringify(_initMsgs) !== JSON.stringify(_cpCached.messages);
+        window._cpMsgCache[id] = { messages: _initMsgs, hasMore: _cpHasMore, convType: _cpConvType };
+        if (_cpChanged) cpRenderMsgs(_initMsgs, true);
         setTimeout(function () { const a = document.getElementById('cp-msg-area'); if (a && a.scrollHeight <= a.clientHeight + 40) cpLoadOlderMsgs(); }, 300);
         if (_initMsgs.length) {
             _cpLastMsgId  = Math.max(..._initMsgs.map(m => m.id));
@@ -824,7 +843,9 @@ window.cpSelect = async function(id) {
         const ta = document.getElementById('cp-textarea');
         if (ta) ta.focus();
     } catch(e) {
-        msgArea.innerHTML = '<div style="padding:30px;text-align:center;color:rgba(255,82,82,.7);font-size:12px;">Failed to load</div>';
+        // Leave the cached view up rather than replacing it with an error — the fetch will
+        // just retry next time this conversation is opened or the poll ticks.
+        if (!_cpCached) msgArea.innerHTML = '<div style="padding:30px;text-align:center;color:rgba(255,82,82,.7);font-size:12px;">Failed to load</div>';
     } finally {
         _cpSelecting = false;
     }
