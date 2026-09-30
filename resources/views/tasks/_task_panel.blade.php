@@ -2033,7 +2033,8 @@ window.tpSubmitComment=function(taskId){
     const attachTags=window.getAttachmentTags?window.getAttachmentTags('tp-comment-text'):'';
     if(!txt&&!attachTags){ ta.focus(); return; }
     const mentions=window._mentionCollect?window._mentionCollect('tp-comment-text'):[];
-    const fullContent=txt+(attachTags?(txt?'\n':'')+attachTags:'');
+    // Attachment(s) first, caption below — matches how every other chat app shows a captioned photo.
+    const fullContent=attachTags?attachTags+(txt?'\n'+txt:''):txt;
     const parentId=window._tpReplyToId||null;
     const btn=$('tp-comment-footer').querySelector('button[onclick*="tpSubmitComment"]');
     if(btn){btn.disabled=true;btn.style.opacity='.5';}

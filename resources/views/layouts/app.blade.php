@@ -1805,7 +1805,8 @@ window.chatSend = async function() {
 
     const replyToId = _chatReplyToId, replyPreview = _chatReplyPreview;
     chatCancelReply();
-    const fullText = text + (attachTags ? (text ? '\n' : '') + attachTags : '');
+    // Attachment(s) first, caption below — matches how every other chat app shows a captioned photo.
+    const fullText = attachTags ? attachTags + (text ? '\n' + text : '') : text;
 
     // Optimistic render
     const now = new Date();

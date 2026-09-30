@@ -985,7 +985,8 @@ window.cpSend = async function() {
     if (typeof chatSendSound === 'function') chatSendSound();
     const replyToId = _cpReplyToId, replyPreview = _cpReplyPreview;
     cpCancelReply();
-    const fullText = text + (attachTags ? (text ? '\n' : '') + attachTags : '');
+    // Attachment(s) first, caption below — matches how every other chat app shows a captioned photo.
+    const fullText = attachTags ? attachTags + (text ? '\n' + text : '') : text;
     const now = new Date();
     const timeStr = now.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true,timeZone:APP_TZ}).toLowerCase();
     const el = document.getElementById('cp-msg-area');
