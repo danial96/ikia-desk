@@ -969,6 +969,21 @@ if (typeof window.fileViewHref === 'undefined') {
         return url;
     };
 }
+// Clicking a reply's quoted preview jumps to (and briefly highlights) the original message —
+// shared by chat, the chat popup, and task comments, all of which render a quote preview above
+// a reply. Only works if the original message is already in the DOM (no older-message lazy-load).
+if (typeof window.jumpToMsg === 'undefined') {
+    window.jumpToMsg = function(id) {
+        const b = document.querySelector('[data-msg-id="' + id + '"]');
+        if (!b) { if (window.showToast) showToast("Can't find that message — try scrolling up first."); return; }
+        b.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        const bb = b.querySelector('[class$="-bubble-bg"]') || b;
+        const orig = bb.style.boxShadow;
+        bb.style.transition = 'box-shadow .3s';
+        bb.style.boxShadow = '0 0 0 4px #ffe45c';
+        setTimeout(() => { bb.style.boxShadow = orig; }, 1800);
+    };
+}
 // Per-user notification preferences (profile → Notifications). Declared idempotently, same
 // reasoning as APP_TZ/ME_ID above — this script can run more than once in the same page scope.
 @php
@@ -1541,17 +1556,19 @@ function chatRxnBadge(reactions, myReactions, msgId) {
     return `<div id="chat-rxn-${msgId}" style="${pills ? 'display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;' : 'min-height:0;'}">${pills}</div>`;
 }
 
-function chatQuoteHtml(parentPreview, isMine) {
+function chatQuoteHtml(parentPreview, isMine, parentId) {
     if (!parentPreview) return '';
     const barColor = isMine ? '#5fa83c' : '#20a0e0';
-    return `<div style="border-left:3px solid ${barColor};padding:3px 8px;margin-bottom:5px;background:rgba(0,0,0,.04);border-radius:4px;overflow:hidden;">
+    const click = parentId ? ` onclick="jumpToMsg(${parentId})"` : '';
+    const cursor = parentId ? 'cursor:pointer;' : '';
+    return `<div${click} style="${cursor}border-left:3px solid ${barColor};padding:3px 8px;margin-bottom:5px;background:rgba(0,0,0,.04);border-radius:4px;overflow:hidden;">
         <div style="font-size:12.5px;font-weight:600;color:${barColor};">${escH(parentPreview.author||'')}</div>
         <div style="font-size:13px;color:rgba(0,0,0,.55);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escH(parentPreview.text||'')}</div>
     </div>`;
 }
 function chatBubble({isMine, name, avatar, text, time, showName=true, msgId=null, createdTs=0, reactions=null, myReactions=null, parentId=null, parentPreview=null}) {
     const content = renderMsgContent(text, isMine);
-    const quote = chatQuoteHtml(parentPreview, isMine);
+    const quote = chatQuoteHtml(parentPreview, isMine, parentId);
     if (isMine) {
         const rawEsc = text.replace(/&/g,'&amp;').replace(/"/g,'&quot;');
         const actions = msgId ? `<div class="chat-msg-actions">
@@ -1795,7 +1812,7 @@ window.chatSend = async function() {
     const timeStr = now.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true,timeZone:APP_TZ}).toLowerCase();
     const el = document.getElementById('chat-msg-area');
     const _cInner = document.getElementById('chat-msg-inner') || el;
-    _cInner.insertAdjacentHTML('beforeend', chatBubble({isMine:true, name:'Me', avatar:'', text: fullText, time:timeStr, showName:false, parentPreview: replyPreview}));
+    _cInner.insertAdjacentHTML('beforeend', chatBubble({isMine:true, name:'Me', avatar:'', text: fullText, time:timeStr, showName:false, parentPreview: replyPreview, parentId: replyToId}));
     const _cEcho = _cInner.lastElementChild;
     if (_cEcho) { _cEcho.dataset.local = '1'; _cEcho.dataset.echoText = fullText; }   // lets the poll recognise it instead of adding it twice
     el.scrollTop = el.scrollHeight;
@@ -1816,7 +1833,7 @@ window.chatSend = async function() {
                 // (and therefore delete) button entirely; patching data-* attributes in place
                 // never added it back. This also fixes the tick for free.
                 const rebuilt = document.createElement('div');
-                rebuilt.innerHTML = chatBubble({isMine:true, name:'Me', avatar:'', text:fullText, time:timeStr, showName:false, parentPreview:replyPreview, msgId:d.message.id, createdTs:d.message.createdTs});
+                rebuilt.innerHTML = chatBubble({isMine:true, name:'Me', avatar:'', text:fullText, time:timeStr, showName:false, parentPreview:replyPreview, parentId:replyToId, msgId:d.message.id, createdTs:d.message.createdTs});
                 if (rebuilt.firstElementChild) _cEcho.replaceWith(rebuilt.firstElementChild);
             }
         }

@@ -523,7 +523,7 @@ const tpRxnBadge = (reactions, myReactions, msgId) => {
 };
 
 /* build a chat bubble — isMine = right green, else left white */
-const chatBubble = ({isMine, name, nameColor, text, time, showName=true, isSystem=false, files=[], raw='', msgId=null, reactions=null, myReactions=null, parentPreview=null, createdTs=0, editedAt=null}) => {
+const chatBubble = ({isMine, name, nameColor, text, time, showName=true, isSystem=false, files=[], raw='', msgId=null, reactions=null, myReactions=null, parentPreview=null, parentId=null, createdTs=0, editedAt=null}) => {
     if(isSystem) return `
         <div style="display:flex;justify-content:center;margin:5px 0;">
             <div style="max-width:90%;text-align:center;line-height:1.45;background:rgba(255,255,255,.34);border-radius:10px;padding:6px 14px;">
@@ -553,7 +553,9 @@ const chatBubble = ({isMine, name, nameColor, text, time, showName=true, isSyste
         const fsz=f.size?(f.size>=1048576?(f.size/1048576).toFixed(1)+' MB':Math.round(f.size/1024)+' KB'):'';
         return`<a href="${window.fileViewHref?fileViewHref(url):url}" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:10px;padding:8px 11px;background:rgba(255,255,255,0.75);border:1px solid rgba(0,0,0,0.09);border-radius:10px;text-decoration:none;min-width:180px;max-width:280px;"><div style="width:38px;height:46px;background:${fbg};border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><i class="fas ${ic}" style="color:${fclr};font-size:19px;"></i></div><div style="flex:1;overflow:hidden;"><div style="color:${tc};font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(f.name)}</div>${fsz?`<div style="color:${timec};font-size:10px;margin-top:2px;">${fsz}</div>`:''}</div><i class="fas fa-download" style="color:#94a3b8;font-size:10px;flex-shrink:0;"></i></a>`;
     }).join('')}</div>` : '';
-    const parentHtml = parentPreview ? `<div style="background:rgba(0,0,0,.05);border-left:3px solid ${isMine?'#5a8a6a':'#94a3b8'};border-radius:6px;padding:5px 9px;margin-bottom:6px;overflow:hidden;">
+    const parentClick = parentId ? ` onclick="jumpToMsg(${parentId})"` : '';
+    const parentCursor = parentId ? 'cursor:pointer;' : '';
+    const parentHtml = parentPreview ? `<div${parentClick} style="${parentCursor}background:rgba(0,0,0,.05);border-left:3px solid ${isMine?'#5a8a6a':'#94a3b8'};border-radius:6px;padding:5px 9px;margin-bottom:6px;overflow:hidden;">
         <div style="font-size:11.5px;font-weight:700;color:${isMine?'#2f6a3f':'#475569'};">${esc(parentPreview.author||'')}</div>
         <div style="font-size:12.5px;color:${tc};opacity:.75;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(parentPreview.text||'')}</div>
     </div>` : '';
@@ -1733,7 +1735,7 @@ window.tpRenderLocalFeed = function(data, taskId) {
             const showName = !isMine && u.name !== lastAuthor2;
             lastAuthor2 = u.name;
             const createdTs = iso ? Math.floor(new Date(iso).getTime()/1000) : 0;
-            return div + chatBubble({isMine, name:u.name||'?', nameColor:localColor(u.name||''), text:parseMsg(f.text||f.content||''), raw:f.text||f.content||'', time, showName, files:f.files||[], msgId:f.id||null, reactions:f.reactions||null, myReactions:f.myReactions||null, parentPreview:f.parentPreview||null, createdTs, editedAt:f.editedAt||null});
+            return div + chatBubble({isMine, name:u.name||'?', nameColor:localColor(u.name||''), text:parseMsg(f.text||f.content||''), raw:f.text||f.content||'', time, showName, files:f.files||[], msgId:f.id||null, reactions:f.reactions||null, myReactions:f.myReactions||null, parentPreview:f.parentPreview||null, parentId:f.parentId||null, createdTs, editedAt:f.editedAt||null});
         }).join('');
     } else {
         $('tp-messages').innerHTML = _spacer + `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 0;"><i class="fas fa-comment-slash" style="font-size:28px;color:rgba(255,255,255,.55);margin-bottom:10px;"></i><p style="color:rgba(255,255,255,.85);font-size:13px;margin:0;">No comments yet — be the first!</p></div>`;

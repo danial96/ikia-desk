@@ -577,18 +577,20 @@ function reactionBadge(reactions, myReactions, msgId) {
     return `<div id="cp-rxn-${msgId}" style="${pills ? 'display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;' : 'min-height:0;'}">${pills}</div>`;
 }
 
-function cpQuoteHtml(parentPreview, isMine) {
+function cpQuoteHtml(parentPreview, isMine, parentId) {
     if (!parentPreview) return '';
     const barColor = isMine ? '#5fa83c' : '#20a0e0';
-    return `<div style="border-left:3px solid ${barColor};padding:3px 8px;margin-bottom:5px;background:rgba(0,0,0,.04);border-radius:4px;overflow:hidden;">
+    const click = parentId ? ` onclick="jumpToMsg(${parentId})"` : '';
+    const cursor = parentId ? 'cursor:pointer;' : '';
+    return `<div${click} style="${cursor}border-left:3px solid ${barColor};padding:3px 8px;margin-bottom:5px;background:rgba(0,0,0,.04);border-radius:4px;overflow:hidden;">
         <div style="font-size:12.5px;font-weight:600;color:${barColor};">${esc(parentPreview.author||'')}</div>
         <div style="font-size:13px;color:rgba(0,0,0,.55);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(parentPreview.text||'')}</div>
     </div>`;
 }
 function bubble(m) {
-    const {isMine, name, avatar, text, time, showName=true, msgId, editedAt, createdTs, isDeleted, reactions, myReactions, parentPreview} = m;
+    const {isMine, name, avatar, text, time, showName=true, msgId, editedAt, createdTs, isDeleted, reactions, myReactions, parentPreview, parentId} = m;
     const dataAttrs = msgId ? `data-msg-id="${msgId}" data-mine="${isMine?'1':'0'}" data-created-ts="${createdTs||0}" data-sender="${esc(name||'')}"` : '';
-    const quote = cpQuoteHtml(parentPreview, isMine);
+    const quote = cpQuoteHtml(parentPreview, isMine, parentId);
 
     if (isDeleted) {
         const align = isMine ? 'flex-end' : 'flex-start';
@@ -895,7 +897,7 @@ function cpRenderMsgs(msgs, scrollToBottom) {
         html += bubble({isMine:m.isMine, name:m.author.name, avatar:m.author.avatar,
             text:m.text||'', time:m.time, showName, msgId:m.id,
             editedAt:m.editedAt, createdTs:m.createdTs, isDeleted,
-            reactions:m.reactions, myReactions:m.myReactions, parentPreview:m.parentPreview});
+            reactions:m.reactions, myReactions:m.myReactions, parentPreview:m.parentPreview, parentId:m.parentId});
         prevAuthor = m.author.id;
         _cpLastAuthorId = m.author.id;
     });
@@ -968,7 +970,7 @@ window.cpSend = async function() {
     const el = document.getElementById('cp-msg-area');
     const _inner = document.getElementById('cp-msg-inner') || el;
 
-    _inner.insertAdjacentHTML('beforeend', bubble({isMine:true, name:'Me', avatar:'', text:fullText, time:timeStr, showName:false, parentPreview: replyPreview}));
+    _inner.insertAdjacentHTML('beforeend', bubble({isMine:true, name:'Me', avatar:'', text:fullText, time:timeStr, showName:false, parentPreview: replyPreview, parentId: replyToId}));
     const _echo = _inner.lastElementChild;
     if (_echo) { _echo.dataset.local = '1'; _echo.dataset.echoText = fullText; }   // lets the poll recognise it instead of adding it twice
     el.scrollTop = el.scrollHeight;
@@ -989,7 +991,7 @@ window.cpSend = async function() {
                 // (and therefore delete) button entirely; patching a couple of data-* attributes
                 // in place never added it back. This also fixes the tick for free.
                 const rebuilt = document.createElement('div');
-                rebuilt.innerHTML = bubble({isMine:true, name:'Me', avatar:'', text:fullText, time:timeStr, showName:false, parentPreview:replyPreview, msgId:d.message.id, createdTs:d.message.createdTs});
+                rebuilt.innerHTML = bubble({isMine:true, name:'Me', avatar:'', text:fullText, time:timeStr, showName:false, parentPreview:replyPreview, parentId:replyToId, msgId:d.message.id, createdTs:d.message.createdTs});
                 if (rebuilt.firstElementChild) _echo.replaceWith(rebuilt.firstElementChild);
             }
         }
@@ -1144,7 +1146,7 @@ function cpAppendMsgs(msgs) {
                     isMine: true, name: m.author.name, avatar: m.author.avatar, text: m.text || '', time: m.time,
                     showName: false, msgId: m.id, editedAt: m.editedAt, createdTs: m.createdTs,
                     isDeleted: Array.isArray(m.deletedFor) && m.deletedFor.includes(ME_ID),
-                    reactions: m.reactions, myReactions: m.myReactions, parentPreview: m.parentPreview,
+                    reactions: m.reactions, myReactions: m.myReactions, parentPreview: m.parentPreview, parentId: m.parentId,
                 });
                 if (rebuilt.firstElementChild) echo.replaceWith(rebuilt.firstElementChild);
                 return;
@@ -1155,7 +1157,7 @@ function cpAppendMsgs(msgs) {
             text: m.text || '', time: m.time, showName: _cpConvType !== 'direct' && !m.isMine && _cpLastAuthorId !== m.author.id,
             msgId: m.id, editedAt: m.editedAt, createdTs: m.createdTs,
             isDeleted: Array.isArray(m.deletedFor) && m.deletedFor.includes(ME_ID),
-            reactions: m.reactions, myReactions: m.myReactions, parentPreview: m.parentPreview,
+            reactions: m.reactions, myReactions: m.myReactions, parentPreview: m.parentPreview, parentId: m.parentId,
         }));
         _cpLastAuthorId = m.author.id;
     });
@@ -1208,7 +1210,7 @@ async function cpLoadOlderMsgs() {
                 html += bubble({isMine:m.isMine, name:m.author.name, avatar:m.author.avatar,
                     text:m.text||'', time:m.time, showName, msgId:m.id,
                     editedAt:m.editedAt, createdTs:m.createdTs, isDeleted,
-                    reactions:m.reactions, myReactions:m.myReactions, parentPreview:m.parentPreview});
+                    reactions:m.reactions, myReactions:m.myReactions, parentPreview:m.parentPreview, parentId:m.parentId});
                 prevAuthor = m.author.id;
             });
 
