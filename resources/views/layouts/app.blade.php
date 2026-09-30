@@ -1811,11 +1811,13 @@ window.chatSend = async function() {
         if (d.message?.id) {
             _lastMsgId = Math.max(_lastMsgId, d.message.id);
             if (_cEcho && _cEcho.dataset.local === '1') {
-                _cEcho.dataset.msgId = d.message.id; _cEcho.dataset.mine = '1'; _cEcho.dataset.createdTs = d.message.createdTs || ''; delete _cEcho.dataset.local;
-                // The tick was rendered with no createdTs (message wasn't confirmed yet), so it can
-                // never register as delivered/seen until this catches it up to the real value.
-                const tick = _cEcho.querySelector('.chat-tick');
-                if (tick && d.message.createdTs) tick.outerHTML = chatTickHtml(d.message.createdTs);
+                // Rebuild from scratch now that the real id/createdTs exist — the optimistic
+                // version was built with no msgId, so chatBubble() left out the react/more
+                // (and therefore delete) button entirely; patching data-* attributes in place
+                // never added it back. This also fixes the tick for free.
+                const rebuilt = document.createElement('div');
+                rebuilt.innerHTML = chatBubble({isMine:true, name:'Me', avatar:'', text:fullText, time:timeStr, showName:false, parentPreview:replyPreview, msgId:d.message.id, createdTs:d.message.createdTs});
+                if (rebuilt.firstElementChild) _cEcho.replaceWith(rebuilt.firstElementChild);
             }
         }
         chatLoadConvs(); // refresh conv list for last message
@@ -2335,7 +2337,19 @@ function chatAppendMsgs(msgs) {
         if (inner.querySelector('[data-msg-id="' + m.id + '"]')) return;
         if (m.isMine) {
             const echo = [...inner.querySelectorAll('[data-local="1"]')].find(x => x.dataset.echoText === (m.text || ''));
-            if (echo) { echo.dataset.msgId = m.id; echo.dataset.mine = '1'; echo.dataset.createdTs = m.createdTs; delete echo.dataset.local; return; }
+            if (echo) {
+                // Rebuild rather than patch a few data-* attrs in place — the optimistic echo was
+                // built with no msgId, so chatBubble() left the react/more (delete) button out
+                // entirely, and that never gets added back by editing attributes after the fact.
+                const rebuilt = document.createElement('div');
+                rebuilt.innerHTML = chatBubble({
+                    isMine: true, name: m.author.name, avatar: m.author.avatar, text: m.text, time: m.time,
+                    showName: false, msgId: m.id, createdTs: m.createdTs||0,
+                    reactions: m.reactions, myReactions: m.myReactions, parentId: m.parentId, parentPreview: m.parentPreview,
+                });
+                if (rebuilt.firstElementChild) echo.replaceWith(rebuilt.firstElementChild);
+                return;
+            }
         }
         inner.insertAdjacentHTML('beforeend', chatBubble({
             isMine: m.isMine, name: m.author.name, avatar: m.author.avatar,
@@ -2945,9 +2959,11 @@ window.vnSend = function(panel) {
                 if (d3.message?.id) {
                     _lastMsgId = Math.max(_lastMsgId, d3.message.id);
                     if (_echo3 && _echo3.dataset.local === '1') {
-                        _echo3.dataset.msgId = d3.message.id; _echo3.dataset.mine = '1'; _echo3.dataset.createdTs = d3.message.createdTs || ''; delete _echo3.dataset.local;
-                        const tick3 = _echo3.querySelector('.chat-tick');
-                        if (tick3 && d3.message.createdTs) tick3.outerHTML = chatTickHtml(d3.message.createdTs);
+                        // See chatSend()'s rebuild — the optimistic echo has no msgId so
+                        // chatBubble() left out the react/more (delete) button.
+                        const rebuilt3 = document.createElement('div');
+                        rebuilt3.innerHTML = chatBubble({isMine:true, name:'Me', avatar:'', text:tag, time:ts, showName:false, msgId:d3.message.id, createdTs:d3.message.createdTs});
+                        if (rebuilt3.firstElementChild) _echo3.replaceWith(rebuilt3.firstElementChild);
                     }
                 }
                 chatLoadConvs();

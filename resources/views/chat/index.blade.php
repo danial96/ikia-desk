@@ -984,11 +984,13 @@ window.cpSend = async function() {
         if (d.message?.id) {
             _cpLastMsgId = Math.max(_cpLastMsgId, d.message.id);
             if (_echo && _echo.dataset.local === '1') {
-                _echo.dataset.msgId = d.message.id; _echo.dataset.mine = '1'; _echo.dataset.createdTs = d.message.createdTs || ''; delete _echo.dataset.local;
-                // The tick was rendered with no createdTs (message wasn't confirmed yet), so it can
-                // never register as delivered/seen until this catches it up to the real value.
-                const tick = _echo.querySelector('.cp-tick');
-                if (tick && d.message.createdTs) tick.outerHTML = cpTickHtml(d.message.createdTs);
+                // Rebuild the bubble from scratch now that the real id/createdTs exist — the
+                // optimistic version was built with no msgId, so bubble() left out the react/more
+                // (and therefore delete) button entirely; patching a couple of data-* attributes
+                // in place never added it back. This also fixes the tick for free.
+                const rebuilt = document.createElement('div');
+                rebuilt.innerHTML = bubble({isMine:true, name:'Me', avatar:'', text:fullText, time:timeStr, showName:false, parentPreview:replyPreview, msgId:d.message.id, createdTs:d.message.createdTs});
+                if (rebuilt.firstElementChild) _echo.replaceWith(rebuilt.firstElementChild);
             }
         }
         cpLoad();
@@ -1018,9 +1020,11 @@ window.cpSendRaw = async function(tag) {
         if (d2.message?.id) {
             _cpLastMsgId = Math.max(_cpLastMsgId, d2.message.id);
             if (_echo2 && _echo2.dataset.local === '1') {
-                _echo2.dataset.msgId = d2.message.id; _echo2.dataset.mine = '1'; _echo2.dataset.createdTs = d2.message.createdTs || ''; delete _echo2.dataset.local;
-                const tick2 = _echo2.querySelector('.cp-tick');
-                if (tick2 && d2.message.createdTs) tick2.outerHTML = cpTickHtml(d2.message.createdTs);
+                // See cpSend()'s rebuild — the optimistic echo has no msgId so bubble() left out
+                // the react/more (delete) button; rebuild it now that the real id/createdTs exist.
+                const rebuilt2 = document.createElement('div');
+                rebuilt2.innerHTML = bubble({isMine:true, name:'Me', avatar:'', text:tag, time:timeStr, showName:false, msgId:d2.message.id, createdTs:d2.message.createdTs});
+                if (rebuilt2.firstElementChild) _echo2.replaceWith(rebuilt2.firstElementChild);
             }
         }
         cpLoad();
@@ -1131,7 +1135,20 @@ function cpAppendMsgs(msgs) {
         if (inner.querySelector('[data-msg-id="' + m.id + '"]')) return;
         if (m.isMine) {
             const echo = [...inner.querySelectorAll('[data-local="1"]')].find(x => x.dataset.echoText === (m.text || ''));
-            if (echo) { echo.dataset.msgId = m.id; echo.dataset.mine = '1'; echo.dataset.createdTs = m.createdTs; delete echo.dataset.local; return; }
+            if (echo) {
+                // Rebuild rather than patch a few data-* attrs in place — the optimistic echo was
+                // built with no msgId, so bubble() left the react/more (delete) button out
+                // entirely, and that never gets added back by editing attributes after the fact.
+                const rebuilt = document.createElement('div');
+                rebuilt.innerHTML = bubble({
+                    isMine: true, name: m.author.name, avatar: m.author.avatar, text: m.text || '', time: m.time,
+                    showName: false, msgId: m.id, editedAt: m.editedAt, createdTs: m.createdTs,
+                    isDeleted: Array.isArray(m.deletedFor) && m.deletedFor.includes(ME_ID),
+                    reactions: m.reactions, myReactions: m.myReactions, parentPreview: m.parentPreview,
+                });
+                if (rebuilt.firstElementChild) echo.replaceWith(rebuilt.firstElementChild);
+                return;
+            }
         }
         inner.insertAdjacentHTML('beforeend', bubble({
             isMine: m.isMine, name: m.author.name, avatar: m.author.avatar,
