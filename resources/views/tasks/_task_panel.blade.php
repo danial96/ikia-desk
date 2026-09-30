@@ -1625,6 +1625,12 @@ window.tpStartChatPoll = function(taskId) {
     _pollTaskHash  = '';
     _chatPollInterval = setInterval(function() {
         if (!_currentTaskId) { tpStopChatPoll(); return; }
+        // Skip while the tab is backgrounded — this poll had no pause at all, so a task left
+        // open in an inactive tab kept hitting the server every 3s indefinitely. Analysis of the
+        // account's traffic found one browser session alone responsible for ~1.15GB/78% of a
+        // day and a half's total bandwidth this way. The interval keeps ticking so it resumes
+        // within 3s of the tab becoming visible again; we just skip the network call meanwhile.
+        if (document.hidden) return;
         fetch(TP_LOCAL_URL + '/' + taskId + '?background=1', {
             headers: {'X-CSRF-TOKEN': TP_CSRF, 'Accept': 'application/json'}
         }).then(r => r.json()).then(data => {

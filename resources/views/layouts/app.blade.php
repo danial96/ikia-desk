@@ -2319,6 +2319,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
 /* ── Polling ── */
 async function chatPoll() {
+    // Skip entirely while the tab is backgrounded — this was firing every 3s forever with no
+    // pause, so a chat left open in an inactive tab (easy to do by accident) polled nonstop for
+    // as long as the tab stayed open, which turned out to be the single biggest driver of the
+    // account's monthly bandwidth. The interval keeps ticking; we just skip the network calls.
+    if (document.hidden) return;
     // Always update conversation list + unread counts (even when panel closed)
     chatLoadConvs();
     // Message polling only when panel is open with an active conversation
@@ -2387,6 +2392,7 @@ function chatUpdateBadge(count) {
 /* ── Right-panel online status polling ── */
 (function() {
     async function pollOnlineStatus() {
+        if (document.hidden) return; // same reasoning as the other pollers — skip while backgrounded
         try {
             const r = await fetch(API_BASE + '/api/online-status');
             if (!r.ok) return;

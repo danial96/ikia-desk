@@ -1094,6 +1094,11 @@ window.cpCreateGroup = async function() {
 
 /* ── Polling ── */
 function cpPoll() {
+    // Skip while the tab is backgrounded — this was the single biggest driver of the account's
+    // monthly bandwidth: the /chat page is exactly the kind of tab people leave open for hours,
+    // and this poll had no pause for that at all. The interval keeps ticking every 3s so it
+    // resumes as soon as the tab is visible again; we just skip the network calls meanwhile.
+    if (document.hidden) return;
     cpLoad();
     if (!_cpActiveConvId || _cpSelecting || _cpSending) return;
     const url = API_BASE + '/api/chat/convs/' + _cpActiveConvId + '/msgs'
