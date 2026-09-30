@@ -14,14 +14,14 @@ use Illuminate\Support\Facades\Cache;
 class TaskController extends Controller
 {
     /**
-     * "In Progress" in the filters means active work, so it also covers Pending (Bitrix's
-     * "Pending" = accepted, not yet started) — otherwise those tasks would vanish from the
-     * default view. Every other status filters exactly.
+     * "In Progress" in the filters means active work, so it also covers New (not yet started)
+     * and Pending (Bitrix's "Pending" = accepted, not yet started) and Reviewing — otherwise
+     * those tasks would vanish from the default view. Every other status filters exactly.
      */
     private static function expandStatuses(array $statuses): array
     {
         return in_array('in_progress', $statuses, true)
-            ? array_values(array_unique(array_merge($statuses, ['pending', 'reviewing'])))
+            ? array_values(array_unique(array_merge($statuses, ['new', 'pending', 'reviewing'])))
             : $statuses;
     }
 
