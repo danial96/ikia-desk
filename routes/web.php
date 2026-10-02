@@ -300,11 +300,10 @@ Route::middleware('auth')->group(function () {
         if (in_array($ext, $renderRisk)) {
             return response()->download($full, $niceName, ['Content-Type' => 'application/octet-stream']);
         }
-        return response()->file($full, [
-            'Content-Disposition' => \Symfony\Component\HttpFoundation\HeaderUtils::makeDisposition(
-                \Symfony\Component\HttpFoundation\HeaderUtils::DISPOSITION_INLINE, $niceName
-            ),
-        ]);
+        // setContentDisposition() builds the required ASCII fallback itself; calling HeaderUtils
+        // directly threw "filename fallback cannot contain %/non-ASCII" (a 500) for any file whose
+        // real name had a % or accented/Urdu characters.
+        return response()->file($full)->setContentDisposition('inline', $niceName);
     })->where('path', '.*')->name('uploads.show');
 
     // Docx/xlsx preview — the actual file is fetched and rendered client-side (mammoth.js /
