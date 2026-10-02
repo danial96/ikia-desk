@@ -996,6 +996,60 @@ if (typeof window.jumpToMsg === 'undefined') {
 @endphp
 if (typeof window.NOTIFY_PREFS === 'undefined') { window.NOTIFY_PREFS = @json($__notifyPrefs); }
 
+// Realtime push (Pusher). When it's configured the server pings this browser the moment a chat
+// message / notification lands, and the pollers below shrink into a slow safety net. Not configured,
+// unreachable, or signed out → Realtime.connected stays false and every poller runs at full speed
+// exactly as before, so this can never make things worse than plain polling.
+@php $__rtConfig = \App\Support\Realtime::clientConfig(); @endphp
+if (typeof window.Realtime === 'undefined') {
+    window.RT_CONFIG = @json($__rtConfig);
+    window.Realtime = (function () {
+        const api = { connected: false, _ticks: {} };
+        // True for all but every nth call while the socket is up — turns a poll into a slow backstop.
+        api.skip = function (key, n) {
+            if (!api.connected) return false;
+            api._ticks[key] = (api._ticks[key] || 0) + 1;
+            return api._ticks[key] % n !== 0;
+        };
+        const cfg = window.RT_CONFIG;
+        if (!cfg || window.ME_ID == null) return api;
+
+        let sockOk = false, channelOk = false;
+        const refresh = () => {
+            const was = api.connected;
+            api.connected = sockOk && channelOk;
+            // (Re)connected: anything sent while we were offline was never pushed to us, so catch up once.
+            if (api.connected && !was) window.dispatchEvent(new CustomEvent('rt:resync'));
+        };
+        const s = document.createElement('script');
+        s.src = 'https://js.pusher.com/8.4.0/pusher.min.js';
+        s.async = true;
+        s.onload = function () {
+            try {
+                const csrf = () => (document.querySelector('meta[name="csrf-token"]') || {}).content || '';
+                const pusher = new Pusher(cfg.key, {
+                    cluster: cfg.cluster, forceTLS: true,
+                    channelAuthorization: { endpoint: '/realtime/auth', transport: 'ajax',
+                        headersProvider: () => ({ 'X-CSRF-TOKEN': csrf(), 'Accept': 'application/json' }) },
+                });
+                const ch = pusher.subscribe('private-user.' + window.ME_ID);
+                ch.bind('pusher:subscription_succeeded', () => { channelOk = true; refresh(); });
+                ch.bind('pusher:subscription_error',     () => { channelOk = false; refresh(); });
+                ch.bind('chat.changed', d => window.dispatchEvent(new CustomEvent('rt:chat',  { detail: d || {} })));
+                ch.bind('notif',        d => window.dispatchEvent(new CustomEvent('rt:notif', { detail: d || {} })));
+                pusher.connection.bind('state_change', st => {
+                    sockOk = st.current === 'connected';
+                    if (!sockOk) channelOk = false;     // pusher-js re-subscribes on reconnect, which flips this back
+                    refresh();
+                });
+                api.pusher = pusher;
+            } catch (e) { /* stay on polling */ }
+        };
+        document.head.appendChild(s);
+        return api;
+    })();
+}
+
 let _chatOtherLastReadTs = 0, _chatOtherLastSeenTs = 0;
 /* WhatsApp-style tick: single grey = sent, double grey = delivered (their client has polled
    since this was sent, via last_seen_at — the closest signal available without websockets),
@@ -1083,6 +1137,7 @@ window.chatClose = function() {
 // ever apply its result — an older one resolving late is discarded instead of overwriting fresher
 // state with stale data, which used to occasionally suppress a real notification.
 let _chatLoadSeq = 0;
+let _chatConvSig = '';
 async function chatLoadConvs() {
     const mySeq = ++_chatLoadSeq;
     try {
@@ -1096,7 +1151,13 @@ async function chatLoadConvs() {
         const totalUnread = _allConvs.reduce((s,c) => s+(c.unread||0), 0);
         chatUpdateBadge(totalUnread);
         chatUpdateUserBadges();
-        if (_chatOpen) chatRenderFilteredConvs();
+        // Redrawing the whole list every few seconds (even when nothing changed) is what made the
+        // panel flicker and jerk mid-scroll — only touch the DOM when the data actually differs
+        // (or the list hasn't been drawn yet, e.g. data arrived while the panel was closed).
+        const sig = JSON.stringify(_allConvs);
+        const listEl = document.getElementById('chat-conv-list');
+        if (_chatOpen && (sig !== _chatConvSig || !(listEl && listEl.querySelector('.chat-conv-item')))) chatRenderFilteredConvs();
+        _chatConvSig = sig;
         // Only alert for increases after the baseline is established — otherwise every
         // page load/reload would re-announce whatever was already unread beforehand.
         if (!isFirstLoad) {
@@ -2325,8 +2386,14 @@ async function chatPoll() {
     // as long as the tab stayed open, which turned out to be the single biggest driver of the
     // account's monthly bandwidth. The interval keeps ticking; we just skip the network calls.
     if (document.hidden) return;
+    // With the realtime socket up the server pushes changes, so this only runs as a slow backstop.
+    if (window.Realtime && Realtime.skip('chatPoll', 20)) return;
     // Always update conversation list + unread counts (even when panel closed)
     chatLoadConvs();
+    chatFetchNew();
+}
+// Pull whatever is new in the open conversation (also refreshes the read/seen ticks).
+async function chatFetchNew() {
     // Message polling only when panel is open with an active conversation
     if (!_chatOpen || !_activeConvId) return;
     try {
@@ -2349,6 +2416,41 @@ async function chatPoll() {
             chatAppendMsgs(msgs);
         }
         _lastMsgId = Math.max(...msgs.map(m => m.id));
+    } catch(e) {}
+}
+// ── Realtime: react to server pushes (see the Realtime module near the top of this script) ──
+let _rtConvTimer = null, _chatFullSig = {};
+window.addEventListener('rt:chat', function (e) {
+    const d = e.detail || {};
+    // The list/unread refresh is also what drives the sound, popup and desktop alerts for a new
+    // message in a conversation that isn't open, so route every push through it (debounced).
+    clearTimeout(_rtConvTimer);
+    _rtConvTimer = setTimeout(chatLoadConvs, 80);
+    if (!_chatOpen || !_activeConvId || d.c !== _activeConvId) return;
+    if (d.k === 'new' || d.k === 'read') chatFetchNew();
+    else chatSilentRefresh();                       // edit / delete / reaction by someone else
+});
+window.addEventListener('rt:resync', function () {
+    chatLoadConvs();
+    if (_chatOpen && _activeConvId) chatFetchNew();
+});
+window.addEventListener('rt:notif', function () { if (typeof notifPoll === 'function') notifPoll(); });
+// Re-fetch the latest page of the open conversation and redraw only if it really changed — and only
+// when you're at the bottom, so it never yanks you out of older history you scrolled up to read.
+async function chatSilentRefresh() {
+    const id = _activeConvId;
+    const el = document.getElementById('chat-msg-area');
+    if (!id || !el || (el.scrollHeight - el.scrollTop) > (el.clientHeight + 140)) return;
+    try {
+        const r = await fetch(API_BASE + '/api/chat/convs/' + id + '/msgs');
+        const d = await r.json();
+        if (id !== _activeConvId) return;
+        const msgs = d.messages || [];
+        const sig = JSON.stringify(msgs);
+        if (_chatFullSig[id] === sig) return;
+        _chatFullSig[id] = sig;
+        chatRenderMsgs(msgs);
+        if (msgs.length) _lastMsgId = Math.max(_lastMsgId, ...msgs.map(m => m.id));
     } catch(e) {}
 }
 function chatAppendMsgs(msgs) {
@@ -3720,6 +3822,7 @@ function notifSchedulePoll() {
     clearTimeout(notifPollTimer);
     notifPollTimer = setTimeout(() => {
         notifSchedulePoll(); // schedule next immediately (don't wait for response)
+        if (window.Realtime && Realtime.skip('notif', 12)) return;   // pushed instantly while the socket is up
         notifPoll();
     }, document.hidden ? 60000 : 5000);
 }
@@ -3729,7 +3832,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Background conv-list refresh — keeps unread counts fresh when panel is closed.
     // Uses a separate lightweight call instead of full chatPoll to avoid racing the
     // 5-second message-poll timer that chatOpen() starts.
-    setInterval(chatLoadConvs, 15000);
+    setInterval(() => { if (window.Realtime && Realtime.skip('convsBg', 4)) return; chatLoadConvs(); }, 15000);
 });
 document.addEventListener('visibilitychange', () => {
     clearTimeout(notifPollTimer);

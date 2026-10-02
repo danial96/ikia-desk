@@ -620,10 +620,26 @@ Route::middleware('auth')->group(function () {
         }
     });
 
+    // ── Realtime (Pusher) channel auth: a browser may only ever subscribe to its OWN user channel ──
+    Route::post('/realtime/auth', function (\Illuminate\Http\Request $request) {
+        if (!\App\Support\Realtime::enabled()) abort(404);
+        $request->validate([
+            'socket_id'    => ['required', 'string', 'regex:/^\d+\.\d+$/'],
+            'channel_name' => 'required|string|max:100',
+        ]);
+        if ($request->channel_name !== \App\Support\Realtime::userChannel((int) auth()->id())) abort(403);
+        return response()->json(['auth' => \App\Support\Realtime::authToken($request->socket_id, $request->channel_name)]);
+    })->name('realtime.auth');
+
     // ── Chat Panel API ──
     Route::get('/api/chat/convs', function () {
         $user = auth()->user();
-        $user->forceFill(['last_seen_at' => now()])->save();
+        // This runs on every poll from every open tab — a DB write each time was pure overhead.
+        // 20s granularity is plenty for the "online" dot and the delivered tick (which compares
+        // against it), so only write when the stored value has actually gone stale.
+        if (!$user->last_seen_at || $user->last_seen_at->diffInSeconds(now()) >= 20) {
+            $user->forceFill(['last_seen_at' => now()])->save();
+        }
 
         // Personal "Notes" chat (Bitrix parity): one private conversation per user, only they are in it
         if (!$user->conversations()->where('conversations.type', 'notes')->exists()) {
@@ -637,18 +653,24 @@ Route::middleware('auth')->group(function () {
 
         $memberRows = \App\Models\ConversationMember::where('user_id', $user->id)->get()->keyBy('conversation_id');
 
-        // Single query for ALL unread counts — replaces N per-conv count queries
-        $unreadCounts = \Illuminate\Support\Facades\DB::table('messages')
-            ->join('conversation_members', function ($j) use ($user) {
-                $j->on('messages.conversation_id', '=', 'conversation_members.conversation_id')
-                  ->where('conversation_members.user_id', '=', $user->id);
-            })
-            ->where('messages.user_id', '!=', $user->id)
-            ->whereNull('messages.deleted_at')
-            ->whereRaw("messages.created_at > COALESCE(conversation_members.last_read_at, '2000-01-01')")
-            ->groupBy('messages.conversation_id')
-            ->selectRaw('messages.conversation_id, COUNT(*) as cnt')
-            ->pluck('cnt', 'messages.conversation_id');
+        // Unread counts. The old single JOIN compared created_at against a per-row COALESCE(), which
+        // MySQL can't turn into an index range — it counted every message of every conversation the
+        // user is in (the big General chat especially), ~300ms on every poll. A conversation can only
+        // have unread messages if its latest message is newer than the user's last_read_at, and for
+        // those the cutoff is a plain literal, so the count becomes a tiny indexed range scan.
+        $unreadCounts = collect();
+        foreach ($convs as $c) {
+            $row = $memberRows->get($c->id);
+            if (!$row || !$c->lastMessage) continue;
+            $since = $row->last_read_at ?? '2000-01-01';
+            if ($c->lastMessage->created_at->lte(\Carbon\Carbon::parse($since))) continue;
+            $unreadCounts[$c->id] = \Illuminate\Support\Facades\DB::table('messages')
+                ->where('conversation_id', $c->id)
+                ->where('user_id', '!=', $user->id)
+                ->whereNull('deleted_at')
+                ->where('created_at', '>', $since)
+                ->count();
+        }
 
         $list = [];
         foreach ($convs as $c) {
@@ -819,13 +841,21 @@ Route::middleware('auth')->group(function () {
         // regardless of which conversation (if any) they currently have open.
         $otherLastSeenTs = $other?->last_seen_at?->timestamp;
 
+        // Stamp this conversation as read for me and, when that actually cleared something the other
+        // person sent, tell them right away so their ticks update without waiting for a poll.
+        $markRead = function () use ($conv, $user, $other) {
+            $q    = \App\Models\ConversationMember::where('conversation_id', $conv->id)->where('user_id', $user->id);
+            $prev = $q->value('last_read_at');
+            $q->update(['last_read_at' => now()]);
+            if ($other && $conv->messages()->reorder()->where('user_id', '!=', $user->id)->where('created_at', '>', $prev ?? '2000-01-01')->exists()) {
+                \App\Support\Realtime::publishToUsers([$other->id], 'chat.changed', ['c' => $conv->id, 'k' => 'read', 'by' => $user->id]);
+            }
+        };
+
         if ($afterId > 0) {
             // Incremental poll — only new messages after given ID
             $msgs = $conv->messages()->with(['user','parent.user'])->reorder()->where('id','>',$afterId)->orderBy('id')->limit(50)->get();
-            if ($msgs->isNotEmpty()) {
-                \App\Models\ConversationMember::where('conversation_id',$conv->id)->where('user_id',$user->id)
-                    ->update(['last_read_at'=>now()]);
-            }
+            if ($msgs->isNotEmpty()) $markRead();
             return response()->json(['messages' => $msgs->map($msgFmt)->values(), 'otherLastReadTs' => $otherLastReadTs, 'otherLastSeenTs' => $otherLastSeenTs]);
         }
 
@@ -850,8 +880,7 @@ Route::middleware('auth')->group(function () {
         }
 
         // Full load — latest 50 messages by created_at (reorder() clears the relationship's default ASC scope)
-        \App\Models\ConversationMember::where('conversation_id',$conv->id)->where('user_id',$user->id)
-            ->update(['last_read_at'=>now()]);
+        $markRead();
         $raw   = $conv->messages()->with(['user','parent.user'])->reorder()->latest('created_at')->limit(51)->get();
         $hasMore = $raw->count() > 50;
         $msgs  = $raw->take(50)->sortBy(fn($m) => $m->created_at->timestamp)->values();
@@ -880,6 +909,8 @@ Route::middleware('auth')->group(function () {
         if ((int)$msg->user_id !== (int)$user->id) return response()->json(['error'=>'Forbidden'],403);
         if ($msg->created_at->diffInHours(now()) > 24) return response()->json(['error'=>'Too late to edit'],403);
         $msg->update(['content'=>$request->content,'edited_at'=>now()]);
+        $conv = $msg->conversation()->with('members')->first();
+        if ($conv) \App\Support\Realtime::publishToUsers($conv->audienceIds(), 'chat.changed', ['c' => $conv->id, 'k' => 'edit', 'm' => $msg->id, 'by' => $user->id]);
         return response()->json(['ok'=>true,'editedAt'=>$msg->edited_at->format('g:i a')]);
     });
 
@@ -896,6 +927,9 @@ Route::middleware('auth')->group(function () {
             if (!in_array($user->id, $for)) { $for[] = $user->id; }
             $msg->update(['deleted_for'=>$for]);
         }
+        // "for everyone" changes what all members see; "for me" only my own other tabs/devices.
+        $conv = \App\Models\Conversation::with('members')->find($msg->conversation_id);
+        if ($conv) \App\Support\Realtime::publishToUsers($scope === 'everyone' ? $conv->audienceIds() : [$user->id], 'chat.changed', ['c' => $conv->id, 'k' => 'delete', 'm' => $msg->id, 'by' => $user->id]);
         return response()->json(['ok'=>true]);
     });
 
@@ -921,6 +955,7 @@ Route::middleware('auth')->group(function () {
             $rxns[$emoji] = $ids;
         }
         $msg->update(['reactions' => empty($rxns) ? null : $rxns]);
+        \App\Support\Realtime::publishToUsers($conv->audienceIds(), 'chat.changed', ['c' => $conv->id, 'k' => 'react', 'm' => $msg->id, 'by' => $user->id]);
         return response()->json(['ok' => true, 'reactions' => $rxns]);
     });
 
@@ -958,6 +993,9 @@ Route::middleware('auth')->group(function () {
         $msg = $conv->messages()->create(['user_id'=>$user->id,'content'=>$request->content,'mentions'=>$mentions,'parent_id'=>$parent?->id]);
         \App\Models\ConversationMember::where('conversation_id',$conv->id)->where('user_id',$user->id)
             ->update(['last_read_at'=>now()]);
+        // Push the "new message" signal to everyone in the conversation (the sender's own other tabs
+        // included). Ids only — each browser then fetches the text from us.
+        \App\Support\Realtime::publishToUsers($memberIds, 'chat.changed', ['c' => $conv->id, 'k' => 'new', 'm' => $msg->id, 'by' => $user->id]);
 
         $convName = $conv->type === 'general' ? 'General Chat'
             : ($conv->type === 'group' ? ($conv->name ?? 'a group') : 'a chat');

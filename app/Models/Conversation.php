@@ -13,6 +13,14 @@ class Conversation extends Model
     public function messages() { return $this->hasMany(Message::class)->orderBy('created_at'); }
     public function lastMessage() { return $this->hasOne(Message::class)->latestOfMany(); }
 
+    /** Everyone who can see this conversation — the General chat is open to every active user. */
+    public function audienceIds(): array
+    {
+        return $this->type === 'general'
+            ? User::where('is_active', true)->pluck('id')->all()
+            : $this->members->pluck('id')->all();
+    }
+
     public function getUnreadCountForUser(User $user): int
     {
         $member = $this->members()->where('user_id', $user->id)->first();

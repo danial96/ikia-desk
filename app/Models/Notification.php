@@ -24,6 +24,7 @@ class Notification extends Model
      */
     public static function notify(array $userIds, User $actor, string $type, Task $task, string $message): void
     {
+        $created = [];
         foreach (array_unique($userIds) as $uid) {
             if ((int)$uid === (int)$actor->id) continue;
             static::create([
@@ -34,7 +35,10 @@ class Notification extends Model
                 'task_title' => $task->title,
                 'message'    => $message,
             ]);
+            $created[] = (int) $uid;
         }
+        // Tell those browsers right now instead of waiting for their next poll.
+        \App\Support\Realtime::publishToUsers($created, 'notif');
     }
 
     /**
@@ -42,6 +46,7 @@ class Notification extends Model
      */
     public static function mention(array $userIds, User $actor, string $message, ?Task $task = null): void
     {
+        $created = [];
         foreach (array_unique($userIds) as $uid) {
             if ((int)$uid === (int)$actor->id) continue;
             static::create([
@@ -52,6 +57,8 @@ class Notification extends Model
                 'task_title' => $task?->title,
                 'message'    => $message,
             ]);
+            $created[] = (int) $uid;
         }
+        \App\Support\Realtime::publishToUsers($created, 'notif');
     }
 }

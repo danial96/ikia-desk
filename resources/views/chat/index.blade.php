@@ -708,6 +708,7 @@ function convAvatar(c, size, noDot) {
 // calls can overlap and resolve out of order. This guard makes only the last call started ever
 // apply its result, so a slow, stale response can't overwrite fresher state and hide a notification.
 let _cpLoadSeq = 0;
+let _cpConvSig = '';
 async function cpLoad() {
     const mySeq = ++_cpLoadSeq;
     try {
@@ -717,7 +718,11 @@ async function cpLoad() {
         const prevUnread = _cpLoaded ? Object.fromEntries(_cpAllConvs.map(c => [c.id, c.unread || 0])) : null;
         _cpAllConvs = d.convs || [];
         _cpLoaded   = true;
-        cpRenderFilteredConvs();
+        // Redrawing the whole list on every poll (even with nothing new) is what made the sidebar
+        // flicker and jerk — only touch the DOM when the data really differs or it isn't drawn yet.
+        const sig = JSON.stringify(_cpAllConvs);
+        if (sig !== _cpConvSig || !document.querySelector('#cp-conv-list .cp-conv-item')) cpRenderFilteredConvs();
+        _cpConvSig = sig;
         // Flash + sound for conversations where unread count went up (skip active conv — cpPoll handles its sound)
         if (prevUnread) {
             _cpAllConvs.forEach(c => {
@@ -1121,11 +1126,22 @@ function cpPoll() {
     // and this poll had no pause for that at all. The interval keeps ticking every 3s so it
     // resumes as soon as the tab is visible again; we just skip the network calls meanwhile.
     if (document.hidden) return;
+    // With the realtime socket up the server pushes changes, so this only runs as a slow backstop.
+    if (window.Realtime && Realtime.skip('cpPoll', 20)) return;
     cpLoad();
+    cpFetchNew();
+}
+// Pull whatever is new in the open conversation (also refreshes the read/seen ticks). Overlapping
+// calls (a push landing while a poll is in flight) collapse into one follow-up fetch.
+let _cpFetching = false, _cpFetchAgain = false;
+function cpFetchNew() {
     if (!_cpActiveConvId || _cpSelecting || _cpSending) return;
+    if (_cpFetching) { _cpFetchAgain = true; return; }
+    _cpFetching = true;
     const url = API_BASE + '/api/chat/convs/' + _cpActiveConvId + '/msgs'
               + (_cpLastMsgId ? '?after=' + _cpLastMsgId : '');
-    fetch(url).then(r=>r.json()).then(d => {
+    // 12s cap so a hung connection can't leave _cpFetching stuck and silence every later fetch
+    fetch(url, { signal: AbortSignal.timeout(12000) }).then(r=>r.json()).then(d => {
         const msgs = d.messages || [];
         if ((d.otherLastReadTs && d.otherLastReadTs !== _cpOtherLastReadTs) || (d.otherLastSeenTs && d.otherLastSeenTs !== _cpOtherLastSeenTs)) {
             _cpOtherLastReadTs = d.otherLastReadTs || _cpOtherLastReadTs;
@@ -1141,7 +1157,44 @@ function cpPoll() {
         }
         _cpLastMsgId = Math.max(...msgs.map(m => m.id));
         cpUpdateSeen();
-    }).catch(()=>{});
+    }).catch(()=>{}).finally(() => {
+        _cpFetching = false;
+        if (_cpFetchAgain) { _cpFetchAgain = false; cpFetchNew(); }
+    });
+}
+
+/* ── Realtime: react to server pushes (see the Realtime module in layouts/app.blade.php) ── */
+let _cpLoadTimer = null;
+window.addEventListener('rt:chat', function (e) {
+    const d = e.detail || {};
+    clearTimeout(_cpLoadTimer);
+    _cpLoadTimer = setTimeout(cpLoad, 80);              // list order, previews, unread badges
+    if (!_cpActiveConvId || d.c !== _cpActiveConvId) return;
+    if (d.k === 'new' || d.k === 'read') {
+        // A send/open is mid-flight: its own response covers it, but someone else's message that
+        // lands in the same moment must not be dropped, so look again shortly after.
+        if (_cpSending || _cpSelecting) setTimeout(cpFetchNew, 500); else cpFetchNew();
+    } else cpSilentRefresh();                           // edit / delete / reaction by someone else
+});
+window.addEventListener('rt:resync', function () { cpLoad(); cpFetchNew(); });
+// Re-fetch the latest page of the open conversation and redraw only if it really changed — and only
+// when you're at the bottom, so it never yanks you out of older history you scrolled up to read.
+async function cpSilentRefresh() {
+    const id = _cpActiveConvId;
+    const el = document.getElementById('cp-msg-area');
+    if (!id || _cpSelecting || !el || (el.scrollHeight - el.scrollTop) > (el.clientHeight + 140)) return;
+    try {
+        const r = await fetch(API_BASE + '/api/chat/convs/' + id + '/msgs');
+        const d = await r.json();
+        if (id !== _cpActiveConvId) return;
+        const msgs = d.messages || [];
+        const cached = (window._cpMsgCache || {})[id];
+        if (cached && JSON.stringify(cached.messages) === JSON.stringify(msgs)) return;
+        (window._cpMsgCache = window._cpMsgCache || {})[id] = { messages: msgs, hasMore: !!d.hasMore, convType: _cpConvType };
+        cpRenderMsgs(msgs, true);
+        if (msgs.length) _cpLastMsgId = Math.max(_cpLastMsgId, ...msgs.map(m => m.id));
+        cpUpdateSeen();
+    } catch(e) {}
 }
 function cpUpdateSeen() {
     if (_cpConvType !== 'direct') return;
