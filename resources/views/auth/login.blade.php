@@ -103,9 +103,29 @@
                             Forgot password?
                         </a>
                     </div>
-                    <input type="password" name="password" required
-                           class="ikia-input" placeholder="••••••••" autocomplete="current-password">
+                    <div style="position:relative;">
+                        <input type="password" name="password" id="login-password" required
+                               class="ikia-input" style="padding-right:42px;" placeholder="••••••••" autocomplete="current-password">
+                        <button type="button" onclick="loginTogglePassword()" aria-label="Show password"
+                                style="position:absolute;right:4px;top:50%;transform:translateY(-50%);width:34px;height:34px;background:none;border:none;color:rgba(255,255,255,.45);cursor:pointer;display:flex;align-items:center;justify-content:center;">
+                            <svg id="login-eye-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"/>
+                                <circle cx="12" cy="12" r="3"/>
+                            </svg>
+                        </button>
+                    </div>
                 </div>
+                <script>
+                    function loginTogglePassword() {
+                        const inp = document.getElementById('login-password');
+                        const icon = document.getElementById('login-eye-icon');
+                        const showing = inp.type === 'text';
+                        inp.type = showing ? 'password' : 'text';
+                        icon.innerHTML = showing
+                            ? '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"/><circle cx="12" cy="12" r="3"/>'
+                            : '<path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a21.6 21.6 0 0 1 5.06-6.06M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 11 8 11 8a21.6 21.6 0 0 1-2.87 4.24M14.12 14.12a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>';
+                    }
+                </script>
                 <div class="checkbox-row">
                     <input type="checkbox" name="remember" id="remember">
                     <span>Keep me signed in</span>
