@@ -34,18 +34,41 @@ class KanbanTest extends TestCase
             ->assertJson(['hasMore' => true, 'offset' => 50, 'total' => 60]);
     }
 
-    public function test_kanban_without_status_shows_all_active_not_just_in_progress(): void
+    public function test_a_full_page_load_with_no_filters_defaults_to_in_progress(): void
+    {
+        $admin = $this->admin();
+
+        $this->actingAs($admin)->get(route('tasks.kanban'))
+            ->assertRedirect(route('tasks.kanban', ['status' => 'in_progress']));
+    }
+
+    public function test_in_progress_filter_includes_new_pending_and_reviewing_but_not_paused(): void
     {
         $admin = $this->admin();
         Task::create(['title' => 'A new task title', 'created_by' => $admin->id, 'priority' => 'low', 'status' => 'new']);
+        Task::create(['title' => 'A pending task title', 'created_by' => $admin->id, 'priority' => 'low', 'status' => 'pending']);
         Task::create(['title' => 'A paused task title', 'created_by' => $admin->id, 'priority' => 'low', 'status' => 'paused']);
         Task::create(['title' => 'An inprogress task title', 'created_by' => $admin->id, 'priority' => 'low', 'status' => 'in_progress']);
 
-        $this->actingAs($admin)->get(route('tasks.kanban'))
+        $this->actingAs($admin)->get(route('tasks.kanban', ['status' => 'in_progress']))
             ->assertOk()
             ->assertSee('A new task title')
-            ->assertSee('A paused task title')
-            ->assertSee('An inprogress task title');
+            ->assertSee('A pending task title')
+            ->assertSee('An inprogress task title')
+            ->assertDontSee('A paused task title');
+    }
+
+    public function test_clearing_the_filter_via_ajax_shows_all_active_tasks_without_bouncing_back(): void
+    {
+        $admin = $this->admin();
+        Task::create(['title' => 'A paused task title', 'created_by' => $admin->id, 'priority' => 'low', 'status' => 'paused']);
+        Task::create(['title' => 'An inprogress task title', 'created_by' => $admin->id, 'priority' => 'low', 'status' => 'in_progress']);
+
+        // The live re-filter (X-Requested-With) with no status must not redirect back to the default.
+        $res = $this->actingAs($admin)->getJson(route('tasks.kanban'), ['X-Requested-With' => 'XMLHttpRequest']);
+        $res->assertOk();
+        $this->assertStringContainsString('A paused task title', $res->getContent());
+        $this->assertStringContainsString('An inprogress task title', $res->getContent());
     }
 
     public function test_recent_activity_moves_a_task_to_the_top_of_its_column(): void
@@ -57,7 +80,7 @@ class KanbanTest extends TestCase
         \DB::table('tasks')->where('id', $newer->id)->update(['updated_at' => now()->subHour()]);
 
         // Before any activity, order follows updated_at as it stands: newer task first.
-        $this->actingAs($admin)->get(route('tasks.kanban'))
+        $this->actingAs($admin)->get(route('tasks.kanban', ['status' => 'in_progress']))
             ->assertOk()->assertSeeInOrder(['Newer No Deadline Task', 'Older No Deadline Task']);
 
         // Commenting on the older task is "recent activity" — it should now rank above the
@@ -65,7 +88,7 @@ class KanbanTest extends TestCase
         // comments/attachments/checklist ticks never bumped the task at all).
         $older->fresh()->logActivity($admin, 'commented', null, null, 'hi');
 
-        $this->actingAs($admin)->get(route('tasks.kanban'))
+        $this->actingAs($admin)->get(route('tasks.kanban', ['status' => 'in_progress']))
             ->assertOk()->assertSeeInOrder(['Older No Deadline Task', 'Newer No Deadline Task']);
     }
 

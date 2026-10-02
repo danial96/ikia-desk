@@ -38,7 +38,7 @@ class KanbanDeadlineTimeTest extends TestCase
     private function board(User $as)
     {
         return $this->actingAs($as)->withHeaders(['X-Requested-With' => 'XMLHttpRequest'])
-            ->get(route('tasks.kanban'))->assertOk();
+            ->get(route('tasks.kanban', ['status' => 'in_progress']))->assertOk();
     }
 
     public function test_task_is_overdue_as_soon_as_its_deadline_time_passes_today(): void
@@ -73,7 +73,7 @@ class KanbanDeadlineTimeTest extends TestCase
         $admin = $this->admin();
         $this->task($admin, 'Passed today', '2026-09-24 18:00:00');
 
-        $this->actingAs($admin)->get(route('tasks.kanban'))->assertOk()
+        $this->actingAs($admin)->get(route('tasks.kanban', ['status' => 'in_progress']))->assertOk()
             ->assertSee('Today, 6:00 pm')->assertSee('#e0413a', false);
     }
 

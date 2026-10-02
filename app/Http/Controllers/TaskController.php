@@ -610,8 +610,16 @@ class TaskController extends Controller
     {
         $this->rememberTaskView(Auth::user(), 'kanban');
 
-        // No status filter now shows ALL active (non-completed) tasks, not just in_progress,
-        // so nothing gets hidden by a default filter.
+        // Default to the In Progress filter on a genuine full page load (never on the AJAX
+        // re-filter — clearing the chip must actually clear it for the rest of the session, not
+        // bounce straight back). A reload hits this same check again with the URL the AJAX call
+        // left behind (kbAjaxFilter keeps the address bar in sync via history.replaceState), so
+        // clearing the filter and then reloading correctly brings the In Progress default back.
+        $hasFilters = $request->hasAny(['status', 'search', 'project_id', 'priority', 'assignee_id']);
+        if (!$hasFilters && !$request->ajax()) {
+            return redirect()->route('tasks.kanban', ['status' => 'in_progress']);
+        }
+
         $user = Auth::user();
 
         // Task IDs with unseen notifications for this user (AJAX only — not stored in cache)

@@ -16,10 +16,10 @@ class KanbanCacheTest extends TestCase
         $admin = User::factory()->create(['role' => 'super_admin', 'is_active' => true]);
         $task  = Task::create(['title' => 'Doomed task', 'created_by' => $admin->id, 'priority' => 'medium', 'status' => 'new']);
 
-        $this->actingAs($admin)->get(route('tasks.kanban'))->assertOk()->assertSee('Doomed task');   // warms the 30s cache
+        $this->actingAs($admin)->get(route('tasks.kanban', ['status' => 'in_progress']))->assertOk()->assertSee('Doomed task');   // warms the 30s cache
 
         $this->actingAs($admin)->delete(route('tasks.destroy', $task))->assertRedirect();
 
-        $this->actingAs($admin)->get(route('tasks.kanban'))->assertOk()->assertDontSee('Doomed task');
+        $this->actingAs($admin)->get(route('tasks.kanban', ['status' => 'in_progress']))->assertOk()->assertDontSee('Doomed task');
     }
 }

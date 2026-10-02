@@ -14,7 +14,7 @@ class TaskViewMemoryTest extends TestCase
     {
         $u = User::factory()->create(['is_active' => true]);
 
-        $this->actingAs($u)->get(route('tasks.kanban'))->assertOk();
+        $this->actingAs($u)->get(route('tasks.kanban'))->assertRedirect(route('tasks.kanban', ['status' => 'in_progress']));
         $this->assertSame('kanban', $u->fresh()->task_view);
 
         // a brand-new session (like after logging in again): the list URL sends them to the board
