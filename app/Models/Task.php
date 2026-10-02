@@ -118,7 +118,7 @@ class Task extends Model
         );
     }
 
-    public function logActivity(User $user, string $action, string $field = null, $oldValue = null, $newValue = null): void
+    public function logActivity(User $user, string $action, ?string $field = null, $oldValue = null, $newValue = null): void
     {
         $this->activities()->create([
             'user_id'   => $user->id,

@@ -94,7 +94,7 @@ class TaskController extends Controller
 
         // Last chosen layout was Kanban and the user didn't explicitly ask for the list → open the board
         if ($user->task_view === 'kanban' && !$request->has('view')) {
-            return redirect()->route('tasks.kanban');
+            return redirect()->route('tasks.kanban', $request->query());
         }
 
         $view = 'list';
@@ -102,7 +102,8 @@ class TaskController extends Controller
         // Default to in_progress when visiting with no filters
         $hasFilters = $request->hasAny(['status', 'search', 'project_id', 'priority', 'assignee_id', 'page']);
         if (!$hasFilters) {
-            return redirect()->route('tasks.index', ['status' => 'in_progress']);
+            // keep whatever else was in the link (?task=ID from a notification, ?newtask=1…)
+            return redirect()->route('tasks.index', ['status' => 'in_progress'] + $request->query());
         }
 
         $query = Task::with(['project', 'assignee', 'creator'])
@@ -617,7 +618,8 @@ class TaskController extends Controller
         // clearing the filter and then reloading correctly brings the In Progress default back.
         $hasFilters = $request->hasAny(['status', 'search', 'project_id', 'priority', 'assignee_id']);
         if (!$hasFilters && !$request->ajax()) {
-            return redirect()->route('tasks.kanban', ['status' => 'in_progress']);
+            // keep whatever else was in the link (?task=ID from a notification / push, ?newtask=1&title=…)
+            return redirect()->route('tasks.kanban', ['status' => 'in_progress'] + $request->query());
         }
 
         $user = Auth::user();

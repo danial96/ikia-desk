@@ -42,6 +42,19 @@ class KanbanTest extends TestCase
             ->assertRedirect(route('tasks.kanban', ['status' => 'in_progress']));
     }
 
+    public function test_the_default_filter_redirect_keeps_deep_link_params_like_task_id(): void
+    {
+        $admin = $this->admin();
+
+        // a notification / push link: it must still open that task after the redirect
+        $this->actingAs($admin)->get('/tasks/kanban?task=42')
+            ->assertRedirect(route('tasks.kanban', ['status' => 'in_progress', 'task' => 42]));
+        $this->actingAs($admin)->get('/tasks/kanban?newtask=1&title=Hello')
+            ->assertRedirect(route('tasks.kanban', ['status' => 'in_progress', 'newtask' => 1, 'title' => 'Hello']));
+        $this->actingAs($admin)->get('/tasks?task=42')
+            ->assertRedirect(route('tasks.kanban', ['task' => 42]));      // list page -> remembered Kanban layout, link kept
+    }
+
     public function test_in_progress_filter_includes_new_pending_and_reviewing_but_not_paused(): void
     {
         $admin = $this->admin();
