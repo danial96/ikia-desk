@@ -1632,6 +1632,7 @@ function _taskHash(data) {
 window.tpStartChatPoll = function(taskId) {
     tpStopChatPoll();
     _pollFeedCount = -1;
+    _pollFeedSig   = '';
     _pollClHash    = _clHash(_tpChecklists[taskId]);
     _pollTaskHash  = '';
     _chatPollInterval = setInterval(function() {
@@ -1642,39 +1643,67 @@ window.tpStartChatPoll = function(taskId) {
         // day and a half's total bandwidth this way. The interval keeps ticking so it resumes
         // within 3s of the tab becoming visible again; we just skip the network call meanwhile.
         if (document.hidden) return;
-        fetch(TP_LOCAL_URL + '/' + taskId + '?background=1', {
-            headers: {'X-CSRF-TOKEN': TP_CSRF, 'Accept': 'application/json'}
-        }).then(r => r.json()).then(data => {
-
-            /* feed / comments */
-            const feed = data.feed || [];
-            if (feed.length !== _pollFeedCount) {
-                _pollFeedCount = feed.length;
-                tpRenderLocalFeed(data, taskId);
-            }
-
-            /* checklist */
-            const newClHash = _clHash(data.checklists);
-            if (newClHash !== _pollClHash) {
-                _pollClHash = newClHash;
-                _tpChecklists[taskId] = data.checklists || [];
-                tpClRender(taskId);
-            }
-
-            /* task metadata — status, priority, assignee, deadline, participants, observers, title, desc */
-            const newTaskHash = _taskHash(data);
-            if (_pollTaskHash && newTaskHash !== _pollTaskHash) {
-                _pollTaskHash  = newTaskHash;
-                _pollClHash    = _clHash(data.checklists);
-                _pollFeedCount = feed.length;
-                tpRenderLocal(data);
-            } else {
-                _pollTaskHash = newTaskHash;
-            }
-
-        }).catch(() => {});
+        // While the realtime socket is up the server tells us the instant something changes
+        // (see the rt:task listener below), so this only runs as a slow safety net.
+        if (window.Realtime && Realtime.skip('tpPoll', 5)) return;
+        tpPollOnce(taskId);
     }, 3000);
 };
+
+/* One refresh of the open task: comments/feed, checklist, and task fields — each redrawn only if it changed. */
+let _pollFeedSig = '', _pollSeq = 0;
+const _hashStr = str => { let h = 5381; for (let i = 0; i < str.length; i++) h = ((h << 5) + h + str.charCodeAt(i)) | 0; return h + ':' + str.length; };
+window.tpPollOnce = function(taskId) {
+    const seq = ++_pollSeq;
+    return fetch(TP_LOCAL_URL + '/' + taskId + '?background=1', {
+        headers: {'X-CSRF-TOKEN': TP_CSRF, 'Accept': 'application/json'}
+    }).then(r => r.json()).then(data => {
+        // a newer refresh started, or another task was opened meanwhile: this answer is stale
+        if (seq !== _pollSeq || String(_currentTaskId) !== String(taskId)) return;
+
+        /* feed / comments — also redrawn when a comment was edited or reacted to (same count, different content) */
+        const feed = data.feed || [];
+        const feedSig = _hashStr(JSON.stringify(feed));
+        if (feed.length !== _pollFeedCount || feedSig !== _pollFeedSig) {
+            _pollFeedCount = feed.length;
+            _pollFeedSig   = feedSig;
+            tpRenderLocalFeed(data, taskId);
+        }
+
+        /* checklist */
+        const newClHash = _clHash(data.checklists);
+        if (newClHash !== _pollClHash) {
+            _pollClHash = newClHash;
+            _tpChecklists[taskId] = data.checklists || [];
+            tpClRender(taskId);
+        }
+
+        /* task metadata — status, priority, assignee, deadline, participants, observers, title, desc */
+        const newTaskHash = _taskHash(data);
+        if (_pollTaskHash && newTaskHash !== _pollTaskHash) {
+            _pollTaskHash  = newTaskHash;
+            _pollClHash    = _clHash(data.checklists);
+            _pollFeedCount = feed.length;
+            _pollFeedSig   = feedSig;
+            tpRenderLocal(data);
+        } else {
+            _pollTaskHash = newTaskHash;
+        }
+    }).catch(() => {});
+};
+
+/* Realtime: someone else changed a task. Refresh it at once if it's the one open, and its kanban card if shown. */
+let _rtTaskTimer = null;
+window.addEventListener('rt:task', function (e) {
+    const d = e.detail || {};
+    if (d.by === window.ME_LOCAL_ID) return;            // our own action in this tab is already on screen
+    if (typeof kbUpdateCard === 'function' && d.k === 'activity' && document.getElementById('kb-task-' + d.t)) kbUpdateCard(d.t);
+    if (!_currentTaskId || String(d.t) !== String(_currentTaskId) || document.hidden) return;   // hidden: refreshed when the tab returns
+    clearTimeout(_rtTaskTimer);
+    _rtTaskTimer = setTimeout(() => tpPollOnce(_currentTaskId), 60);
+});
+window.addEventListener('rt:resync', function () { if (_currentTaskId && !document.hidden) tpPollOnce(_currentTaskId); });
+document.addEventListener('visibilitychange', function () { if (!document.hidden && _currentTaskId) tpPollOnce(_currentTaskId); });
 window.tpStopChatPoll = function() {
     if (_chatPollInterval) { clearInterval(_chatPollInterval); _chatPollInterval = null; }
 };

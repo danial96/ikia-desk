@@ -133,6 +133,28 @@ class Task extends Model
         // actually moved a task up just because someone commented on it. Bump it here, once, for
         // every kind of activity instead of chasing each call site individually.
         $this->touch();
+        $this->broadcastChange('activity', $user->id);
+    }
+
+    /**
+     * Everyone who may have this task open and so should see changes the moment they happen:
+     * its people (creator, assignee, participants, observers) and the super admins, who can open any task.
+     * Others (e.g. someone only @mentioned) keep the slower safety-net poll.
+     */
+    public function audienceIds(): array
+    {
+        return collect([$this->created_by, $this->assigned_to])
+            ->merge($this->members()->pluck('users.id'))
+            ->merge($this->observers()->pluck('users.id'))
+            ->merge(User::where('is_active', true)->where('role', 'super_admin')->pluck('id'))
+            ->filter()->map(fn ($id) => (int) $id)->unique()->values()->all();
+    }
+
+    /** Ping every open browser of the audience: "task N changed" (ids only; each browser re-fetches what it shows). */
+    public function broadcastChange(string $kind, ?int $byUserId = null): void
+    {
+        if (!\App\Support\Realtime::enabled()) return;
+        \App\Support\Realtime::publishToUsers($this->audienceIds(), 'task.changed', ['t' => $this->id, 'k' => $kind, 'by' => $byUserId]);
     }
 
     public function getStatusColorAttribute(): string

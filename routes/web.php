@@ -554,6 +554,7 @@ Route::middleware('auth')->group(function () {
         if ((int) $comment->user_id !== (int) $user->id) return response()->json(['error' => 'Forbidden'], 403);
         if ($comment->created_at->diffInHours(now()) > 24) return response()->json(['error' => 'Too late to edit'], 403);
         $comment->update(['content' => $request->content, 'edited_at' => now()]);
+        $comment->task?->broadcastChange('comment', $user->id);
         return response()->json(['ok' => true, 'editedAt' => $comment->edited_at->format('g:i a')]);
     });
 
@@ -574,6 +575,7 @@ Route::middleware('auth')->group(function () {
         else $ids = array_values(array_filter($ids, fn($v) => $v !== $user->id));
         if (empty($ids)) unset($rxns[$emoji]); else $rxns[$emoji] = $ids;
         $comment->update(['reactions' => empty($rxns) ? null : $rxns]);
+        $task->broadcastChange('comment', $user->id);
 
         if ($adding && !in_array($comment->user_id, [null, $user->id], true)) {
             \App\Models\Notification::mention([$comment->user_id], $user,

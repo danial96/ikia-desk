@@ -1060,6 +1060,7 @@ if (typeof window.Realtime === 'undefined') {
                 ch.bind('pusher:subscription_error',     () => { channelOk = false; refresh(); });
                 ch.bind('chat.changed', d => window.dispatchEvent(new CustomEvent('rt:chat',  { detail: d || {} })));
                 ch.bind('notif',        d => window.dispatchEvent(new CustomEvent('rt:notif', { detail: d || {} })));
+                ch.bind('task.changed', d => window.dispatchEvent(new CustomEvent('rt:task',  { detail: d || {} })));
                 pusher.connection.bind('state_change', st => {
                     sockOk = st.current === 'connected';
                     if (!sockOk) channelOk = false;     // pusher-js re-subscribes on reconnect, which flips this back

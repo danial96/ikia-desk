@@ -54,6 +54,7 @@ class TaskCommentController extends Controller
             abort(403);
         }
         $comment->delete();
+        $task->broadcastChange('comment', Auth::id());
         return back()->with('success', 'Comment deleted.');
     }
 }
