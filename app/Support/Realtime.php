@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -85,8 +86,10 @@ class Realtime
                 $query = urldecode(http_build_query($params));
                 $params['auth_signature'] = hash_hmac('sha256', "POST\n" . $path . "\n" . $query, $cfg['secret']);
 
-                $res = Http::timeout(3)->withBody($body, 'application/json')
-                    ->post('https://api-' . $cfg['cluster'] . '.pusher.com' . $path . '?' . http_build_query($params));
+                $url = 'https://api-' . $cfg['cluster'] . '.pusher.com' . $path . '?' . http_build_query($params);
+                if (self::detachedPost($url, $body)) continue;
+
+                $res = Http::timeout(3)->withBody($body, 'application/json')->post($url);
                 if (!$res->successful()) {
                     Log::warning('Realtime publish rejected', ['status' => $res->status(), 'body' => mb_substr($res->body(), 0, 200)]);
                 }
@@ -94,5 +97,40 @@ class Realtime
                 Log::warning('Realtime publish failed: ' . $e->getMessage());
             }
         }
+    }
+
+    /**
+     * Fire the POST from a detached background `curl` and return immediately.
+     *
+     * Production runs PHP as plain FastCGI (cgi-fcgi), which has no fastcgi_finish_request, so even
+     * work queued "after the response" still held the request open: the Pusher round trip (~480ms,
+     * Germany -> Mumbai incl. TLS setup) was being added to every message send. Spawning a child
+     * costs ~2ms and the child outlives the request. Returns false when that isn't possible
+     * (tests, Windows, exec disabled, no curl) and the caller falls back to an in-process request.
+     * The URL/body visible in `ps` for a moment carry only ids and a signature over them, never the secret.
+     */
+    private static function detachedPost(string $url, string $body): bool
+    {
+        if (app()->runningUnitTests() || PHP_OS_FAMILY === 'Windows' || !function_exists('exec')) return false;
+        $curl = self::curlBinary();
+        if (!$curl) return false;
+        @exec(self::curlCommand($curl, $url, $body), $unused, $code);
+        return $code === 0;
+    }
+
+    public static function curlCommand(string $curl, string $url, string $body): string
+    {
+        return escapeshellarg($curl) . ' -sS -m 10 -X POST -H ' . escapeshellarg('Content-Type: application/json')
+            . ' --data-binary ' . escapeshellarg($body) . ' ' . escapeshellarg($url) . ' > /dev/null 2>&1 &';
+    }
+
+    /** Path of a working curl, remembered for an hour (an empty string is cached too, so we don't re-probe every request). */
+    private static function curlBinary(): ?string
+    {
+        $path = Cache::remember('realtime.curl_path', 3600, function () {
+            // open_basedir hides /usr/bin from is_executable(), so ask the shell instead
+            return trim((string) @shell_exec('command -v curl 2>/dev/null'));
+        });
+        return $path !== '' ? $path : null;
     }
 }

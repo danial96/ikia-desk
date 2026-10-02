@@ -194,4 +194,32 @@ class RealtimeTest extends TestCase
             return $body['name'] === 'notif' && $body['channels'] === ['private-user.' . $a->id, 'private-user.' . $b->id];
         });
     }
+
+    public function test_the_detached_curl_command_quotes_everything_and_runs_in_the_background(): void
+    {
+        $hostile = '{"data":"it\'s $(rm -rf /) `id` ; echo pwned"}';
+        $url     = 'https://api-ap2.pusher.com/apps/3/events?a=1&b=2';
+
+        $cmd = Realtime::curlCommand('/usr/bin/curl', $url, $hostile);
+
+        $this->assertStringEndsWith('> /dev/null 2>&1 &', $cmd);
+        $this->assertStringContainsString(escapeshellarg($url), $cmd);
+        $this->assertStringContainsString(escapeshellarg($hostile), $cmd);   // body is one quoted argument
+        if (PHP_OS_FAMILY === 'Windows') return;                             // shell quoting differs; production is Linux
+
+        $this->assertStringStartsWith("'/usr/bin/curl' -sS -m 10 -X POST", $cmd);
+        // What a POSIX shell would hand curl as the body argument is exactly the hostile string,
+        // i.e. it was quoted as data and nothing in it can run.
+        $this->assertSame($hostile, shell_exec('printf %s ' . escapeshellarg($hostile)));
+    }
+
+    public function test_no_background_process_is_spawned_under_test_so_http_fake_still_sees_the_request(): void
+    {
+        $this->configure();
+        Http::fake(['*' => Http::response('{}', 200)]);
+
+        Realtime::publishNow([1], 'notif');
+
+        Http::assertSentCount(1);   // went through the in-process client, not a detached curl
+    }
 }
