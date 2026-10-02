@@ -965,11 +965,12 @@ window.cpSend = async function() {
     // Handle edit mode
     if (_editingMsgId) {
         if (!text) return;
+        if (msgTooLong(text.length)) return;
         const _id = _editingMsgId;
         cpCancelEdit();
         const _r = await fetch(API_BASE + '/api/chat/msgs/' + _id, {
             method:'PATCH',
-            headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF},
+            headers:{'Content-Type':'application/json','Accept':'application/json','X-CSRF-TOKEN':CSRF},
             body: JSON.stringify({content:text}),
         });
         if (!_r.ok) { if (window.showToast) showToast('Could not edit the message.'); return; }
@@ -985,6 +986,7 @@ window.cpSend = async function() {
     }
 
     if (!text && !attachTags) return;
+    if (msgTooLong((attachTags ? attachTags.length + 1 : 0) + text.length)) return;   // nothing cleared yet, so nothing is lost
     ta.value = ''; ta.style.height = 'auto';
     if (window.clearAttachments) window.clearAttachments('cp-textarea', 'cp-attach-preview');
     if (typeof chatSendSound === 'function') chatSendSound();
@@ -1006,10 +1008,11 @@ window.cpSend = async function() {
     try {
         const r = await fetch(API_BASE + '/api/chat/convs/' + _cpActiveConvId + '/send', {
             method:'POST',
-            headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF},
+            headers:{'Content-Type':'application/json','Accept':'application/json','X-CSRF-TOKEN':CSRF},
             body: JSON.stringify({content:fullText, parent_id: replyToId}),
         });
         const d = await r.json();
+        if (!r.ok || !d.message?.id) { _cpMsgCount--; msgSendFailed(_echo, ta, text, d); return; }
         if (d.message?.id) {
             _cpLastMsgId = Math.max(_cpLastMsgId, d.message.id);
             if (_echo && _echo.dataset.local === '1') {
@@ -1023,7 +1026,7 @@ window.cpSend = async function() {
             }
         }
         cpLoad();
-    } catch(e) {} finally { _cpSending = false; }
+    } catch(e) { _cpMsgCount--; msgSendFailed(_echo, ta, text, null); } finally { _cpSending = false; }
 };
 
 /* ── Send raw tag (voice note) ── */

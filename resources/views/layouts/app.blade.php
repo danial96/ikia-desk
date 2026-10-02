@@ -984,6 +984,28 @@ if (typeof window.jumpToMsg === 'undefined') {
         setTimeout(() => { bb.style.boxShadow = orig; }, 1800);
     };
 }
+// Longest message / comment the server accepts (single source: Message::MAX_CHARS). The send
+// functions check this BEFORE clearing the box, and report any other failure instead of leaving a
+// "sent" bubble that never reached anyone — an over-long paste used to just vanish silently,
+// because the rejected request came back as an opaque redirect the UI never looked at.
+if (typeof window.MSG_MAX === 'undefined') { window.MSG_MAX = {{ \App\Models\Message::MAX_CHARS }}; }
+if (typeof window.msgTooLong === 'undefined') {
+    window.msgTooLong = function(len) {
+        if (len <= window.MSG_MAX) return false;
+        if (window.showToast) showToast('Message too long — ' + len.toLocaleString() + ' characters, the limit is ' + window.MSG_MAX.toLocaleString() + '. Please split it into parts.');
+        return true;
+    };
+    // A send that the server rejected / that never arrived: take the fake "sent" bubble back out and
+    // put the text back in the box so nothing is lost, and say why.
+    window.msgSendFailed = function(echo, ta, text, info) {
+        if (echo && echo.dataset && echo.dataset.local === '1') echo.remove();
+        if (ta && !ta.value && text) { ta.value = text; ta.dispatchEvent(new Event('input', { bubbles: true })); }
+        const m = (info && ((info.errors && info.errors.content && info.errors.content[0]) || info.message)) || '';
+        if (window.showToast) showToast(/greater than|too long/i.test(m)
+            ? 'Message too long — the limit is ' + window.MSG_MAX.toLocaleString() + ' characters.'
+            : 'Could not send the message. Please try again.');
+    };
+}
 // Per-user notification preferences (profile → Notifications). Declared idempotently, same
 // reasoning as APP_TZ/ME_ID above — this script can run more than once in the same page scope.
 @php
@@ -1841,6 +1863,7 @@ window.chatSend = async function() {
 
     if (_chatEditingId) {
         if (!text) return;
+        if (msgTooLong(text.length)) return;
         const id = _chatEditingId;
         chatCancelEdit();
         const r = await fetch(API_BASE + '/api/chat/msgs/' + id, { method:'PATCH', headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF,'Accept':'application/json'}, body: JSON.stringify({content: text}) });
@@ -1857,6 +1880,7 @@ window.chatSend = async function() {
     }
 
     if (!text && !attachTags) return;
+    if (msgTooLong((attachTags ? attachTags.length + 1 : 0) + text.length)) return;   // nothing cleared yet, so nothing is lost
 
     ta.value = '';
     try { localStorage.removeItem('chat_draft_' + _activeConvId); } catch(e) {}
@@ -1882,10 +1906,11 @@ window.chatSend = async function() {
     try {
         const r = await fetch(API_BASE + '/api/chat/convs/' + _activeConvId + '/send', {
             method: 'POST',
-            headers: {'Content-Type':'application/json','X-CSRF-TOKEN':CSRF},
+            headers: {'Content-Type':'application/json','Accept':'application/json','X-CSRF-TOKEN':CSRF},
             body: JSON.stringify({content: fullText, mentions, parent_id: replyToId}),
         });
         const d = await r.json();
+        if (!r.ok || !d.message?.id) { msgSendFailed(_cEcho, ta, text, d); return; }
         // Advance _lastMsgId so the next poll skips this just-sent message
         if (d.message?.id) {
             _lastMsgId = Math.max(_lastMsgId, d.message.id);
@@ -1900,7 +1925,7 @@ window.chatSend = async function() {
             }
         }
         chatLoadConvs(); // refresh conv list for last message
-    } catch(e) {}
+    } catch(e) { msgSendFailed(_cEcho, ta, text, null); }
 };
 
 /* Drag-drop + paste file upload for the popup chat input */

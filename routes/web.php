@@ -497,7 +497,7 @@ Route::middleware('auth')->group(function () {
     // Post comment via AJAX
     Route::post('/api/local-task/{id}/comment', function ($id, \Illuminate\Http\Request $request) {
         $request->validate([
-            'content'    => 'required|string|max:5000',
+            'content'    => 'required|string|max:' . \App\Models\Message::MAX_CHARS,
             'mentions'   => 'nullable|array',
             'mentions.*' => 'integer',
             'parent_id'  => 'nullable|integer',
@@ -548,7 +548,7 @@ Route::middleware('auth')->group(function () {
 
     // Edit your own task comment (same 24h window as chat message edits)
     Route::patch('/api/local-task/comments/{id}', function ($id, \Illuminate\Http\Request $request) {
-        $request->validate(['content' => 'required|string|max:5000']);
+        $request->validate(['content' => 'required|string|max:' . \App\Models\Message::MAX_CHARS]);
         $user    = auth()->user();
         $comment = \App\Models\TaskComment::findOrFail($id);
         if ((int) $comment->user_id !== (int) $user->id) return response()->json(['error' => 'Forbidden'], 403);
@@ -684,7 +684,7 @@ Route::middleware('auth')->group(function () {
                 'members'       => $c->members->count(),
                 'unread'        => $unreadCounts->get($c->id, 0),
                 'online'        => $online,
-                'lastMsg'       => $lm ? ['text'=>$lm->content,'byMe'=>$lm->user_id===$user->id,'senderName'=>$lm->user?->name,'time'=>\App\Support\Tz::forViewer($lm->created_at, $user)->format('g:i a')] : null,
+                'lastMsg'       => $lm ? ['text'=>mb_substr($lm->content, 0, 600),'byMe'=>$lm->user_id===$user->id,'senderName'=>$lm->user?->name,'time'=>\App\Support\Tz::forViewer($lm->created_at, $user)->format('g:i a')] : null,
             ];
         }
         return response()->json(['convs'=>$list]);
@@ -902,7 +902,7 @@ Route::middleware('auth')->group(function () {
 
     // ── Edit message ──
     Route::patch('/api/chat/msgs/{id}', function ($id, \Illuminate\Http\Request $request) {
-        $request->validate(['content'=>'required|string|max:5000']);
+        $request->validate(['content'=>'required|string|max:' . \App\Models\Message::MAX_CHARS]);
         $user = auth()->user();
         $msg  = \App\Models\Message::findOrFail($id);
         if ((int)$msg->user_id !== (int)$user->id) return response()->json(['error'=>'Forbidden'],403);
@@ -968,7 +968,7 @@ Route::middleware('auth')->group(function () {
 
     Route::post('/api/chat/convs/{id}/send', function (\Illuminate\Http\Request $request, $id) {
         $request->validate([
-            'content'     => 'required|string|max:5000',
+            'content'     => 'required|string|max:' . \App\Models\Message::MAX_CHARS,
             'mentions'    => 'nullable|array',
             'mentions.*'  => 'integer',
             'parent_id'   => 'nullable|integer',

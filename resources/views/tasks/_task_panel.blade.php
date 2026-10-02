@@ -2010,6 +2010,7 @@ window.tpSubmitComment=function(taskId){
 
     if (window._tpEditingId) {
         if (!txt) return;
+        if (msgTooLong(txt.length)) return;
         const id = window._tpEditingId;
         tpCancelEdit();
         fetch('/api/local-task/comments/'+id, {
@@ -2017,7 +2018,7 @@ window.tpSubmitComment=function(taskId){
             headers:{'Content-Type':'application/json','X-CSRF-TOKEN':TP_CSRF,'Accept':'application/json'},
             body: JSON.stringify({content: txt}),
         }).then(r=>r.json()).then(resp=>{
-            if (resp?.error) { showToast(resp.error === 'Too late to edit' ? 'Too late to edit this comment.' : 'Could not edit the comment.'); return; }
+            if (resp?.error || resp?.errors) { showToast(resp.error === 'Too late to edit' ? 'Too late to edit this comment.' : 'Could not edit the comment.'); return; }
             const row = document.querySelector(`#tp-messages [data-msg-id="${id}"]`);
             const t = row?.querySelector('[data-raw]');
             if (t) {
@@ -2035,6 +2036,7 @@ window.tpSubmitComment=function(taskId){
     const mentions=window._mentionCollect?window._mentionCollect('tp-comment-text'):[];
     // Attachment(s) first, caption below — matches how every other chat app shows a captioned photo.
     const fullContent=attachTags?attachTags+(txt?'\n'+txt:''):txt;
+    if (msgTooLong(fullContent.length)) return;     // checked before anything is cleared or disabled
     const parentId=window._tpReplyToId||null;
     const btn=$('tp-comment-footer').querySelector('button[onclick*="tpSubmitComment"]');
     if(btn){btn.disabled=true;btn.style.opacity='.5';}
@@ -2043,6 +2045,9 @@ window.tpSubmitComment=function(taskId){
         headers:{'Content-Type':'application/json','X-CSRF-TOKEN':TP_CSRF,'Accept':'application/json'},
         body:JSON.stringify({content:fullContent, mentions, parent_id:parentId}),
     }).then(r=>r.json()).then(resp=>{
+        // A rejected comment comes back as JSON with errors and no `comment` — don't clear the box and
+        // append a fake "sent" bubble for something the server never saved (it used to do exactly that).
+        if(!resp||!resp.comment){ showToast((resp&&resp.errors&&resp.errors.content&&/greater than/.test(resp.errors.content[0])) ? 'Comment too long — the limit is '+window.MSG_MAX.toLocaleString()+' characters.' : 'Could not send comment.'); return; }
         ta.value=''; tpComposerState();
         if(window.clearAttachments) window.clearAttachments('tp-comment-text','tp-attach-preview');
         tpCancelReply();
