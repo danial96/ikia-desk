@@ -111,11 +111,16 @@ class Realtime
      */
     private static function detachedPost(string $url, string $body): bool
     {
-        if (app()->runningUnitTests() || PHP_OS_FAMILY === 'Windows' || !function_exists('exec')) return false;
+        if (!self::detachedAvailable()) return false;
         $curl = self::curlBinary();
-        if (!$curl) return false;
         @exec(self::curlCommand($curl, $url, $body), $unused, $code);
         return $code === 0;
+    }
+
+    /** Can we spawn a background curl (not under test / Windows / with exec disabled / without curl)? */
+    public static function detachedAvailable(): bool
+    {
+        return !app()->runningUnitTests() && PHP_OS_FAMILY !== 'Windows' && function_exists('exec') && self::curlBinary() !== null;
     }
 
     public static function curlCommand(string $curl, string $url, string $body): string
@@ -125,7 +130,7 @@ class Realtime
     }
 
     /** Path of a working curl, remembered for an hour (an empty string is cached too, so we don't re-probe every request). */
-    private static function curlBinary(): ?string
+    public static function curlBinary(): ?string
     {
         $path = Cache::remember('realtime.curl_path', 3600, function () {
             // open_basedir hides /usr/bin from is_executable(), so ask the shell instead

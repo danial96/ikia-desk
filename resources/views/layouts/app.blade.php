@@ -7,7 +7,8 @@
     <title>@yield('title', 'IKIA Desk') — IKIA Desk</title>
     <link rel="icon" type="image/png" href="{{ asset('logo-dark.png') }}">
     <link rel="shortcut icon" href="{{ asset('logo-dark.png') }}">
-    <link rel="apple-touch-icon" href="{{ asset('logo-dark.png') }}">
+    <link rel="apple-touch-icon" href="{{ asset('icon-192.png') }}">
+    <link rel="manifest" href="{{ asset('manifest.webmanifest') }}">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     @auth<style id="theme-live">{!! \App\Support\Themes::styleRules(\App\Support\Themes::css(auth()->user())) !!}</style>@endauth
@@ -1121,7 +1122,7 @@ window.chatOpenDirect = async function(userId) {
 window.chatOpen = function() {
     if (_chatOpen) return;
     // Ask for desktop-notification permission on this user gesture (like Bitrix)
-    try { if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission(); } catch(e) {}
+    try { if ('Notification' in window && Notification.permission === 'default') Promise.resolve(Notification.requestPermission()).then(function () { if (window.Push) Push.sync(); }); } catch(e) {}
     _chatOpen = true;
     const p       = document.getElementById('chat-panel');
     const btn     = document.getElementById('chat-close-btn');
@@ -4049,6 +4050,98 @@ document.addEventListener('keydown', function(e) {
     });
 })();
 </script>
+
+@auth
+<script>
+// Browser push: lets the server alert this device even when Desk is closed. Everything here is
+// best-effort — unsupported / blocked / not configured simply leaves things as they were.
+if (typeof window.Push === 'undefined') {
+    window.PUSH_KEY = @json(\App\Support\WebPush::publicKey());
+    window.Push = (function () {
+        const api = {};
+        const csrf = () => (document.querySelector('meta[name="csrf-token"]') || {}).content || '';
+        const post = (url, body) => fetch(url, {
+            method: 'POST', credentials: 'same-origin', keepalive: true,
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': csrf() },
+            body: JSON.stringify(body),
+        });
+        const keyBytes = (b64) => {
+            const raw = atob(b64.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat((4 - b64.length % 4) % 4));
+            return Uint8Array.from(raw, (c) => c.charCodeAt(0));
+        };
+        const sameKey = (sub) => {
+            try {
+                const have = new Uint8Array(sub.options.applicationServerKey), want = keyBytes(window.PUSH_KEY);
+                return have.length === want.length && have.every((v, i) => v === want[i]);
+            } catch (e) { return true; }
+        };
+
+        api.supported = !!(window.PUSH_KEY && 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window);
+        api.permission = () => ('Notification' in window ? Notification.permission : 'unsupported');
+
+        async function registration() {
+            await navigator.serviceWorker.register('/sw.js');
+            return navigator.serviceWorker.ready;
+        }
+        api.current = async function () {
+            if (!api.supported) return null;
+            try { return await (await registration()).pushManager.getSubscription(); } catch (e) { return null; }
+        };
+
+        // Make sure this browser is subscribed AND the server knows about it (needs permission already granted).
+        api.sync = async function () {
+            if (!api.supported || Notification.permission !== 'granted') return false;
+            try {
+                const reg = await registration();
+                let sub = await reg.pushManager.getSubscription();
+                if (sub && !sameKey(sub)) { await sub.unsubscribe(); sub = null; }   // server keys were replaced
+                if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyBytes(window.PUSH_KEY) });
+                const j = sub.toJSON();
+                const res = await post('/push/subscribe', { endpoint: j.endpoint, keys: j.keys });
+                return res.ok;
+            } catch (e) { return false; }
+        };
+
+        // Must be called from a click (browsers ignore permission prompts otherwise).
+        api.enable = async function () {
+            if (!api.supported) return 'unsupported';
+            let perm = Notification.permission;
+            if (perm === 'default') perm = await Notification.requestPermission();
+            if (perm !== 'granted') return perm;
+            return (await api.sync()) ? 'granted' : 'error';
+        };
+
+        api.disable = async function () {
+            const sub = await api.current();
+            if (!sub) return;
+            try { await post('/push/unsubscribe', { endpoint: sub.endpoint }); } catch (e) {}
+            try { await sub.unsubscribe(); } catch (e) {}
+        };
+
+        api.test = async function () {
+            const res = await post('/push/test', {});
+            return res.ok ? (await res.json()).devices : -1;
+        };
+
+        // Keep this browser's subscription fresh once per page load.
+        if (api.supported && Notification.permission === 'granted') {
+            window.addEventListener('load', () => setTimeout(api.sync, 1500));
+        }
+
+        // Signing out: this device must stop receiving the previous person's alerts.
+        document.addEventListener('submit', function (e) {
+            const f = e.target;
+            if (!f || !/\/logout\/?$/.test(f.getAttribute('action') || '') || f._pushDone) return;
+            e.preventDefault();
+            f._pushDone = true;
+            Promise.race([api.disable(), new Promise((r) => setTimeout(r, 1500))]).finally(() => f.submit());
+        }, true);
+
+        return api;
+    })();
+}
+</script>
+@endauth
 
 </body>
 </html>

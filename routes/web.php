@@ -630,6 +630,41 @@ Route::middleware('auth')->group(function () {
         return response()->json(['auth' => \App\Support\Realtime::authToken($request->socket_id, $request->channel_name)]);
     })->name('realtime.auth');
 
+    // ── Browser push (alerts while Desk is closed) ──
+    Route::post('/push/subscribe', function (\Illuminate\Http\Request $request) {
+        if (!\App\Support\WebPush::enabled()) abort(404);
+        $data = $request->validate([
+            'endpoint'    => ['required', 'string', 'max:2000', 'regex:/^https:\/\//'],
+            'keys.p256dh' => 'required|string|max:200',
+            'keys.auth'   => 'required|string|max:100',
+        ]);
+        // Same browser, different login -> the subscription moves to whoever is signed in now.
+        \App\Models\PushSubscription::updateOrCreate(
+            ['endpoint_hash' => \App\Models\PushSubscription::hashFor($data['endpoint'])],
+            ['user_id' => auth()->id(), 'endpoint' => $data['endpoint'], 'p256dh' => $data['keys']['p256dh'],
+             'auth' => $data['keys']['auth'], 'user_agent' => mb_substr((string) $request->userAgent(), 0, 255), 'last_used_at' => now()]
+        );
+        \App\Models\PushSubscription::where('last_used_at', '<', now()->subDays(90))->delete();   // browsers that never came back
+        return response()->json(['ok' => true]);
+    })->name('push.subscribe');
+
+    Route::post('/push/unsubscribe', function (\Illuminate\Http\Request $request) {
+        $request->validate(['endpoint' => 'required|string|max:2000']);
+        \App\Models\PushSubscription::where('endpoint_hash', \App\Models\PushSubscription::hashFor($request->endpoint))
+            ->where('user_id', auth()->id())->delete();
+        return response()->json(['ok' => true]);
+    })->name('push.unsubscribe');
+
+    Route::post('/push/test', function () {
+        if (!\App\Support\WebPush::enabled()) abort(404);
+        $devices = \App\Models\PushSubscription::where('user_id', auth()->id())->count();
+        \App\Support\WebPush::sendToUsers([auth()->id()], [
+            'title' => 'IKIA Desk', 'body' => 'Notifications are working on this device.',
+            'url' => '/', 'tag' => 'push-test', 'always' => true,
+        ]);
+        return response()->json(['ok' => true, 'devices' => $devices]);
+    })->name('push.test');
+
     // ── Chat Panel API ──
     Route::get('/api/chat/convs', function () {
         $user = auth()->user();
@@ -999,13 +1034,26 @@ Route::middleware('auth')->group(function () {
         $convName = $conv->type === 'general' ? 'General Chat'
             : ($conv->type === 'group' ? ($conv->name ?? 'a group') : 'a chat');
 
+        $chatUrl = '/chat?conv=' . $conv->id;
+
         if ($mentions) {
             \App\Models\Notification::mention($mentions, $user,
-                $user->name . ' mentioned you in ' . $convName);
+                $user->name . ' mentioned you in ' . $convName, null, $chatUrl);
         }
+        $repliedTo = [];
         if ($parent && $parent->user_id !== $user->id && !in_array($parent->user_id, $mentions)) {
-            \App\Models\Notification::mention([$parent->user_id], $user,
-                $user->name . ' replied to you in ' . $convName);
+            $repliedTo = [$parent->user_id];
+            \App\Models\Notification::mention($repliedTo, $user,
+                $user->name . ' replied to you in ' . $convName, null, $chatUrl);
+        }
+        // Everyone else gets a plain "new message" push (mentioned / replied-to people already got
+        // their own, more specific one above).
+        if ($conv->type !== 'notes' && \App\Support\WebPush::enabled()) {
+            \App\Support\WebPush::sendToUsers(
+                \App\Models\User::whereIn('id', array_diff($memberIds, [$user->id], $mentions, $repliedTo))
+                    ->where('notify_messages', true)->pluck('id')->all(),
+                \App\Support\WebPush::chatPayload($conv, $user, $request->content, $chatUrl)
+            );
         }
 
         $plainMsgSnippet = function (?string $t): string {

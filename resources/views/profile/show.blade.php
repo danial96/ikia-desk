@@ -383,6 +383,21 @@
                     <div id="pf-notifications" class="pf-card" style="display:none;">
                         <h3><span>Notifications</span></h3>
                         <div style="display:flex;flex-direction:column;gap:4px;">
+                            @if(\App\Support\WebPush::enabled())
+                            <div style="display:flex;flex-direction:column;gap:12px;padding:18px 0;border-bottom:1px solid #f1f3f5;">
+                                <div style="font-size:11px;font-weight:700;color:#9ca3af;letter-spacing:1px;text-transform:uppercase;">This device</div>
+                                <div style="display:flex;align-items:center;justify-content:space-between;gap:14px;">
+                                    <div style="min-width:0;">
+                                        <div style="font-size:14px;color:#333;">Alerts even when Desk is closed</div>
+                                        <div id="pf-push-status" style="font-size:12.5px;color:#6b7280;margin-top:3px;">Checking…</div>
+                                    </div>
+                                    <div style="display:flex;gap:8px;flex-shrink:0;">
+                                        <button type="button" id="pf-push-test" style="display:none;padding:7px 14px;background:#fff;border:1px solid #d1d5db;color:#333;border-radius:8px;font-size:13px;cursor:pointer;">Send test</button>
+                                        <button type="button" id="pf-push-btn" style="display:none;padding:7px 14px;background:#0075fd;border:none;color:#fff;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;">Turn on</button>
+                                    </div>
+                                </div>
+                            </div>
+                            @endif
                             <div style="display:flex;flex-direction:column;gap:14px;padding:18px 0;border-bottom:1px solid #f1f3f5;">
                                 <div style="font-size:11px;font-weight:700;color:#9ca3af;letter-spacing:1px;text-transform:uppercase;">Messages</div>
                                 <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;">
@@ -459,6 +474,43 @@ document.addEventListener('DOMContentLoaded', function() {
             }).catch(function() {});
         });
     });
+});
+// Browser push (alerts while Desk is closed) — status + turn on/off for THIS browser.
+document.addEventListener('DOMContentLoaded', function() {
+    var status = document.getElementById('pf-push-status'), btn = document.getElementById('pf-push-btn'), test = document.getElementById('pf-push-test');
+    if (!status || !btn || !window.Push) return;
+    var show = function(text, color, label, testVisible) {
+        status.textContent = text; status.style.color = color || '#6b7280';
+        btn.style.display = label ? '' : 'none'; btn.textContent = label || '';
+        test.style.display = testVisible ? '' : 'none';
+    };
+    var refresh = async function() {
+        if (!Push.supported) return show("This browser can't do it (on iPhone: add Desk to the Home Screen first).", '#6b7280', '', false);
+        if (Push.permission() === 'denied') return show('Blocked in browser settings — allow notifications for this site, then reload.', '#dc2626', '', false);
+        var sub = await Push.current();
+        if (sub && Push.permission() === 'granted') return show("On — you'll be alerted on this device even with Desk closed.", '#16a34a', 'Turn off', true);
+        show('Off on this device.', '#6b7280', 'Turn on', false);
+    };
+    btn.addEventListener('click', async function() {
+        btn.disabled = true;
+        try {
+            if (btn.textContent === 'Turn off') await Push.disable();
+            else {
+                var r = await Push.enable();
+                if (r === 'denied') { show('Blocked in browser settings — allow notifications for this site, then reload.', '#dc2626', '', false); return; }
+                if (r === 'error') { show("Couldn't register this browser. Try again.", '#dc2626', 'Turn on', false); return; }
+            }
+        } finally { btn.disabled = false; }
+        refresh();
+    });
+    test.addEventListener('click', async function() {
+        test.disabled = true;
+        var n = await Push.test().catch(function() { return -1; });
+        status.textContent = n > 0 ? 'Test sent — it should appear in a moment.' : 'Test failed.';
+        setTimeout(refresh, 3500);
+        test.disabled = false;
+    });
+    refresh();
 });
 if (location.hash === '#security') document.addEventListener('DOMContentLoaded', function(){ pfEdit(true,'pf-pass'); });
 // Only one field (select OR input) should carry the name at a time.

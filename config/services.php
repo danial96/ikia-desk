@@ -43,4 +43,11 @@ return [
         'cluster' => env('PUSHER_APP_CLUSTER'),
     ],
 
+    // Browser push notifications (alerts while Desk is closed). Generate keys with `php artisan webpush:keys`.
+    'webpush' => [
+        'public_key'  => env('WEBPUSH_PUBLIC_KEY'),
+        'private_key' => env('WEBPUSH_PRIVATE_KEY'),
+        'subject'     => env('WEBPUSH_SUBJECT', 'mailto:' . env('MAIL_FROM_ADDRESS', 'hello@example.com')),
+    ],
+
 ];
