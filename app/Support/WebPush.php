@@ -55,7 +55,7 @@ class WebPush
             $json = json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE);
             $reqs = [];
             foreach ($subs as $sub) {
-                $reqs[] = ['sub' => $sub, 'req' => self::buildRequest($sub->endpoint, $sub->p256dh, $sub->auth, $json, (string) ($payload['urgency'] ?? 'high'))];
+                $reqs[] = ['sub' => $sub, 'req' => self::buildRequest($sub->endpoint, $sub->p256dh, $sub->auth, $json, (string) ($payload['urgency'] ?? 'high'), null, (int) ($payload['ttl'] ?? 3600))];
             }
 
             if (Realtime::detachedAvailable()) {
@@ -120,7 +120,7 @@ class WebPush
     }
 
     /** Everything needed to POST one encrypted, VAPID-signed notification to a push service. */
-    public static function buildRequest(string $endpoint, string $p256dh, string $auth, string $payloadJson, string $urgency = 'high', ?array $fixed = null): array
+    public static function buildRequest(string $endpoint, string $p256dh, string $auth, string $payloadJson, string $urgency = 'high', ?array $fixed = null, int $ttl = 3600): array
     {
         $parts = parse_url($endpoint);
         $aud   = ($parts['scheme'] ?? 'https') . '://' . ($parts['host'] ?? '') . (isset($parts['port']) ? ':' . $parts['port'] : '');
@@ -132,7 +132,7 @@ class WebPush
                 'Authorization'    => 'vapid t=' . self::vapidJwt($aud) . ', k=' . config('services.webpush.public_key'),
                 'Content-Encoding' => 'aes128gcm',
                 'Content-Type'     => 'application/octet-stream',
-                'TTL'              => '3600',
+                'TTL'              => (string) max(0, $ttl),
                 'Urgency'          => in_array($urgency, ['very-low', 'low', 'normal', 'high'], true) ? $urgency : 'high',
             ],
         ];

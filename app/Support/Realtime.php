@@ -36,7 +36,8 @@ class Realtime
 
     public static function userChannel(int $userId): string
     {
-        return 'private-user.' . $userId;
+        // The optional prefix lets a dev machine use the same Pusher app without ever talking to production users' channels.
+        return 'private-' . (config('services.pusher.channel_prefix') ?? '') . 'user.' . $userId;
     }
 
     /** Pusher private-channel auth token: "<key>:<hmac-sha256(socket_id:channel)>". */

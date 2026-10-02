@@ -621,6 +621,16 @@ Route::middleware('auth')->group(function () {
         }
     });
 
+    // ── Voice calls (WebRTC; signalling relayed over the realtime channel) ──
+    Route::get('/call/window', fn () => \App\Support\Realtime::enabled() ? view('call.window') : abort(404))->name('call.window');
+    Route::get('/api/calls/ice', [\App\Http\Controllers\CallController::class, 'ice'])->name('calls.ice');
+    Route::post('/api/calls', [\App\Http\Controllers\CallController::class, 'start'])->name('calls.start');
+    Route::get('/api/calls/{id}', [\App\Http\Controllers\CallController::class, 'show'])->whereNumber('id')->name('calls.show');
+    Route::post('/api/calls/{id}/accept', [\App\Http\Controllers\CallController::class, 'accept'])->whereNumber('id')->name('calls.accept');
+    Route::post('/api/calls/{id}/end', [\App\Http\Controllers\CallController::class, 'end'])->whereNumber('id')->name('calls.end');
+    Route::post('/api/calls/{id}/ping', [\App\Http\Controllers\CallController::class, 'ping'])->whereNumber('id')->name('calls.ping');
+    Route::post('/api/calls/{id}/signal', [\App\Http\Controllers\CallController::class, 'signal'])->whereNumber('id')->name('calls.signal');
+
     // ── Realtime (Pusher) channel auth: a browser may only ever subscribe to its OWN user channel ──
     Route::post('/realtime/auth', function (\Illuminate\Http\Request $request) {
         if (!\App\Support\Realtime::enabled()) abort(404);

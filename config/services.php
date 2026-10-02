@@ -41,6 +41,18 @@ return [
         'key'     => env('PUSHER_APP_KEY'),
         'secret'  => env('PUSHER_APP_SECRET'),
         'cluster' => env('PUSHER_APP_CLUSTER'),
+        'channel_prefix' => env('PUSHER_CHANNEL_PREFIX'),
+    ],
+
+    // Voice calls (WebRTC). STUN alone connects most networks; a TURN relay is what makes the rest work
+    // (strict offices, mobile carriers). Either give static TURN credentials, or a Cloudflare Calls TURN key.
+    'webrtc' => [
+        'stun'            => env('WEBRTC_STUN', 'stun:stun.l.google.com:19302,stun:stun1.l.google.com:19302'),
+        'turn_urls'       => env('WEBRTC_TURN_URLS'),          // comma separated, e.g. turn:host:3478,turns:host:5349
+        'turn_username'   => env('WEBRTC_TURN_USERNAME'),
+        'turn_credential' => env('WEBRTC_TURN_CREDENTIAL'),
+        'cf_turn_key_id'  => env('CLOUDFLARE_TURN_KEY_ID'),
+        'cf_turn_token'   => env('CLOUDFLARE_TURN_API_TOKEN'),
     ],
 
     // Browser push notifications (alerts while Desk is closed). Generate keys with `php artisan webpush:keys`.

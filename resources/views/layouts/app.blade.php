@@ -743,6 +743,7 @@
                 <p style="margin:0;display:flex;align-items:baseline;gap:8px;min-width:0;"><span id="chat-rh-name" style="color:#000;font-size:16px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></span><span id="chat-rh-online" style="color:#a0a8ae;font-size:14px;font-style:italic;flex-shrink:0;"></span></p>
                 <p id="chat-rh-sub" style="margin:0;color:#6b7680;font-size:13.5px;"></p>
             </div>
+                <button type="button" id="chat-call-btn" onclick="Call.fromButton(this)" title="Voice call" style="display:none;background:none;border:none;color:#20a0e0;font-size:18px;cursor:pointer;padding:8px 10px;border-radius:8px;flex-shrink:0;" onmouseover="this.style.background='#eef6fb'" onmouseout="this.style.background='none'"><i class="fas fa-phone"></i></button>
                 <button type="button" onclick="window._popupAbout&&_popupAbout.close();window._popupSearch&&_popupSearch.toggle()" title="Search in this chat" style="background:none;border:none;color:#20a0e0;font-size:18px;cursor:pointer;padding:8px 10px;border-radius:8px;flex-shrink:0;" onmouseover="this.style.background='#eef6fb'" onmouseout="this.style.background='none'"><i class="fas fa-search"></i></button>
                 <button type="button" onclick="window._popupSearch&&_popupSearch.close();window._popupAbout&&_popupAbout.toggle()" title="About chat" style="background:none;border:none;color:#20a0e0;font-size:18px;cursor:pointer;padding:8px 10px;border-radius:8px;flex-shrink:0;" onmouseover="this.style.background='#eef6fb'" onmouseout="this.style.background='none'"><i class="fas fa-table-columns"></i></button>
         </div>
@@ -1023,7 +1024,10 @@ if (typeof window.NOTIFY_PREFS === 'undefined') { window.NOTIFY_PREFS = @json($_
 // message / notification lands, and the pollers below shrink into a slow safety net. Not configured,
 // unreachable, or signed out → Realtime.connected stays false and every poller runs at full speed
 // exactly as before, so this can never make things worse than plain polling.
-@php $__rtConfig = \App\Support\Realtime::clientConfig(); @endphp
+@php
+$__rtConfig = \App\Support\Realtime::clientConfig();
+if ($__rtConfig) $__rtConfig['channel'] = \App\Support\Realtime::userChannel((int) auth()->id());
+@endphp
 if (typeof window.Realtime === 'undefined') {
     window.RT_CONFIG = @json($__rtConfig);
     window.Realtime = (function () {
@@ -1055,12 +1059,14 @@ if (typeof window.Realtime === 'undefined') {
                     channelAuthorization: { endpoint: '/realtime/auth', transport: 'ajax',
                         headersProvider: () => ({ 'X-CSRF-TOKEN': csrf(), 'Accept': 'application/json' }) },
                 });
-                const ch = pusher.subscribe('private-user.' + window.ME_ID);
+                const ch = pusher.subscribe(cfg.channel || ('private-user.' + window.ME_ID));
                 ch.bind('pusher:subscription_succeeded', () => { channelOk = true; refresh(); });
                 ch.bind('pusher:subscription_error',     () => { channelOk = false; refresh(); });
                 ch.bind('chat.changed', d => window.dispatchEvent(new CustomEvent('rt:chat',  { detail: d || {} })));
                 ch.bind('notif',        d => window.dispatchEvent(new CustomEvent('rt:notif', { detail: d || {} })));
                 ch.bind('task.changed', d => window.dispatchEvent(new CustomEvent('rt:task',  { detail: d || {} })));
+                ch.bind('call.state',   d => window.dispatchEvent(new CustomEvent('rt:call',  { detail: d || {} })));
+                ch.bind('call.signal',  d => window.dispatchEvent(new CustomEvent('rt:callsignal', { detail: d || {} })));
                 pusher.connection.bind('state_change', st => {
                     sockOk = st.current === 'connected';
                     if (!sockOk) channelOk = false;     // pusher-js re-subscribes on reconnect, which flips this back
@@ -1509,6 +1515,7 @@ window.chatSelectConv = async function(id) {
 
 function chatUpdateHeader(conv) {
     _chatConvType = conv.type || '';
+    if (window.Call) Call.updateButton('chat-call-btn', (_allConvs || []).find(x => x.id === conv.id) || conv);
     const avatarEl = document.getElementById('chat-rh-avatar');
     const nameEl   = document.getElementById('chat-rh-name');
     const subEl    = document.getElementById('chat-rh-sub');
@@ -2964,6 +2971,11 @@ document.addEventListener('keydown', function(e) {
    VOICE NOTE PLAYER
 ═══════════════════════════════════════════ */
 const _vpAudios = {};
+const VN_SPEEDS = [1, 1.5, 2];
+const vnSpeed = () => { try { return parseFloat(localStorage.getItem('vn_speed')) || 1; } catch (e) { return 1; } };
+const vnFmt = (s) => Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0');
+const vnParseDur = (d) => { const m = String(d).match(/^(\d+):(\d{2})$/); return m ? (+m[1]) * 60 + (+m[2]) : 0; };
+const vnSpeedLabel = (v) => (v === 1 ? '1' : String(v)) + '×';
 
 window.voiceBubbleHtml = function(url, dur, isMine) {
     // Seeded waveform bars (consistent per URL)
@@ -2973,23 +2985,62 @@ window.voiceBubbleHtml = function(url, dur, isMine) {
     for (let i = 0; i < 32; i++) {
         seed = (seed * 1664525 + 1013904223) | 0;
         const h = 4 + ((seed >>> 1) % 22);
-        bars += `<div style="width:2px;height:${h}px;background:currentColor;opacity:.45;border-radius:1px;flex-shrink:0;transition:opacity .2s;"></div>`;
+        bars += `<div class="vn-bar" style="width:2px;height:${h}px;background:currentColor;opacity:.4;border-radius:1px;flex-shrink:0;pointer-events:none;"></div>`;
     }
     const eid = 'vp_' + Math.random().toString(36).slice(2, 9);
     const playColor = isMine ? '#15803d' : '#0ea5e9';
     const barColor  = isMine ? '#1a3025' : '#374151';
-    const timerColor= isMine ? 'rgba(0,0,0,.38)' : '#94a3b8';
+    const timerColor= isMine ? 'rgba(0,0,0,.45)' : '#94a3b8';
+    const pillBg    = isMine ? 'rgba(0,0,0,.1)' : 'rgba(15,23,42,.08)';
     const safeUrl = url.replace(/&/g,'&amp;').replace(/"/g,'&quot;');
     const safeDur = String(dur).replace(/&/g,'&amp;').replace(/"/g,'&quot;');
-    return `<div class="vn-wrap" style="display:flex;align-items:center;gap:8px;min-width:190px;max-width:260px;padding:2px 0;">
+    return `<div class="vn-wrap" style="display:flex;align-items:center;gap:8px;min-width:210px;max-width:280px;padding:2px 0;">
         <button id="${eid}" data-url="${safeUrl}" data-dur="${safeDur}" onclick="voiceToggle(this.id,this.dataset.url,this.dataset.dur)"
                 style="width:36px;height:36px;border-radius:50%;background:${playColor};border:none;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:opacity .15s;"
                 onmouseover="this.style.opacity='.8'" onmouseout="this.style.opacity='1'">
             <i class="fas fa-play" style="font-size:11px;margin-left:2px;"></i>
         </button>
-        <div style="flex:1;display:flex;align-items:center;gap:2px;height:32px;overflow:hidden;color:${barColor};">${bars}</div>
-        <span class="vn-timer" style="font-size:11px;color:${timerColor};white-space:nowrap;min-width:28px;text-align:right;">${dur}</span>
+        <div class="vn-track" data-btn="${eid}" onclick="voiceSeek(event,this)" title="Click to jump"
+             style="flex:1;display:flex;align-items:center;gap:2px;height:32px;overflow:hidden;color:${barColor};cursor:pointer;">${bars}</div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0;">
+            <span class="vn-timer" style="font-size:11px;color:${timerColor};white-space:nowrap;line-height:1;">${safeDur}</span>
+            <button type="button" class="vn-speed" onclick="voiceSpeed()" title="Playback speed"
+                    style="border:none;background:${pillBg};color:${timerColor};font-size:10px;font-weight:700;line-height:1;padding:3px 6px;border-radius:9px;cursor:pointer;">${vnSpeedLabel(vnSpeed())}</button>
+        </div>
     </div>`;
+};
+
+// Paint how far a voice note has played: the bars up to the playhead light up.
+function vnPaint(wrap, frac) {
+    const bars = wrap.querySelectorAll('.vn-bar');
+    const n = Math.round(Math.max(0, Math.min(1, frac)) * bars.length);
+    bars.forEach((b, i) => { b.style.opacity = i < n ? '1' : '.4'; });
+}
+// MediaRecorder files often report an unknown (Infinity) length, so fall back on the length we stored with the message.
+function vnTotal(audio, dur) {
+    return (isFinite(audio.duration) && audio.duration > 0) ? audio.duration : (vnParseDur(dur) || 1);
+}
+
+window.voiceSpeed = function() {
+    const next = VN_SPEEDS[(VN_SPEEDS.indexOf(vnSpeed()) + 1) % VN_SPEEDS.length];
+    try { localStorage.setItem('vn_speed', String(next)); } catch (e) {}
+    document.querySelectorAll('.vn-speed').forEach(b => { b.textContent = vnSpeedLabel(next); });
+    Object.values(_vpAudios).forEach(a => { if (a) a.playbackRate = next; });
+};
+
+window.voiceSeek = function(ev, track) {
+    const btn = document.getElementById(track.dataset.btn);
+    if (!btn) return;
+    const url = btn.dataset.url, wrap = btn.closest('.vn-wrap');
+    const rect = track.getBoundingClientRect();
+    const frac = Math.max(0, Math.min(1, (ev.clientX - rect.left) / rect.width));
+    if (!_vpAudios[url] || _vpAudios[url].paused) voiceToggle(btn.id, url, btn.dataset.dur);   // jumping starts playing, like WhatsApp
+    const audio = _vpAudios[url];
+    const total = vnTotal(audio, btn.dataset.dur);
+    try { audio.currentTime = frac * total; } catch (e) {}
+    vnPaint(wrap, frac);
+    const timer = wrap.querySelector('.vn-timer');
+    if (timer) timer.textContent = vnFmt(frac * total);
 };
 
 window.voiceToggle = function(btnId, url, dur) {
@@ -3004,19 +3055,23 @@ window.voiceToggle = function(btnId, url, dur) {
     const btn   = document.getElementById(btnId);
     if (!btn) return;
     const icon  = btn.querySelector('i');
-    const timer = btn.closest('.vn-wrap').querySelector('.vn-timer');
+    const wrap  = btn.closest('.vn-wrap');
+    const timer = wrap.querySelector('.vn-timer');
     if (audio.paused) {
+        audio.playbackRate = vnSpeed();
         audio.play().catch(() => {});
         icon.className = 'fas fa-pause';
         icon.style.marginLeft = '0';
         audio.ontimeupdate = function() {
-            const s = Math.floor(audio.currentTime);
-            if (timer) timer.textContent = Math.floor(s/60) + ':' + String(s%60).padStart(2,'0');
+            if (audio.paused && audio.currentTime === 0) return;      // the rewind after the end must not overwrite the length label
+            if (timer) timer.textContent = vnFmt(audio.currentTime);
+            vnPaint(wrap, audio.currentTime / vnTotal(audio, dur));
         };
         audio.onended = function() {
             icon.className = 'fas fa-play';
             icon.style.marginLeft = '2px';
             if (timer) timer.textContent = dur;
+            vnPaint(wrap, 0);
             audio.currentTime = 0;
         };
     } else {
@@ -3030,6 +3085,51 @@ window.voiceToggle = function(btnId, url, dur) {
    VOICE NOTE RECORDER
 ═══════════════════════════════════════════ */
 let _vnRec = null, _vnChunks = [], _vnSecs = 0, _vnTick = null, _vnStream = null;
+let _vnCtx = null, _vnRaf = null;
+
+// A live level meter in the recording bar, so you can see the microphone is actually picking you up.
+function vnMeterStart(panel) {
+    try {
+        const timerEl = document.getElementById(panel + '-vn-timer');
+        if (!timerEl) return;
+        let meter = document.getElementById(panel + '-vn-meter');
+        if (!meter) {
+            meter = document.createElement('div');
+            meter.id = panel + '-vn-meter';
+            meter.style.cssText = 'flex:1;display:flex;align-items:center;justify-content:flex-end;gap:2px;height:22px;overflow:hidden;margin:0 6px;';
+            for (let i = 0; i < 28; i++) {
+                const b = document.createElement('div');
+                b.style.cssText = 'width:3px;height:3px;border-radius:2px;background:#ef4444;opacity:.75;flex-shrink:0;transition:height .08s;';
+                meter.appendChild(b);
+            }
+            timerEl.insertAdjacentElement('beforebegin', meter);
+            timerEl.style.marginLeft = '0';
+        }
+        _vnCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const an = _vnCtx.createAnalyser();
+        an.fftSize = 512;
+        _vnCtx.createMediaStreamSource(_vnStream).connect(an);
+        const buf = new Uint8Array(an.fftSize), bars = meter.children, hist = new Array(bars.length).fill(0);
+        let last = 0;
+        const tick = (now) => {
+            _vnRaf = requestAnimationFrame(tick);
+            if (now - last < 70) return;
+            last = now;
+            an.getByteTimeDomainData(buf);
+            let peak = 0;
+            for (let i = 0; i < buf.length; i++) peak = Math.max(peak, Math.abs(buf[i] - 128));
+            hist.push(Math.min(1, peak / 70)); hist.shift();
+            for (let i = 0; i < bars.length; i++) bars[i].style.height = (3 + hist[i] * 19) + 'px';
+        };
+        _vnRaf = requestAnimationFrame(tick);
+    } catch (e) { /* no meter, recording still works */ }
+}
+function vnMeterStop() {
+    if (_vnRaf) cancelAnimationFrame(_vnRaf);
+    _vnRaf = null;
+    try { if (_vnCtx) _vnCtx.close(); } catch (e) {}
+    _vnCtx = null;
+}
 
 window.vnStart = async function(panel) {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -3050,6 +3150,7 @@ window.vnStart = async function(panel) {
     _vnRec = mime ? new MediaRecorder(_vnStream, { mimeType: mime }) : new MediaRecorder(_vnStream);
     _vnRec.ondataavailable = e => { if (e.data.size > 0) _vnChunks.push(e.data); };
     _vnRec.start(100);
+    vnMeterStart(panel);
     document.getElementById(panel + '-normal-input').style.display = 'none';
     const rec = document.getElementById(panel + '-vn-rec');
     rec.style.display = 'flex';
@@ -3066,6 +3167,7 @@ window.vnStart = async function(panel) {
 
 window.vnCancel = function(panel) {
     clearInterval(_vnTick);
+    vnMeterStop();
     if (_vnRec && _vnRec.state !== 'inactive') { _vnRec.ondataavailable = null; _vnRec.stop(); }
     if (_vnStream) _vnStream.getTracks().forEach(t => t.stop());
     _vnRec = null; _vnChunks = []; _vnStream = null;
@@ -3076,6 +3178,7 @@ window.vnCancel = function(panel) {
 window.vnSend = function(panel) {
     if (!_vnRec || _vnRec.state === 'inactive') return;
     clearInterval(_vnTick);
+    vnMeterStop();
     const dur = Math.floor(_vnSecs/60) + ':' + String(_vnSecs%60).padStart(2,'0');
     _vnRec.onstop = async () => {
         if (_vnStream) _vnStream.getTracks().forEach(t => t.stop());
@@ -4053,6 +4156,9 @@ document.addEventListener('keydown', function(e) {
 </script>
 
 @auth
+@if(\App\Support\Realtime::enabled())
+    @include('partials.call')
+@endif
 <script>
 // Browser push: lets the server alert this device even when Desk is closed. Everything here is
 // best-effort — unsupported / blocked / not configured simply leaves things as they were.

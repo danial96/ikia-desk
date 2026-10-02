@@ -20,6 +20,8 @@ self.addEventListener('push', (event) => {
             badge: '/icon-192.png',
             tag: d.tag || undefined,
             renotify: !!d.tag,                       // same conversation again -> alert again, replace the old one
+            requireInteraction: !!d.requireInteraction,   // an incoming call stays up until answered or dismissed
+            vibrate: d.type === 'call' ? [300, 150, 300, 150, 300] : undefined,
             data: { url: d.url || '/' },
         });
     })());
