@@ -13,7 +13,15 @@ use App\Http\Controllers\TaskCommentController;
 use App\Http\Controllers\TaskController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', fn() => redirect()->route('login'));
+// Signed-in people go straight to where they will end up (login -> /tasks -> board -> default filter was 3-4
+// redirects, each a full round trip); everyone else to the login page.
+Route::get('/', function () {
+    $user = auth()->user();
+    if (!$user) return redirect()->route('login');
+    return $user->task_view === 'kanban'
+        ? redirect()->route('tasks.kanban', ['status' => 'in_progress'])
+        : redirect()->route('tasks.index', ['status' => 'in_progress']);
+});
 
 // Auth
 Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');

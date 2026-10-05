@@ -52,7 +52,7 @@ class KanbanTest extends TestCase
         $this->actingAs($admin)->get('/tasks/kanban?newtask=1&title=Hello')
             ->assertRedirect(route('tasks.kanban', ['status' => 'in_progress', 'newtask' => 1, 'title' => 'Hello']));
         $this->actingAs($admin)->get('/tasks?task=42')
-            ->assertRedirect(route('tasks.kanban', ['task' => 42]));      // list page -> remembered Kanban layout, link kept
+            ->assertRedirect(route('tasks.kanban', ['status' => 'in_progress', 'task' => 42]));      // list page -> remembered Kanban layout in ONE hop, link kept
     }
 
     public function test_in_progress_filter_includes_new_pending_and_reviewing_but_not_paused(): void

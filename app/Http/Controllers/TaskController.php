@@ -94,7 +94,13 @@ class TaskController extends Controller
 
         // Last chosen layout was Kanban and the user didn't explicitly ask for the list → open the board
         if ($user->task_view === 'kanban' && !$request->has('view')) {
-            return redirect()->route('tasks.kanban', $request->query());
+            // ONE hop straight to the board with its default filter (each extra redirect is a full round trip,
+            // ~200ms+ for people far from the server) — the board would otherwise redirect again to add it.
+            $q = $request->query();
+            if (!collect(['status', 'search', 'project_id', 'priority', 'assignee_id'])->contains(fn ($k) => array_key_exists($k, $q))) {
+                $q = ['status' => 'in_progress'] + $q;
+            }
+            return redirect()->route('tasks.kanban', $q);
         }
 
         $view = 'list';
