@@ -35,11 +35,12 @@ class LiteModeTest extends TestCase
         $this->assertStringContainsString('html.lite #right-panel', $html);
     }
 
-    public function test_it_switches_on_by_itself_only_for_clearly_struggling_computers_judged_after_the_first_paint(): void
+    public function test_it_switches_on_by_itself_only_for_struggling_computers_judged_after_the_first_paint(): void
     {
         $html = $this->page();
 
-        $this->assertStringContainsString('steadyJank / steadyFrames <= 0.2', $html);           // more than 1 slow frame in 5
+        $this->assertStringContainsString('steadyJank / steadyFrames <= 0.05', $html);          // more than 1 slow frame in 20
+        $this->assertStringContainsString('steadyJank < 6', $html);                              // and not just a couple of hiccups
         $this->assertStringContainsString('steadyFrames < 30', $html);                          // needs enough samples
         $this->assertStringContainsString('performance.now() - t0 > 3000', $html);              // the heavy first paint is not counted
         $this->assertStringContainsString("liteMode() !== 'auto'", $html);                       // never overrides an explicit choice

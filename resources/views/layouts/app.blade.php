@@ -4296,11 +4296,12 @@ if (typeof window.Push === 'undefined') {
     // 50ms / 100ms to appear ("jerk"), and the worst gap. Long tasks alone miss painting/GPU stalls.
     let frames = 0, j50 = 0, j100 = 0, maxGap = 0, lastTs = 0, steadyFrames = 0, steadyJank = 0, decided = false;
     const liteMode = () => { try { return localStorage.getItem('lite_ui') || 'auto'; } catch (e) { return 'auto'; } };
-    // If this computer clearly can't keep up (over 1 frame in 5 takes longer than 50ms once the page has settled),
+    // If this computer can't keep up (more than 1 frame in 20 takes longer than 50ms once the page has settled; healthy
+    // computers measure under 2%, struggling ones 7-40%),
     // switch to Light mode for this browser. Judged on the 3s-10s window so the heavy first paint doesn't count.
     function maybeEnableLite() {
         decided = true;
-        if (steadyFrames < 30 || steadyJank / steadyFrames <= 0.2) return;
+        if (steadyFrames < 30 || steadyJank < 6 || steadyJank / steadyFrames <= 0.05) return;
         if (liteMode() !== 'auto' || document.documentElement.classList.contains('lite')) return;
         try { localStorage.setItem('lite_ui', 'auto-on'); } catch (e) {}
         document.documentElement.classList.add('lite');
