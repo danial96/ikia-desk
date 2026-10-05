@@ -65,4 +65,10 @@ return [
             'Fixed: voice notes sent from the chat panel (the side chat) were not being sent.',
         ],
     ],
+    [
+        'id' => 10, 'date' => '2026-10-05',
+        'items' => [
+            "Task attachments: clicking an image now opens a viewer with next / previous arrows for the task's other images.",
+        ],
+    ],
 ];

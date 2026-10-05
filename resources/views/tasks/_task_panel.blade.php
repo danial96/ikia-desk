@@ -347,6 +347,14 @@ const parseDescText = raw => {
     }).join('');
 };
 
+/* A click on an image in the Files list opens the viewer on that image, with the task's other images one arrow away. */
+window.tpFileClick = function (ev, galleryKey, index) {
+    if (ev && (ev.ctrlKey || ev.metaKey || ev.shiftKey || ev.altKey || ev.button === 1)) return true;   // "open in new tab" as usual
+    if (!window.imgLightbox) return true;
+    imgLightbox(galleryKey, index);
+    return false;
+};
+
 /* ── attachment cards from [img]/[file]/[disk file] tags ── */
 const parseDescAttachments = raw => {
     const atts = [];
@@ -364,10 +372,14 @@ const parseDescAttachments = raw => {
         return {color: map[ext]||'#6b7280', label:(ext||'file').toUpperCase().slice(0,5)};
     };
 
+    const descImgUrls = atts.filter(a => a.type === 'img').map(a => a.url);
+    const descGalKey = descImgUrls.length > 1 && window.registerGallery ? window.registerGallery(descImgUrls) : null;
+    let descImgIdx = 0;
     const cards = atts.map(a => {
         if (a.type === 'img') {
             const urlEsc = a.url.replace(/"/g,'&quot;');
-            const fn = `imgLightbox('${a.url.replace(/\\/g,'\\\\').replace(/'/g,"\\'")}',0)`;
+            const _di = descImgIdx++;
+            const fn = descGalKey !== null ? `imgLightbox(${descGalKey},${_di})` : `imgLightbox('${a.url.replace(/\\/g,'\\\\').replace(/'/g,"\\'")}',0)`;
             const imgName = decodeURIComponent(a.url.split('/').pop().split('?')[0]);
             const shortImg = imgName.length > 16 ? imgName.slice(0,13)+'…' : imgName;
             return `<div onclick="${fn}" style="width:110px;border:1px solid #e2e8f0;border-radius:10px;background:#fff;padding:6px 6px 8px;display:inline-flex;flex-direction:column;align-items:center;gap:6px;flex-shrink:0;cursor:zoom-in;transition:box-shadow .12s;" onmouseover="this.style.boxShadow='0 2px 8px rgba(0,0,0,.08)'" onmouseout="this.style.boxShadow='none'">
@@ -1350,6 +1362,8 @@ function tpRenderLocal(data) {
         const fileClr2={pdf:'#ef4444',doc:'#2563eb',docx:'#2563eb',xls:'#16a34a',xlsx:'#16a34a',ppt:'#ea580c',pptx:'#ea580c',zip:'#ca8a04',rar:'#ca8a04'};
         const fileBg2={pdf:'#fee2e2',doc:'#dbeafe',docx:'#dbeafe',xls:'#dcfce7',xlsx:'#dcfce7',ppt:'#ffedd5',pptx:'#ffedd5',zip:'#fef9c3',rar:'#fef9c3'};
         const isImgF = f => /^image\//.test(f.mime||'') || /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(f.name||'');
+        const imgFiles = localFiles.filter(f => isImgF(f) && f.downloadUrl);
+        const fileGalKey = imgFiles.length && window.registerGallery ? window.registerGallery(imgFiles.map(f => f.downloadUrl)) : null;
         const localFileHtml = localFiles.map(f=>{
             const ext=(f.name||'').split('.').pop().toLowerCase();
             const ic=icons2[ext]||'fa-file';
@@ -1359,7 +1373,8 @@ function tpRenderLocal(data) {
                 ? `<img src="${f.downloadUrl}" loading="lazy" alt="" style="width:100%;height:100%;object-fit:cover;object-position:top center;display:block;" onerror="this.replaceWith(Object.assign(document.createElement('i'),{className:'fas fa-file-image',style:'color:#6b7280;font-size:26px;'}))">`
                 : `<i class="fas ${ic}" style="color:${clr};font-size:26px;"></i>`;
             const _fdUrl = f.downloadUrl || '#';
-            return`<a href="${window.fileViewHref?fileViewHref(_fdUrl):_fdUrl}" target="_blank" rel="noopener" title="${esc(f.name)}"
+            const _galClick = (fileGalKey !== null && isImgF(f) && f.downloadUrl) ? ` onclick="return tpFileClick(event,${fileGalKey},${imgFiles.indexOf(f)})"` : '';
+            return`<a href="${window.fileViewHref?fileViewHref(_fdUrl):_fdUrl}" target="_blank" rel="noopener" title="${esc(f.name)}"${_galClick}
                 style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:0 0 8px;background:#fff;border:1px solid #e5e9ec;border-radius:10px;text-decoration:none;width:108px;flex:0 0 108px;overflow:hidden;">
                 <div style="width:100%;height:96px;background:${isImgF(f)?'#fff':bg2};display:flex;align-items:center;justify-content:center;overflow:hidden;">${thumb}</div>
                 <p style="color:#5b6670;font-size:11px;margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:96px;width:100%;text-align:center;">${esc(f.name)}</p>
