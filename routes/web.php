@@ -636,6 +636,23 @@ Route::middleware('auth')->group(function () {
         }
     });
 
+    // ── Anonymous-ish per-page performance reports from browsers (see the layout), written to their own log ──
+    Route::post('/api/perf', function (\Illuminate\Http\Request $request) {
+        $num = fn ($k, $max = 10000000) => $request->filled($k) && is_numeric($request->input($k)) ? max(0, min($max, +$request->input($k))) : null;
+        $row = array_filter([
+            'user' => auth()->id(),
+            'page' => substr(preg_replace('/[^A-Za-z0-9\/_\-.]/', '', (string) $request->input('page')), 0, 60),
+            'ttfb' => $num('ttfb'), 'dcl' => $num('dcl'), 'load' => $num('load'), 'kb' => $num('kb'), 'reqs' => $num('reqs'),
+            'long' => $num('long'), 'longMs' => $num('longMs'), 'longest' => $num('longest'), 'cls' => $num('cls', 100),
+            'dom' => $num('dom'), 'heap' => $num('heap'), 'cores' => $num('cores', 256), 'mem' => $num('mem', 1024),
+            'net' => in_array($request->input('net'), ['slow-2g', '2g', '3g', '4g'], true) ? $request->input('net') : null,
+            'rtt' => $num('rtt', 100000), 'down' => $num('down', 100000), 'rt' => $request->boolean('rt'), 'stay' => $num('stay', 86400),
+            'ua' => substr(preg_replace('/\s+/', ' ', (string) $request->userAgent()), 0, 90),
+        ], fn ($v) => $v !== null && $v !== '');
+        \Illuminate\Support\Facades\Log::build(['driver' => 'single', 'path' => storage_path('logs/perf.log'), 'level' => 'info'])->info('perf', $row);
+        return response()->noContent();
+    })->middleware('throttle:30,1')->name('perf.report');
+
     // ── Voice calls (WebRTC; signalling relayed over the realtime channel) ──
     Route::get('/call/window', fn () => \App\Support\Realtime::enabled() ? view('call.window') : abort(404))->name('call.window');
     Route::get('/api/calls/ice', [\App\Http\Controllers\CallController::class, 'ice'])->name('calls.ice');

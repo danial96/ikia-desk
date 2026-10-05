@@ -4265,5 +4265,48 @@ if (typeof window.Push === 'undefined') {
 </script>
 @endauth
 
+@auth
+<script>
+// A tiny, anonymous-ish performance report per page view (page, load timings, how many times the page froze,
+// the machine's cores/memory and the network quality), sent once when the tab is left. It exists so that
+// "Desk lags on some computers" can be answered with data from those computers instead of guesses.
+(function () {
+    if (window.__perfReport || !('PerformanceObserver' in window)) return;
+    window.__perfReport = true;
+    const t0 = performance.now();
+    const longs = []; let cls = 0, sent = false;
+    try { new PerformanceObserver((l) => l.getEntries().forEach((e) => longs.push(Math.round(e.duration)))).observe({ type: 'longtask', buffered: true }); } catch (e) {}
+    try { new PerformanceObserver((l) => l.getEntries().forEach((e) => { if (!e.hadRecentInput) cls += e.value; })).observe({ type: 'layout-shift', buffered: true }); } catch (e) {}
+
+    function send() {
+        if (sent || performance.now() - t0 < 5000) return;      // ignore bounces
+        sent = true;
+        try {
+            const n = performance.getEntriesByType('navigation')[0] || {};
+            const c = navigator.connection || {};
+            const res = performance.getEntriesByType('resource');
+            const body = {
+                page: location.pathname.replace(/\d+/g, 'N').slice(0, 60),
+                ttfb: Math.round(n.responseStart || 0), dcl: Math.round(n.domContentLoadedEventEnd || 0), load: Math.round(n.loadEventEnd || 0),
+                kb: Math.round(res.reduce((a, r) => a + (r.transferSize || 0), 0) / 1024), reqs: res.length,
+                long: longs.length, longMs: longs.reduce((a, b) => a + b, 0), longest: Math.max(0, ...longs), cls: +cls.toFixed(3),
+                dom: document.getElementsByTagName('*').length,
+                heap: performance.memory ? Math.round(performance.memory.usedJSHeapSize / 1048576) : null,
+                cores: navigator.hardwareConcurrency || null, mem: navigator.deviceMemory || null,
+                net: c.effectiveType || null, rtt: c.rtt != null ? c.rtt : null, down: c.downlink != null ? c.downlink : null,
+                rt: !!(window.Realtime && Realtime.connected), stay: Math.round((performance.now() - t0) / 1000),
+                _token: (document.querySelector('meta[name="csrf-token"]') || {}).content || '',
+            };
+            const fd = new FormData();
+            Object.keys(body).forEach((k) => { if (body[k] !== null) fd.append(k, body[k]); });
+            navigator.sendBeacon('/api/perf', fd);
+        } catch (e) {}
+    }
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') send(); });
+    window.addEventListener('pagehide', send);
+})();
+</script>
+@endauth
+
 </body>
 </html>
