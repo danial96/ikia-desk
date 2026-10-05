@@ -239,7 +239,8 @@ class CallController extends Controller
         $this->requireRealtime();
         $data = $request->validate(['event' => 'required|in:connected,timeout,failed', 'detail' => 'nullable|array']);
         $call = $this->findFor($id);
-        Log::info('call.diag', [
+        // Its own file: production only keeps errors in laravel.log, and this is information we want to read back.
+        Log::build(['driver' => 'single', 'path' => storage_path('logs/calls.log'), 'level' => 'info'])->info('call.diag', [
             'call' => $call->id, 'user' => auth()->id(), 'event' => $data['event'],
             'detail' => array_intersect_key($data['detail'] ?? [], array_flip(['role', 'turn', 'connection', 'ice', 'path', 'rttMs', 'received', 'sent', 'lost'])),
             'ua' => substr((string) $request->userAgent(), 0, 120),

@@ -293,14 +293,20 @@ class CallTest extends TestCase
     public function test_browsers_can_report_how_a_call_went_and_only_the_two_people_on_it(): void
     {
         $id = $this->ring();
-        \Illuminate\Support\Facades\Log::spy();
+        $file = storage_path('logs/calls.log');
+        @unlink($file);
 
         $this->actingAs($this->b)->postJson("/api/calls/$id/diag", ['event' => 'timeout', 'detail' => ['role' => 'callee', 'turn' => false, 'ice' => 'checking', 'secret' => 'x']])->assertOk();
         $this->actingAs($this->b)->postJson("/api/calls/$id/diag", ['event' => 'bogus'])->assertStatus(422);
         $this->actingAs($this->c)->postJson("/api/calls/$id/diag", ['event' => 'failed'])->assertForbidden();
 
-        \Illuminate\Support\Facades\Log::shouldHaveReceived('info')->once()->withArgs(fn ($msg, $ctx) => $msg === 'call.diag'
-            && $ctx['event'] === 'timeout' && $ctx['user'] === $this->b->id && !isset($ctx['detail']['secret']) && $ctx['detail']['ice'] === 'checking');
+        $log = file_get_contents($file);
+        $this->assertStringContainsString('call.diag', $log);
+        $this->assertStringContainsString('"event":"timeout"', $log);
+        $this->assertStringContainsString('"ice":"checking"', $log);
+        $this->assertStringNotContainsString('secret', $log);              // only whitelisted fields are kept
+        $this->assertSame(1, substr_count($log, 'call.diag'));
+        @unlink($file);
     }
 
     public function test_the_call_window_is_a_standalone_page_that_only_opens_with_realtime_and_login(): void
