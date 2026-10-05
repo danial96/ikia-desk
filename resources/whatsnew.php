@@ -53,4 +53,10 @@ return [
             'Images are shown in their full original quality (the small-preview change was reverted).',
         ],
     ],
+    [
+        'id' => 8, 'date' => '2026-10-05',
+        'items' => [
+            'Chats, the chat list and tasks you opened before now appear instantly when you open them again; attachments and images are kept by the browser instead of being downloaded every time.',
+        ],
+    ],
 ];

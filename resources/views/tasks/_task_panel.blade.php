@@ -630,7 +630,7 @@ window.tpOpen = function(type, id) {
     // changed, so this never shows stale data for more than a moment.
     window._tpCache = window._tpCache || {};
     const cacheKey = type + ':' + id;
-    const cached = window._tpCache[cacheKey];
+    const cached = window._tpCache[cacheKey] || LocalCache.get('task', cacheKey);     // in memory, else what this browser saw last time
     if (cached) { if (type==='b24') tpRenderB24(cached,id); else tpRenderLocal(cached); }
     else tpSkeleton();
 
@@ -644,6 +644,7 @@ window.tpOpen = function(type, id) {
         .then(data=>{
             const changed = !cached || JSON.stringify(data) !== JSON.stringify(cached);
             window._tpCache[cacheKey] = data;
+            LocalCache.set('task', cacheKey, data);
             if(type==='b24') { if (changed) tpRenderB24(data,id); }
             else { if (changed) tpRenderLocal(data); tpStartChatPoll(id); }
         })

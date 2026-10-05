@@ -974,7 +974,39 @@ if (typeof window.APP_TZ === 'undefined') { window.APP_TZ = @json(auth()->user()
 // (mammoth.js / SheetJS) instead of letting them just download. Everything else (pdf, images,
 // legacy doc/ppt, etc.) keeps linking straight at the file as before.
 if (typeof window.fileViewHref === 'undefined') {
-    window.fileViewHref = function(url) {
+    /* Remembers what you last saw (recent messages of a chat, the chat list, an opened task) in this browser, so opening
+   them again — even after a full page load — shows it at once while a fresh copy is fetched and swapped in if anything
+   changed. Per signed-in user, a handful of entries (oldest dropped), wiped at logout. It is only a head start:
+   the server's answer always replaces it. */
+window.LocalCache = (function () {
+    const LIMITS = { msgs: 12, task: 12, convs: 1 };
+    const MAX_ITEM = 400 * 1024;                       // characters per entry; bigger ones are simply not kept
+    const P = () => 'ikia.c.' + (window.ME_ID || 0) + '.';
+    const idx = () => { try { return JSON.parse(localStorage.getItem(P() + '_idx') || '[]'); } catch (e) { return []; } };
+    const setIdx = (a) => { try { localStorage.setItem(P() + '_idx', JSON.stringify(a)); } catch (e) {} };
+    const api = {
+        get(ns, k) { try { const s = localStorage.getItem(P() + ns + '.' + k); return s ? JSON.parse(s) : null; } catch (e) { return null; } },
+        set(ns, k, v) {
+            try {
+                const s = JSON.stringify(v);
+                if (s.length > MAX_ITEM) return false;
+                const id = ns + '.' + k;
+                const list = idx().filter((x) => x !== id);
+                list.push(id);
+                const mine = list.filter((x) => x.indexOf(ns + '.') === 0);
+                while (mine.length > (LIMITS[ns] || 8)) { const old = mine.shift(); list.splice(list.indexOf(old), 1); localStorage.removeItem(P() + old); }
+                try { localStorage.setItem(P() + id, s); }
+                catch (e) { api.clear(); localStorage.setItem(P() + id, s); }       // storage full: start over rather than fail
+                setIdx(list);
+                return true;
+            } catch (e) { return false; }
+        },
+        clear() { try { Object.keys(localStorage).filter((k) => k.indexOf('ikia.c.') === 0).forEach((k) => localStorage.removeItem(k)); } catch (e) {} },
+    };
+    return api;
+})();
+
+window.fileViewHref = function(url) {
         if (!url) return url;
         try {
             const u = new URL(url, location.origin);
@@ -1494,7 +1526,12 @@ window.chatSelectConv = async function(id) {
     });
     // Show loader in messages area
     const msgArea = document.getElementById('chat-msg-area');
-    msgArea.innerHTML = '<div style="padding:30px;text-align:center;color:rgba(255,255,255,.25);font-size:12px;"><i class="fas fa-spinner fa-spin"></i></div>';
+    const _storedMsgs = (LocalCache.get('msgs', id) || {}).messages;
+    let _shownFromCache = '';
+    if (_storedMsgs && _storedMsgs.length) {
+        try { chatRenderMsgs(_storedMsgs); _shownFromCache = JSON.stringify(_storedMsgs); } catch (e) { _shownFromCache = ''; }
+    }
+    if (!_shownFromCache) msgArea.innerHTML = '<div style="padding:30px;text-align:center;color:rgba(255,255,255,.25);font-size:12px;"><i class="fas fa-spinner fa-spin"></i></div>';
     msgArea.style.display = 'flex';
     document.getElementById('chat-right-empty').style.display = 'none';
     document.getElementById('chat-right-head').style.display  = 'flex';
@@ -1515,7 +1552,8 @@ window.chatSelectConv = async function(id) {
             _chatFirstTs = Math.min(...msgs.map(m => m.createdTs));
             _chatFirstId = Math.min(...msgs.filter(m => m.createdTs === _chatFirstTs).map(m => m.id));
         }
-        chatRenderMsgs(msgs);
+        if (!(_shownFromCache && _shownFromCache === JSON.stringify(msgs))) chatRenderMsgs(msgs);       // unchanged since last time: leave it be
+        LocalCache.set('msgs', id, { messages: msgs.slice(-40), hasMore: _chatHasMore || msgs.length > 40, convType: conv.type || '' });
         setTimeout(function () { const a = document.getElementById('chat-msg-area'); if (a && a.scrollHeight <= a.clientHeight + 40) chatLoadOlder(); }, 300);
         if (msgs.length) _lastMsgId = Math.max(...msgs.map(m => m.id));
         // Restore this conversation's saved draft and focus the box so typing works on click
@@ -4263,6 +4301,7 @@ if (typeof window.Push === 'undefined') {
             if (!f || !/\/logout\/?$/.test(f.getAttribute('action') || '') || f._pushDone) return;
             e.preventDefault();
             f._pushDone = true;
+            if (window.LocalCache) LocalCache.clear();          // don't leave a signed-out person's chats in this browser
             Promise.race([api.disable(), new Promise((r) => setTimeout(r, 1500))]).finally(() => f.submit());
         }, true);
 

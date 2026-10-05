@@ -311,7 +311,14 @@ Route::middleware('auth')->group(function () {
         // setContentDisposition() builds the required ASCII fallback itself; calling HeaderUtils
         // directly threw "filename fallback cannot contain %/non-ASCII" (a 500) for any file whose
         // real name had a % or accented/Urdu characters.
-        return response()->file($full)->setContentDisposition('inline', $niceName);
+        // Stored files never change under the same URL (each upload gets a unique name), so let the browser keep them:
+        // reopening a task or chat shows its images and attachments from the local cache instead of downloading them again.
+        // 'private': only this browser may keep it, never a shared cache or CDN (these files are for signed-in people only).
+        $file = response()->file($full)->setContentDisposition('inline', $niceName)
+            ->setPrivate()->setMaxAge(2592000)->setImmutable()
+            ->setEtag(md5($full . '|' . filemtime($full) . '|' . filesize($full)));
+        $file->isNotModified($request);      // browser already has this exact file: answer 304 without sending it again
+        return $file;
     })->where('path', '.*')->name('uploads.show');
 
     // Docx/xlsx preview — the actual file is fetched and rendered client-side (mammoth.js /

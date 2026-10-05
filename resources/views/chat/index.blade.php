@@ -719,6 +719,7 @@ async function cpLoad() {
         const prevUnread = _cpLoaded ? Object.fromEntries(_cpAllConvs.map(c => [c.id, c.unread || 0])) : null;
         _cpAllConvs = d.convs || [];
         _cpLoaded   = true;
+        LocalCache.set('convs', 'all', _cpAllConvs);
         // Redrawing the whole list on every poll (even with nothing new) is what made the sidebar
         // flicker and jerk — only touch the DOM when the data really differs or it isn't drawn yet.
         const sig = JSON.stringify(_cpAllConvs);
@@ -809,7 +810,8 @@ window.cpSelect = async function(id) {
     // fresh copy is still fetched right away below and swapped in silently if anything actually
     // changed, so this never shows stale data for more than a moment.
     window._cpMsgCache = window._cpMsgCache || {};
-    const _cpCached = window._cpMsgCache[id];
+    const _cpCached = window._cpMsgCache[id] || LocalCache.get('msgs', id);      // in memory, else what this browser saw last time
+    if (_cpCached) window._cpMsgCache[id] = _cpCached;
     if (_cpCached) {
         cpRenderMsgs(_cpCached.messages, true);
         _cpConvType = _cpCached.convType || '';
@@ -834,6 +836,7 @@ window.cpSelect = async function(id) {
         _cpHasMore = !!d.hasMore;
         const _cpChanged = !_cpCached || JSON.stringify(_initMsgs) !== JSON.stringify(_cpCached.messages);
         window._cpMsgCache[id] = { messages: _initMsgs, hasMore: _cpHasMore, convType: _cpConvType };
+        LocalCache.set('msgs', id, { messages: _initMsgs.slice(-40), hasMore: _cpHasMore || _initMsgs.length > 40, convType: _cpConvType });
         if (_cpChanged) cpRenderMsgs(_initMsgs, true);
         setTimeout(function () { const a = document.getElementById('cp-msg-area'); if (a && a.scrollHeight <= a.clientHeight + 40) cpLoadOlderMsgs(); }, 300);
         if (_initMsgs.length) {
@@ -1196,6 +1199,7 @@ async function cpSilentRefresh() {
         const cached = (window._cpMsgCache || {})[id];
         if (cached && JSON.stringify(cached.messages) === JSON.stringify(msgs)) return;
         (window._cpMsgCache = window._cpMsgCache || {})[id] = { messages: msgs, hasMore: !!d.hasMore, convType: _cpConvType };
+        LocalCache.set('msgs', id, { messages: msgs.slice(-40), hasMore: !!d.hasMore || msgs.length > 40, convType: _cpConvType });
         cpRenderMsgs(msgs, true);
         if (msgs.length) _cpLastMsgId = Math.max(_cpLastMsgId, ...msgs.map(m => m.id));
         cpUpdateSeen();
@@ -1321,6 +1325,9 @@ async function cpLoadOlderMsgs() {
 
 /* ── Init ── */
 document.addEventListener('DOMContentLoaded', function() {
+    // the list as it was last time, drawn immediately; the fresh one replaces it a moment later
+    const _storedConvs = LocalCache.get('convs', 'all');
+    if (Array.isArray(_storedConvs) && _storedConvs.length && !_cpAllConvs.length) { _cpAllConvs = _storedConvs; cpRenderFilteredConvs(); }
     cpLoad().then(function() {
         const params    = new URLSearchParams(location.search);
         const fromQuery = params.get('conv');
