@@ -421,6 +421,19 @@
                                 </label>
                             </div>
                         </div>
+                            <div style="display:flex;flex-direction:column;gap:12px;padding:18px 0;border-top:1px solid #f1f3f5;">
+                                <div style="font-size:11px;font-weight:700;color:#9ca3af;letter-spacing:1px;text-transform:uppercase;">Display (this browser)</div>
+                                <label style="display:flex;align-items:center;justify-content:space-between;gap:14px;">
+                                    <span style="font-size:14px;color:#333;">Performance mode
+                                        <span style="display:block;font-size:12.5px;color:#6b7280;margin-top:3px;">Turns off blur and animated backgrounds for a smoother Desk on slower computers. Auto switches it on if this computer struggles.</span>
+                                    </span>
+                                    <select id="pf-lite" style="border:1px solid #d1d5db;border-radius:8px;padding:7px 10px;font-size:13.5px;background:#fff;color:#333;">
+                                        <option value="auto">Auto (recommended)</option>
+                                        <option value="on">Always on</option>
+                                        <option value="off">Off</option>
+                                    </select>
+                                </label>
+                            </div>
                         <p id="pf-notif-saved" style="font-size:12.5px;color:#16a34a;margin:14px 0 0;display:none;"><i class="fas fa-check"></i> Saved</p>
                     </div>
                     @endif
@@ -511,6 +524,18 @@ document.addEventListener('DOMContentLoaded', function() {
         test.disabled = false;
     });
     refresh();
+});
+// Performance mode (stored per browser, applied instantly)
+document.addEventListener('DOMContentLoaded', function() {
+    var sel = document.getElementById('pf-lite');
+    if (!sel) return;
+    var cur = 'auto';
+    try { cur = localStorage.getItem('lite_ui') || 'auto'; } catch (e) {}
+    sel.value = (cur === 'auto-on') ? 'auto' : cur;
+    sel.addEventListener('change', function() {
+        try { localStorage.setItem('lite_ui', sel.value); } catch (e) {}
+        document.documentElement.classList.toggle('lite', sel.value === 'on');
+    });
 });
 if (location.hash === '#security') document.addEventListener('DOMContentLoaded', function(){ pfEdit(true,'pf-pass'); });
 // Only one field (select OR input) should carry the name at a time.

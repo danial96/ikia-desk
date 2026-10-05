@@ -42,4 +42,10 @@ return [
             'Behind the scenes: Desk now records how smoothly pages run on each computer (no content, just timings), to track down lag.',
         ],
     ],
+    [
+        'id' => 6, 'date' => '2026-10-05',
+        'items' => [
+            'Smoother on slower computers: the animated background no longer loops endlessly, and Desk can switch to a lighter look by itself (Profile > Notifications > Performance mode).',
+        ],
+    ],
 ];

@@ -11,6 +11,7 @@
     <link rel="manifest" href="{{ asset('manifest.webmanifest') }}">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script>try { var m = localStorage.getItem('lite_ui'); if (m === 'on' || m === 'auto-on') document.documentElement.classList.add('lite'); } catch (e) {}</script>
     @auth<style id="theme-live">{!! \App\Support\Themes::styleRules(\App\Support\Themes::css(auth()->user())) !!}</style>@endauth
     <style>
         * { box-sizing: border-box; }
@@ -445,6 +446,21 @@
             border-radius: 14px;
             padding: 20px;
         }
+        /* ── Rendering cost ───────────────────────────────────────────────────────────────────────────────────
+           The two floating "orbs" looped forever, repainting the whole background 60 times a second UNDER three
+           28px backdrop-blurred panels (sidebar, top bar, right rail). Computers with weak graphics could not keep
+           up, and the page stuttered everywhere. They are static now. */
+        .bg-orb3, .bg-orb4 { animation: none !important; }
+
+        /* Light mode (Profile > Performance mode, or switched on automatically when frames are being dropped):
+           no blur, no animated backdrop, no shadows/transitions on cards. Panels get solid backgrounds instead. */
+        html.lite *, html.lite *::before, html.lite *::after { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+        html.lite #sidebar, html.lite #topbar { background: rgba(10, 15, 60, .95) !important; will-change: auto; }
+        html.lite #right-panel { background: rgba(8, 12, 35, .98) !important; }
+        html.lite #bg-canvas .bg-orb3, html.lite #bg-canvas .bg-orb4 { display: none !important; }
+        html.lite #app-shell { animation: none !important; }
+        html.lite [id^="kb-task-"] { box-shadow: none !important; }
+        html.lite * { transition: none !important; }
     </style>
 </head>
 <body x-data="appShell()" x-init="init()">
@@ -4278,13 +4294,28 @@ if (typeof window.Push === 'undefined') {
 
     // Frame pacing while the tab is visible, for the first 90s of the page view: how many frames took longer than
     // 50ms / 100ms to appear ("jerk"), and the worst gap. Long tasks alone miss painting/GPU stalls.
-    let frames = 0, j50 = 0, j100 = 0, maxGap = 0, lastTs = 0;
+    let frames = 0, j50 = 0, j100 = 0, maxGap = 0, lastTs = 0, steadyFrames = 0, steadyJank = 0, decided = false;
+    const liteMode = () => { try { return localStorage.getItem('lite_ui') || 'auto'; } catch (e) { return 'auto'; } };
+    // If this computer clearly can't keep up (over 1 frame in 5 takes longer than 50ms once the page has settled),
+    // switch to Light mode for this browser. Judged on the 3s-10s window so the heavy first paint doesn't count.
+    function maybeEnableLite() {
+        decided = true;
+        if (steadyFrames < 30 || steadyJank / steadyFrames <= 0.2) return;
+        if (liteMode() !== 'auto' || document.documentElement.classList.contains('lite')) return;
+        try { localStorage.setItem('lite_ui', 'auto-on'); } catch (e) {}
+        document.documentElement.classList.add('lite');
+        if (window.showToast) showToast('Desk switched to Light mode because this computer was struggling. You can change this in Profile \u2192 Notifications \u2192 Performance mode.');
+    }
     (function frame(ts) {
         if (document.hidden) lastTs = 0;
         else {
-            if (lastTs) { const g = ts - lastTs; frames++; if (g > 50) j50++; if (g > 100) j100++; if (g > maxGap) maxGap = g; }
+            if (lastTs) {
+                const g = ts - lastTs; frames++; if (g > 50) j50++; if (g > 100) j100++; if (g > maxGap) maxGap = g;
+                if (performance.now() - t0 > 3000) { steadyFrames++; if (g > 50) steadyJank++; }
+            }
             lastTs = ts;
         }
+        if (!decided && performance.now() - t0 > 10000) maybeEnableLite();
         if (performance.now() - t0 < 90000) requestAnimationFrame(frame);
     })(performance.now());
     try { new PerformanceObserver((l) => l.getEntries().forEach((e) => longs.push(Math.round(e.duration)))).observe({ type: 'longtask', buffered: true }); } catch (e) {}
@@ -4307,7 +4338,7 @@ if (typeof window.Push === 'undefined') {
                 cores: navigator.hardwareConcurrency || null, mem: navigator.deviceMemory || null,
                 net: c.effectiveType || null, rtt: c.rtt != null ? c.rtt : null, down: c.downlink != null ? c.downlink : null,
                 rt: !!(window.Realtime && Realtime.connected), stay: Math.round((performance.now() - t0) / 1000),
-                frames: frames, j50: j50, j100: j100, maxGap: Math.round(maxGap),
+                frames: frames, j50: j50, j100: j100, maxGap: Math.round(maxGap), lite: document.documentElement.classList.contains('lite') ? 1 : 0,
                 dpr: window.devicePixelRatio || null, scr: screen.width + 'x' + screen.height, win: innerWidth + 'x' + innerHeight,
                 _token: (document.querySelector('meta[name="csrf-token"]') || {}).content || '',
             };

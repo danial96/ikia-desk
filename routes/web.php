@@ -650,7 +650,7 @@ Route::middleware('auth')->group(function () {
             'dom' => $num('dom'), 'heap' => $num('heap'), 'cores' => $num('cores', 256), 'mem' => $num('mem', 1024),
             'net' => in_array($request->input('net'), ['slow-2g', '2g', '3g', '4g'], true) ? $request->input('net') : null,
             'rtt' => $num('rtt', 100000), 'down' => $num('down', 100000), 'rt' => $request->boolean('rt'), 'stay' => $num('stay', 86400),
-            'frames' => $num('frames'), 'j50' => $num('j50'), 'j100' => $num('j100'), 'maxGap' => $num('maxGap'), 'dpr' => $num('dpr', 20),
+            'lite' => $request->boolean('lite'), 'frames' => $num('frames'), 'j50' => $num('j50'), 'j100' => $num('j100'), 'maxGap' => $num('maxGap'), 'dpr' => $num('dpr', 20),
             'scr' => preg_match('/^\d{3,5}x\d{3,5}$/', (string) $request->input('scr')) ? $request->input('scr') : null,
             'win' => preg_match('/^\d{2,5}x\d{2,5}$/', (string) $request->input('win')) ? $request->input('win') : null,
             'ua' => substr(preg_replace('/\s+/', ' ', (string) $request->userAgent()), 0, 90),
