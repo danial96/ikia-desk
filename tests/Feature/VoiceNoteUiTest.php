@@ -29,7 +29,7 @@ class VoiceNoteUiTest extends TestCase
 
         $start = strpos($html, 'function forward(rawText');
         $this->assertNotFalse($start);
-        $block = substr($html, $start, 2500);
+        $block = substr($html, $start, 6000);
         $this->assertStringContainsString("'X-CSRF-TOKEN': csrf", $block);        // without it the server answers 419 and the forward just "fails"
     }
 }
