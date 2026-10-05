@@ -4308,5 +4308,70 @@ if (typeof window.Push === 'undefined') {
 </script>
 @endauth
 
+@auth
+<script>
+// "A new version of Desk is available": every server response carries the id of the deployed code (X-App-Build).
+// When it differs from the build this page was loaded with, offer a reload. Nothing reloads by itself, so a
+// half-written comment or message is never lost. Hooking fetch means the polls that already run are enough:
+// no extra requests.
+(function () {
+    const mine = @json(\App\Support\Build::id());
+    const seenNotes = @json(\App\Support\WhatsNew::latestId());
+    if (!mine || window.__buildWatch) return;
+    window.__buildWatch = true;
+    let shown = false;
+
+    function showBar(latest) {
+        try { if (sessionStorage.getItem('build_dismissed') === latest) return; } catch (e) {}
+        shown = true;
+        const bar = document.createElement('div');
+        bar.id = 'update-bar';
+        bar.setAttribute('role', 'status');
+        bar.style.cssText = 'position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:100001;'
+            + 'background:#0f172a;color:#fff;border-radius:14px;padding:12px 14px 12px 16px;box-shadow:0 10px 34px rgba(0,0,0,.4);font-size:14px;width:min(440px,92vw);';
+        const row = document.createElement('div');
+        row.style.cssText = 'display:flex;align-items:center;gap:12px;';
+        const msg = document.createElement('span');
+        msg.textContent = 'A new version of Desk is available.';
+        const reload = document.createElement('button');
+        reload.type = 'button'; reload.textContent = 'Reload';
+        reload.style.cssText = 'background:#0ea5e9;color:#fff;border:none;border-radius:8px;padding:7px 14px;font-weight:600;cursor:pointer;';
+        reload.onclick = () => location.reload();
+        const close = document.createElement('button');
+        close.type = 'button'; close.textContent = '×'; close.title = 'Later';
+        close.style.cssText = 'background:none;border:none;color:#94a3b8;font-size:20px;line-height:1;cursor:pointer;padding:0 4px;';
+        close.onclick = () => { bar.remove(); try { sessionStorage.setItem('build_dismissed', latest); } catch (e) {} };
+        msg.style.flex = '1';
+        row.append(msg, reload, close);
+        bar.appendChild(row);
+        document.body.appendChild(bar);
+
+        // what changed, in a few plain lines (fetched now, so this page needs no copy of the notes)
+        original.call(window, '/api/whats-new?since=' + seenNotes, { credentials: 'same-origin', headers: { 'Accept': 'application/json' } })
+            .then((r) => r.json()).then((d) => {
+                const items = [];
+                (d.releases || []).forEach((rel) => (rel.items || []).forEach((t) => items.push(t)));
+                if (!items.length) return;
+                const ul = document.createElement('ul');
+                ul.style.cssText = 'margin:10px 0 2px;padding-left:18px;font-size:13px;line-height:1.45;color:#cbd5e1;max-height:40vh;overflow:auto;';
+                items.forEach((t) => { const li = document.createElement('li'); li.style.margin = '3px 0'; li.textContent = t; ul.appendChild(li); });
+                bar.appendChild(ul);
+            }).catch(() => {});
+    }
+
+    const original = window.fetch;
+    window.fetch = function () {
+        return original.apply(this, arguments).then((res) => {
+            try {
+                const latest = res.headers.get('X-App-Build');
+                if (latest && latest !== mine && !shown) showBar(latest);
+            } catch (e) {}
+            return res;
+        });
+    };
+})();
+</script>
+@endauth
+
 </body>
 </html>

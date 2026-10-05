@@ -636,6 +636,9 @@ Route::middleware('auth')->group(function () {
         }
     });
 
+    // Release notes for the "new version available" banner
+    Route::get('/api/whats-new', fn (\Illuminate\Http\Request $r) => response()->json(['releases' => \App\Support\WhatsNew::since((int) $r->query('since', 0))]))->name('whatsnew');
+
     // ── Anonymous-ish per-page performance reports from browsers (see the layout), written to their own log ──
     Route::post('/api/perf', function (\Illuminate\Http\Request $request) {
         $num = fn ($k, $max = 10000000) => $request->filled($k) && is_numeric($request->input($k)) ? max(0, min($max, +$request->input($k))) : null;
