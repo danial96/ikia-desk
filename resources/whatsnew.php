@@ -36,4 +36,10 @@ return [
             'New: this notice. When Desk is updated, open tabs now tell you and list what changed, so a reload picks up the fixes.',
         ],
     ],
+    [
+        'id' => 5, 'date' => '2026-10-05',
+        'items' => [
+            'Behind the scenes: Desk now records how smoothly pages run on each computer (no content, just timings), to track down lag.',
+        ],
+    ],
 ];

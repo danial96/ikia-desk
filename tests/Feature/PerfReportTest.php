@@ -57,4 +57,21 @@ class PerfReportTest extends TestCase
         $this->assertStringContainsString("navigator.sendBeacon('/api/perf'", $html);
         $this->assertStringContainsString("type: 'longtask'", $html);
     }
+
+    public function test_frame_pacing_and_screen_details_are_recorded_and_sanitised(): void
+    {
+        $u = User::factory()->create(['is_active' => true]);
+        @unlink(storage_path('logs/perf.log'));
+
+        $this->actingAs($u)->post('/api/perf', ['page' => '/chat', 'frames' => 4000, 'j50' => 31, 'j100' => 9, 'maxGap' => 740,
+            'dpr' => 1.5, 'scr' => '1920x1080', 'win' => '1536x730'])->assertNoContent();
+        $this->actingAs($u)->post('/api/perf', ['page' => '/chat', 'scr' => '<b>big</b>', 'win' => 'x', 'dpr' => 999])->assertNoContent();
+
+        $log = file_get_contents(storage_path('logs/perf.log'));
+        foreach (['"j50":31', '"j100":9', '"maxGap":740', '"dpr":1.5', '"scr":"1920x1080"', '"win":"1536x730"'] as $needle) {
+            $this->assertStringContainsString($needle, $log);
+        }
+        $this->assertStringNotContainsString('<b>', $log);
+        $this->assertStringContainsString('"dpr":20', $log);                      // clamped
+    }
 }

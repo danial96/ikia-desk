@@ -4275,6 +4275,18 @@ if (typeof window.Push === 'undefined') {
     window.__perfReport = true;
     const t0 = performance.now();
     const longs = []; let cls = 0, sent = false;
+
+    // Frame pacing while the tab is visible, for the first 90s of the page view: how many frames took longer than
+    // 50ms / 100ms to appear ("jerk"), and the worst gap. Long tasks alone miss painting/GPU stalls.
+    let frames = 0, j50 = 0, j100 = 0, maxGap = 0, lastTs = 0;
+    (function frame(ts) {
+        if (document.hidden) lastTs = 0;
+        else {
+            if (lastTs) { const g = ts - lastTs; frames++; if (g > 50) j50++; if (g > 100) j100++; if (g > maxGap) maxGap = g; }
+            lastTs = ts;
+        }
+        if (performance.now() - t0 < 90000) requestAnimationFrame(frame);
+    })(performance.now());
     try { new PerformanceObserver((l) => l.getEntries().forEach((e) => longs.push(Math.round(e.duration)))).observe({ type: 'longtask', buffered: true }); } catch (e) {}
     try { new PerformanceObserver((l) => l.getEntries().forEach((e) => { if (!e.hadRecentInput) cls += e.value; })).observe({ type: 'layout-shift', buffered: true }); } catch (e) {}
 
@@ -4295,6 +4307,8 @@ if (typeof window.Push === 'undefined') {
                 cores: navigator.hardwareConcurrency || null, mem: navigator.deviceMemory || null,
                 net: c.effectiveType || null, rtt: c.rtt != null ? c.rtt : null, down: c.downlink != null ? c.downlink : null,
                 rt: !!(window.Realtime && Realtime.connected), stay: Math.round((performance.now() - t0) / 1000),
+                frames: frames, j50: j50, j100: j100, maxGap: Math.round(maxGap),
+                dpr: window.devicePixelRatio || null, scr: screen.width + 'x' + screen.height, win: innerWidth + 'x' + innerHeight,
                 _token: (document.querySelector('meta[name="csrf-token"]') || {}).content || '',
             };
             const fd = new FormData();
