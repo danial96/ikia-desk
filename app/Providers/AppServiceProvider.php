@@ -16,46 +16,61 @@ class AppServiceProvider extends ServiceProvider
     {
         View::composer('layouts.app', function ($view) {
             if (Auth::check()) {
-                $me = Auth::id();
-
-                $lastMsgSub = DB::table('messages')
-                    ->select('conversation_id', DB::raw('MAX(created_at) as last_msg_at'))
-                    ->whereNull('deleted_at')
-                    ->groupBy('conversation_id');
-
-                $users = User::where('is_active', true)
-                    ->where('id', '!=', $me)
-                    ->leftJoinSub(
-                        // Find the most recent direct conv between me and each user
-                        DB::table('conversation_members as cm1')
-                            ->select('cm2.user_id', DB::raw('MAX(lm.last_msg_at) as last_msg_at'))
-                            ->joinSub($lastMsgSub, 'lm', 'lm.conversation_id', '=', 'cm1.conversation_id')
-                            ->join('conversation_members as cm2', function ($j) use ($me) {
-                                $j->on('cm2.conversation_id', '=', 'cm1.conversation_id')
-                                  ->where('cm2.user_id', '!=', $me);
-                            })
-                            ->join('conversations as c', function ($j) {
-                                $j->on('c.id', '=', 'cm1.conversation_id')
-                                  ->where('c.type', 'direct');
-                            })
-                            ->where('cm1.user_id', $me)
-                            ->groupBy('cm2.user_id'),
-                        'conv_last',
-                        'conv_last.user_id',
-                        '=',
-                        'users.id'
-                    )
-                    ->orderByRaw('conv_last.last_msg_at IS NULL ASC')
-                    ->orderByRaw('conv_last.last_msg_at DESC')
-                    ->orderBy('users.name')
-                    ->get(['users.*', 'conv_last.last_msg_at'])
-                    ->map(function ($u) {
-                        $u->is_online = $u->last_seen_at && \Carbon\Carbon::parse($u->last_seen_at)->diffInMinutes(now()) < 5;
-                        return $u;
-                    });
-
-                $view->with('onlineUsers', $users);
+                $view->with('onlineUsers', $this->teamRail(Auth::id()));
             }
         });
+    }
+
+    /**
+     * The avatar rail on the right: every active colleague, people you chatted with most recently first.
+     *
+     * This runs on EVERY page. It used to aggregate MAX(created_at) over the whole messages table to find
+     * "last message per conversation" (~330ms on production, on every single navigation). Now it only touches
+     * the handful of direct conversations you are in, and finds each one's newest message through the
+     * (conversation_id, deleted_at, id) index.
+     */
+    private function teamRail(int $me)
+    {
+        // my direct conversations -> who is on the other side
+        $others = DB::table('conversation_members as mine')
+            ->join('conversations as c', function ($j) {
+                $j->on('c.id', '=', 'mine.conversation_id')->where('c.type', 'direct');
+            })
+            ->join('conversation_members as theirs', function ($j) use ($me) {
+                $j->on('theirs.conversation_id', '=', 'mine.conversation_id')->where('theirs.user_id', '!=', $me);
+            })
+            ->where('mine.user_id', $me)
+            ->pluck('theirs.user_id', 'mine.conversation_id');           // conversation_id => other user id
+
+        $lastByUser = [];
+        if ($others->isNotEmpty()) {
+            // newest message id per conversation (index only), then just those few rows for their timestamps
+            $newestIds = DB::table('messages')
+                ->whereIn('conversation_id', $others->keys())
+                ->whereNull('deleted_at')
+                ->groupBy('conversation_id')
+                ->selectRaw('MAX(id) as id')
+                ->pluck('id');
+
+            foreach (DB::table('messages')->whereIn('id', $newestIds)->get(['conversation_id', 'created_at']) as $m) {
+                $uid = $others[$m->conversation_id] ?? null;
+                if ($uid && (!isset($lastByUser[$uid]) || $m->created_at > $lastByUser[$uid])) $lastByUser[$uid] = $m->created_at;
+            }
+        }
+
+        return User::where('is_active', true)
+            ->where('id', '!=', $me)
+            ->get()
+            ->each(function ($u) use ($lastByUser) {
+                $u->last_msg_at = $lastByUser[$u->id] ?? null;
+                $u->is_online   = $u->last_seen_at && \Carbon\Carbon::parse($u->last_seen_at)->diffInMinutes(now()) < 5;
+            })
+            ->sort(function ($a, $b) {
+                // people with a chat first, newest conversation on top; the rest alphabetically
+                if (($a->last_msg_at === null) !== ($b->last_msg_at === null)) return $a->last_msg_at === null ? 1 : -1;
+                if ($a->last_msg_at !== $b->last_msg_at) return strcmp((string) $b->last_msg_at, (string) $a->last_msg_at);
+                return strcasecmp((string) $a->name, (string) $b->name);
+            })
+            ->values();
     }
 }
