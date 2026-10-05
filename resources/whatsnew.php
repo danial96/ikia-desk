@@ -25,7 +25,6 @@ return [
         'id' => 3, 'date' => '2026-10-05',
         'items' => [
             'Faster everywhere: pages open noticeably quicker.',
-            'Images in chats and comments load as small previews (click one for the original, quality unchanged).',
             'The Kanban board no longer redraws everything each time someone edits a task.',
             'Fixed: Forward message did nothing. Fixed: voice calls failing to connect across networks.',
         ],
@@ -46,6 +45,12 @@ return [
         'id' => 6, 'date' => '2026-10-05',
         'items' => [
             'Smoother on slower computers: the animated background no longer loops endlessly, and Desk can switch to a lighter look by itself (Profile > Notifications > Performance mode).',
+        ],
+    ],
+    [
+        'id' => 7, 'date' => '2026-10-05',
+        'items' => [
+            'Images are shown in their full original quality (the small-preview change was reverted).',
         ],
     ],
 ];

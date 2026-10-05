@@ -308,13 +308,6 @@ Route::middleware('auth')->group(function () {
         if (in_array($ext, $renderRisk)) {
             return response()->download($full, $niceName, ['Content-Type' => 'application/octet-stream']);
         }
-        // ?s=560 asks for a small preview for inline display (see Uploads::thumbnail); never for downloads.
-        $previewSize = (int) $request->query('s');
-        if ($previewSize >= 96 && $previewSize <= 1600 && ($thumb = \App\Support\Uploads::thumbnail($full, $previewSize))) {
-            return response()->file($thumb, ['Content-Type' => 'image/webp', 'Cache-Control' => 'private, max-age=31536000, immutable'])
-                ->setContentDisposition('inline', pathinfo($niceName, PATHINFO_FILENAME) . '.webp');
-        }
-
         // setContentDisposition() builds the required ASCII fallback itself; calling HeaderUtils
         // directly threw "filename fallback cannot contain %/non-ASCII" (a 500) for any file whose
         // real name had a % or accented/Urdu characters.
