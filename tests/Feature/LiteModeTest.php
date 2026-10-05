@@ -39,9 +39,10 @@ class LiteModeTest extends TestCase
     {
         $html = $this->page();
 
-        $this->assertStringContainsString('steadyJank / steadyFrames <= 0.05', $html);          // more than 1 slow frame in 20
-        $this->assertStringContainsString('steadyJank < 6', $html);                              // and not just a couple of hiccups
-        $this->assertStringContainsString('steadyFrames < 30', $html);                          // needs enough samples
+        $this->assertStringContainsString('steadyJank / steadyFrames <= 0.03', $html);          // more than 3% slow frames
+        $this->assertStringContainsString('steadyJank < 8', $html);                              // and not just a few hiccups
+        $this->assertStringContainsString('steadyFrames < 40', $html);                          // needs enough samples
+        $this->assertStringContainsString('if (g > 3000) susp++;', $html);                       // minimised/asleep pauses are not jank
         $this->assertStringContainsString('performance.now() - t0 > 3000', $html);              // the heavy first paint is not counted
         $this->assertStringContainsString("liteMode() !== 'auto'", $html);                       // never overrides an explicit choice
         $this->assertStringContainsString("localStorage.setItem('lite_ui', 'auto-on')", $html);

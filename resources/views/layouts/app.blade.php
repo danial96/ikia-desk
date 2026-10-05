@@ -4294,17 +4294,17 @@ if (typeof window.Push === 'undefined') {
     const t0 = performance.now();
     let winStart = t0;                                    // start of the period the next report covers
     let longs = [], cls = 0;                               // freezes and layout shifts in that period
-    let frames = 0, j50 = 0, j100 = 0, maxGap = 0, lastTs = 0, looping = false;
+    let frames = 0, j50 = 0, j100 = 0, maxGap = 0, lastTs = 0, looping = false, susp = 0;
     let steadyFrames = 0, steadyJank = 0, decided = false;   // for the one-off Light mode decision (first 10s of the page)
     let lastSend = 0;
 
     const liteMode = () => { try { return localStorage.getItem('lite_ui') || 'auto'; } catch (e) { return 'auto'; } };
-    // If this computer can't keep up (more than 1 frame in 20 takes longer than 50ms once the page has settled; healthy
-    // computers measure under 2%, struggling ones 7-40%), switch to Light mode for this browser. Judged on the 3s-10s
+    // If this computer can't keep up (more than 3% of frames take longer than 50ms once the page has settled; healthy
+    // computers measure under 1.5%, struggling ones 4-40%), switch to Light mode for this browser. Judged on the 3s-10s
     // window so the heavy first paint doesn't count.
     function maybeEnableLite() {
         decided = true;
-        if (steadyFrames < 30 || steadyJank < 6 || steadyJank / steadyFrames <= 0.05) return;
+        if (steadyFrames < 40 || steadyJank < 8 || steadyJank / steadyFrames <= 0.03) return;
         if (liteMode() !== 'auto' || document.documentElement.classList.contains('lite')) return;
         try { localStorage.setItem('lite_ui', 'auto-on'); } catch (e) {}
         document.documentElement.classList.add('lite');
@@ -4315,8 +4315,12 @@ if (typeof window.Push === 'undefined') {
     // worst gap. Long tasks alone miss painting/GPU stalls. The loop idles while the tab is hidden.
     function frame(ts) {
         if (document.hidden) { looping = false; lastTs = 0; return; }
-        if (lastTs) {
-            const g = ts - lastTs; frames++; if (g > 50) j50++; if (g > 100) j100++; if (g > maxGap) maxGap = g;
+        const g = lastTs ? ts - lastTs : 0;
+        // A gap of several seconds is not a slow frame: the window was minimised/covered or the computer slept, and the
+        // browser simply stopped drawing. Counting those made harmless pauses look like multi-minute hangs.
+        if (g > 3000) susp++;
+        else if (g) {
+            frames++; if (g > 50) j50++; if (g > 100) j100++; if (g > maxGap) maxGap = g;
             if (!decided && performance.now() - t0 > 3000) { steadyFrames++; if (g > 50) steadyJank++; }
         }
         lastTs = ts;
@@ -4347,7 +4351,7 @@ if (typeof window.Push === 'undefined') {
                 cores: navigator.hardwareConcurrency || null, mem: navigator.deviceMemory || null,
                 net: c.effectiveType || null, rtt: c.rtt != null ? c.rtt : null, down: c.downlink != null ? c.downlink : null,
                 rt: !!(window.Realtime && Realtime.connected), stay: Math.round((now - winStart) / 1000),
-                frames: frames, j50: j50, j100: j100, maxGap: Math.round(maxGap), lite: document.documentElement.classList.contains('lite') ? 1 : 0,
+                frames: frames, j50: j50, j100: j100, maxGap: Math.round(maxGap), susp: susp, lite: document.documentElement.classList.contains('lite') ? 1 : 0,
                 dpr: window.devicePixelRatio || null, scr: screen.width + 'x' + screen.height, win: innerWidth + 'x' + innerHeight,
                 _token: (document.querySelector('meta[name="csrf-token"]') || {}).content || '',
             };
@@ -4356,12 +4360,12 @@ if (typeof window.Push === 'undefined') {
             navigator.sendBeacon('/api/perf', fd);
         } catch (e) {}
         // the next report covers what happens from here on
-        winStart = now; longs = []; cls = 0; frames = 0; j50 = 0; j100 = 0; maxGap = 0;
+        winStart = now; longs = []; cls = 0; frames = 0; j50 = 0; j100 = 0; maxGap = 0; susp = 0;
     }
 
     document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'hidden') send();
-        else { winStart = performance.now(); longs = []; cls = 0; frames = 0; j50 = 0; j100 = 0; maxGap = 0; startLoop(); }   // coming back: measure afresh
+        else { winStart = performance.now(); longs = []; cls = 0; frames = 0; j50 = 0; j100 = 0; maxGap = 0; susp = 0; startLoop(); }   // coming back: measure afresh
     });
     window.addEventListener('pagehide', send);
     setInterval(() => { if (!document.hidden) send(); }, 60000);
