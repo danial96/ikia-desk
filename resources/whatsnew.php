@@ -30,4 +30,10 @@ return [
             'Fixed: Forward message did nothing. Fixed: voice calls failing to connect across networks.',
         ],
     ],
+    [
+        'id' => 4, 'date' => '2026-10-05',
+        'items' => [
+            'New: this notice. When Desk is updated, open tabs now tell you and list what changed, so a reload picks up the fixes.',
+        ],
+    ],
 ];
