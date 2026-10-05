@@ -341,7 +341,7 @@ const parseDescText = raw => {
         const dm = p.match(/^\[disk\s+file\s+id=n(\d+)[^\]]*\]$/i);
         if (dm) {
             const url = diskFileUrl(dm[1]);
-            return `<div style="margin:8px 0;"><img src="${url}" loading="lazy" style="max-width:100%;max-height:400px;object-fit:contain;border-radius:8px;cursor:zoom-in;" onclick="imgLightbox('${url}',0)"></div>`;
+            return `<div style="margin:8px 0;"><img src="${imgThumb(url, 900)}" loading="lazy" style="max-width:100%;max-height:400px;object-fit:contain;border-radius:8px;cursor:zoom-in;" onclick="imgLightbox('${url}',0)"></div>`;
         }
         return processText(p);
     }).join('');
@@ -371,7 +371,7 @@ const parseDescAttachments = raw => {
             const imgName = decodeURIComponent(a.url.split('/').pop().split('?')[0]);
             const shortImg = imgName.length > 16 ? imgName.slice(0,13)+'…' : imgName;
             return `<div onclick="${fn}" style="width:110px;border:1px solid #e2e8f0;border-radius:10px;background:#fff;padding:6px 6px 8px;display:inline-flex;flex-direction:column;align-items:center;gap:6px;flex-shrink:0;cursor:zoom-in;transition:box-shadow .12s;" onmouseover="this.style.boxShadow='0 2px 8px rgba(0,0,0,.08)'" onmouseout="this.style.boxShadow='none'">
-                <img src="${urlEsc}" style="width:98px;height:74px;object-fit:cover;border-radius:6px;border:1px solid #e2e8f0;" loading="lazy">
+                <img src="${imgThumb(urlEsc, 240)}" style="width:98px;height:74px;object-fit:cover;border-radius:6px;border:1px solid #e2e8f0;" loading="lazy">
                 <span title="${imgName.replace(/"/g,'&quot;')}" style="font-size:10.5px;color:#374151;text-align:center;line-height:1.35;width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${shortImg}</span>
             </div>`;
         }
@@ -417,14 +417,14 @@ const parseMsg = txt => {
         if (diskM) {
             const url = diskFileUrl(diskM[1]);
             const fn = `imgLightbox('${url}',0)`;
-            return `<img src="${url}" style="max-width:280px;max-height:220px;object-fit:cover;border-radius:8px;display:block;margin:4px 0;cursor:zoom-in;transition:opacity .15s;" loading="lazy" onmouseover="this.style.opacity='.88'" onmouseout="this.style.opacity='1'" onclick="${fn}">`;
+            return `<img src="${imgThumb(url, 560)}" style="max-width:280px;max-height:220px;object-fit:cover;border-radius:8px;display:block;margin:4px 0;cursor:zoom-in;transition:opacity .15s;" loading="lazy" onmouseover="this.style.opacity='.88'" onmouseout="this.style.opacity='1'" onclick="${fn}">`;
         }
         if (imgM) {
             const ci = imgIdx++;
             const url = imgM[1].replace(/"/g,'&quot;');
             // JSON.stringify keeps quotes inside a JS string; esc keeps it inside the onclick attribute
             const fn = galKey !== null ? `imgLightbox(${galKey},${ci})` : `imgLightbox(${esc(JSON.stringify(imgM[1]))},0)`;
-            return `<img src="${url}" style="max-width:280px;max-height:220px;object-fit:cover;border-radius:8px;display:block;margin:4px 0;cursor:zoom-in;transition:opacity .15s;" loading="lazy" onmouseover="this.style.opacity='.88'" onmouseout="this.style.opacity='1'" onclick="${fn}">`;
+            return `<img src="${imgThumb(url, 560)}" style="max-width:280px;max-height:220px;object-fit:cover;border-radius:8px;display:block;margin:4px 0;cursor:zoom-in;transition:opacity .15s;" loading="lazy" onmouseover="this.style.opacity='.88'" onmouseout="this.style.opacity='1'" onclick="${fn}">`;
         }
         if (fileM) {
             const _fn = fileM[1], _url = fileM[2];
@@ -544,7 +544,7 @@ const chatBubble = ({isMine, name, nameColor, text, time, showName=true, isSyste
         const url=f.downloadUrl||'#';
         if(imgExts.has(ext)){
             return`<a href="${url}" target="_blank" rel="noopener" style="display:block;border-radius:10px;overflow:hidden;max-width:260px;line-height:0;">
-                <img src="${url}" alt="${esc(f.name)}" loading="lazy" style="width:100%;max-height:220px;object-fit:cover;border-radius:10px;display:block;cursor:zoom-in;" onerror="this.parentElement.innerHTML='<span style=&quot;display:flex;align-items:center;gap:7px;padding:6px 9px;background:rgba(0,0,0,0.06);border-radius:7px;&quot;><i class=&quot;fas fa-file-image&quot; style=&quot;color:#0ea5e9;font-size:13px;&quot;></i><span style=&quot;color:${tc};font-size:11.5px;&quot;>${esc(f.name)}</span></span>';">
+                <img src="${imgThumb(url, 700)}" alt="${esc(f.name)}" loading="lazy" style="width:100%;max-height:220px;object-fit:cover;border-radius:10px;display:block;cursor:zoom-in;" onerror="this.parentElement.innerHTML='<span style=&quot;display:flex;align-items:center;gap:7px;padding:6px 9px;background:rgba(0,0,0,0.06);border-radius:7px;&quot;><i class=&quot;fas fa-file-image&quot; style=&quot;color:#0ea5e9;font-size:13px;&quot;></i><span style=&quot;color:${tc};font-size:11.5px;&quot;>${esc(f.name)}</span></span>';">
             </a>`;
         }
         const ic=fileIcons[ext]||'fa-file';
@@ -1355,7 +1355,7 @@ function tpRenderLocal(data) {
             const clr=fileClr2[ext]||'#6b7280';
             const bg2=fileBg2[ext]||'#f1f5f9';
             const thumb = isImgF(f) && f.downloadUrl
-                ? `<img src="${f.downloadUrl}" loading="lazy" alt="" style="width:100%;height:100%;object-fit:cover;object-position:top center;display:block;" onerror="this.replaceWith(Object.assign(document.createElement('i'),{className:'fas fa-file-image',style:'color:#6b7280;font-size:26px;'}))">`
+                ? `<img src="${imgThumb(f.downloadUrl, 400)}" loading="lazy" alt="" style="width:100%;height:100%;object-fit:cover;object-position:top center;display:block;" onerror="this.replaceWith(Object.assign(document.createElement('i'),{className:'fas fa-file-image',style:'color:#6b7280;font-size:26px;'}))">`
                 : `<i class="fas ${ic}" style="color:${clr};font-size:26px;"></i>`;
             const _fdUrl = f.downloadUrl || '#';
             return`<a href="${window.fileViewHref?fileViewHref(_fdUrl):_fdUrl}" target="_blank" rel="noopener" title="${esc(f.name)}"

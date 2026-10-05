@@ -553,7 +553,7 @@ function renderContent(text, isMine) {
             const ci = imgIdx++;
             if (allImgs.length > 1 && window.msgImgMosaic) { if (ci === 0) out += window.msgImgMosaic(allImgs, galKey); return; }
             const fn = galKey !== null ? `imgLightbox(${galKey},${ci})` : `imgLightbox('${esc(imgM[1])}',0)`;
-            out += `<img src="${esc(imgM[1])}" style="max-width:280px;max-height:220px;object-fit:cover;border-radius:8px;display:block;margin:4px 0;cursor:zoom-in;transition:opacity .15s;" loading="lazy" onmouseover="this.style.opacity='.88'" onmouseout="this.style.opacity='1'" onclick="${fn}">`;
+            out += `<img src="${esc(imgThumb(imgM[1], 560))}" style="max-width:280px;max-height:220px;object-fit:cover;border-radius:8px;display:block;margin:4px 0;cursor:zoom-in;transition:opacity .15s;" loading="lazy" onmouseover="this.style.opacity='.88'" onmouseout="this.style.opacity='1'" onclick="${fn}">`;
         } else if (fileM) {
             const _fn = fileM[1], _url = fileM[2];
             const _ext = (_fn.split('.').pop()||'').toLowerCase();

@@ -644,6 +644,9 @@ let _kbVersion = null;
 let _kbLastFull = Date.now();
 async function kbCheckVersion() {
     if (document.hidden || _kbDragging) return;
+    // While the realtime socket is up, changes to the cards on this board arrive as pushes (rt:task -> one card
+    // updates). This poll is then only a slow safety net for things a push can't show (e.g. a brand-new task).
+    if (window.Realtime && Realtime.skip('kbVersion', 3)) return;
     try {
         const r = await fetch('{{ route("tasks.kanban.version") }}', { headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' } });
         if (!r.ok) return;
@@ -651,7 +654,12 @@ async function kbCheckVersion() {
         // Also refresh every 5 min even if nothing was edited: columns are time-based, so a task
         // whose deadline passes while the board sits open must move into Overdue by itself.
         const timeToRecheck = Date.now() - _kbLastFull > 300000;
-        if (((_kbVersion !== null && v !== _kbVersion) || timeToRecheck) && typeof kbAjaxFilter === 'function') {
+        const changed = _kbVersion !== null && v !== _kbVersion;
+        // Re-rendering the whole board is the most expensive thing this page does (hundreds of cards). On a busy
+        // team *something* changes every few seconds, so never do it more than once a minute — leave _kbVersion
+        // alone when deferring so the change is picked up on a later tick.
+        if (changed && !timeToRecheck && Date.now() - _kbLastFull < 60000) return;
+        if ((changed || timeToRecheck) && typeof kbAjaxFilter === 'function') {
             _kbLastFull = Date.now();
             kbAjaxFilter();
         }

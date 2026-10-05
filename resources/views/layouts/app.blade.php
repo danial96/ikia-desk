@@ -958,7 +958,16 @@ if (typeof window.APP_TZ === 'undefined') { window.APP_TZ = @json(auth()->user()
 // (mammoth.js / SheetJS) instead of letting them just download. Everything else (pdf, images,
 // legacy doc/ppt, etc.) keeps linking straight at the file as before.
 if (typeof window.fileViewHref === 'undefined') {
-    window.fileViewHref = function(url) {
+    /* A small preview of one of our own uploaded images for inline display (the original is still what the
+   lightbox / downloads open). The server makes and caches the smaller copy; anything it can't shrink it serves as is. */
+window.imgThumb = function (url, size) {
+    try {
+        if (typeof url !== 'string' || url.indexOf('/uploads/') < 0) return url;
+        return url + (url.indexOf('?') < 0 ? '?' : '&') + 's=' + (size || 560);
+    } catch (e) { return url; }
+};
+
+window.fileViewHref = function(url) {
         if (!url) return url;
         try {
             const u = new URL(url, location.origin);
@@ -1621,7 +1630,7 @@ function renderMsgContent(text, isMine) {
             if (allImgs.length > 1 && window.msgImgMosaic) { if (ci === 0) out += window.msgImgMosaic(allImgs, galKey); return; }
             // JSON.stringify keeps quotes inside a JS string; escH keeps it inside the onclick attribute
             const fn = galKey !== null ? `imgLightbox(${galKey},${ci})` : `imgLightbox(${escH(JSON.stringify(imgM[1]))},0)`;
-            out += `<img src="${escH(imgM[1])}" style="max-width:280px;max-height:220px;object-fit:cover;border-radius:8px;display:block;margin:4px 0;cursor:zoom-in;transition:opacity .15s;" loading="lazy" onmouseover="this.style.opacity='.88'" onmouseout="this.style.opacity='1'" onclick="${fn}">`;
+            out += `<img src="${escH(imgThumb(imgM[1], 560))}" style="max-width:280px;max-height:220px;object-fit:cover;border-radius:8px;display:block;margin:4px 0;cursor:zoom-in;transition:opacity .15s;" loading="lazy" onmouseover="this.style.opacity='.88'" onmouseout="this.style.opacity='1'" onclick="${fn}">`;
         } else if (fileM) {
             const _fu = /^(https?:\/\/|\/)/i.test(fileM[2]) ? fileM[2] : '#';
             out += `<a href="${escH(fileViewHref(_fu))}" target="_blank" rel="noopener"
@@ -1993,7 +2002,7 @@ window.msgImgMosaic = function (urls, galKey) {
     const e = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     return imgMosaic(urls.map(function (u, idx) {
         const fn = galKey !== null && galKey !== undefined ? 'imgLightbox(' + galKey + ',' + idx + ')' : 'imgLightbox(' + e(JSON.stringify(u)) + ',0)';
-        return '<img src="' + e(u) + '" loading="lazy" onclick="' + fn + '" style="width:100%;height:100%;object-fit:cover;display:block;cursor:zoom-in;">';
+        return '<img src="' + e(imgThumb(u, 560)) + '" loading="lazy" onclick="' + fn + '" style="width:100%;height:100%;object-fit:cover;display:block;cursor:zoom-in;">';
     }));
 };
 
@@ -3386,7 +3395,9 @@ document.addEventListener('load', function (e) {
     }
     document.addEventListener('scroll', update, true);
     window.addEventListener('resize', update);
-    setInterval(update, 600);
+    // Scroll/resize events already cover movement; this only catches panels opening/closing, so a slow
+    // tick is plenty (and it forces a layout each time, which is not free on a big page).
+    setInterval(function () { if (!document.hidden) update(); }, 2500);
 })();
 
 /* The chat column makes room for a side panel (docked, like Bitrix) instead of hiding under it */
@@ -3510,7 +3521,7 @@ window.ChatAbout = (function () {
         function main() {
             const d = data, media = d.media || [], links = d.links || [];
             const thumbs = media.slice(0, 6).map(m => m.type === 'img'
-                ? '<img data-open="' + esc(m.url) + '" src="' + esc(m.url) + '" loading="lazy" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;cursor:zoom-in;display:block;" alt="">'
+                ? '<img data-open="' + esc(m.url) + '" src="' + esc(imgThumb(m.url, 320)) + '" loading="lazy" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;cursor:zoom-in;display:block;" alt="">'
                 : '<a href="' + esc(m.url) + '" target="_blank" style="display:flex;align-items:center;justify-content:center;aspect-ratio:1;border:1px solid #e3e6e9;border-radius:8px;color:#6b7680;font-size:22px;text-decoration:none;"><i class="fas fa-file"></i></a>').join('');
             const isGroup = d.type !== 'direct' && d.type !== 'notes';
             let h = '<div style="' + card + 'text-align:center;padding:20px 16px;">' +
@@ -3549,7 +3560,7 @@ window.ChatAbout = (function () {
                 (mediaTab === k ? 'background:#fff;color:#1a8fbf;box-shadow:0 1px 3px rgba(0,0,0,.12);' : 'background:transparent;color:#7d8790;') + '">' + label + ' <span style="font-weight:500;opacity:.7;">' + n + '</span></button>';
             let h = '<div style="display:flex;gap:4px;background:#e4e9ec;border-radius:10px;padding:4px;margin:0 10px 12px;">' + tab('media', 'Media', imgs.length) + tab('files', 'Files', files.length) + '</div>';
             if (mediaTab === 'media') {
-                h += imgs.length ? '<div style="padding:0 10px 10px;display:grid;grid-template-columns:repeat(3,1fr);gap:6px;">' + imgs.map(m => '<img data-open="' + esc(m.url) + '" src="' + esc(m.url) + '" loading="lazy" title="' + esc(m.author + ' · ' + m.date) + '" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;cursor:zoom-in;display:block;" alt="">').join('') + '</div>'
+                h += imgs.length ? '<div style="padding:0 10px 10px;display:grid;grid-template-columns:repeat(3,1fr);gap:6px;">' + imgs.map(m => '<img data-open="' + esc(m.url) + '" src="' + esc(imgThumb(m.url, 320)) + '" loading="lazy" title="' + esc(m.author + ' · ' + m.date) + '" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;cursor:zoom-in;display:block;" alt="">').join('') + '</div>'
                                  : '<div style="text-align:center;padding:60px;color:#a0aab1;">No photos yet.</div>';
             } else {
                 h += files.length ? files.map(f => '<a href="' + esc(f.url) + '" target="_blank" style="' + card + 'padding:10px 14px;display:flex;align-items:center;gap:12px;text-decoration:none;color:#333;"><i class="fas fa-file" style="color:#6b7680;font-size:20px;"></i><span style="min-width:0;flex:1;"><span style="display:block;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + esc(f.name) + '</span><span style="font-size:12px;color:#a0aab1;">' + esc(f.author) + ' · ' + esc(f.date) + '</span></span></a>').join('')
