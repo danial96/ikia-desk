@@ -629,6 +629,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/api/calls/{id}/accept', [\App\Http\Controllers\CallController::class, 'accept'])->whereNumber('id')->name('calls.accept');
     Route::post('/api/calls/{id}/end', [\App\Http\Controllers\CallController::class, 'end'])->whereNumber('id')->name('calls.end');
     Route::post('/api/calls/{id}/ping', [\App\Http\Controllers\CallController::class, 'ping'])->whereNumber('id')->name('calls.ping');
+    Route::post('/api/calls/{id}/diag', [\App\Http\Controllers\CallController::class, 'diag'])->whereNumber('id')->name('calls.diag');
     Route::post('/api/calls/{id}/signal', [\App\Http\Controllers\CallController::class, 'signal'])->whereNumber('id')->name('calls.signal');
 
     // ── Realtime (Pusher) channel auth: a browser may only ever subscribe to its OWN user channel ──

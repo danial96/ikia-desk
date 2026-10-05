@@ -233,6 +233,20 @@ class CallController extends Controller
         return response()->json(['ok' => true, 'status' => $call->status]);
     }
 
+    /** Browsers report how a call went on their side (connected via what path / timed out / failed), to help diagnose bad ones. */
+    public function diag(Request $request, int $id): JsonResponse
+    {
+        $this->requireRealtime();
+        $data = $request->validate(['event' => 'required|in:connected,timeout,failed', 'detail' => 'nullable|array']);
+        $call = $this->findFor($id);
+        Log::info('call.diag', [
+            'call' => $call->id, 'user' => auth()->id(), 'event' => $data['event'],
+            'detail' => array_intersect_key($data['detail'] ?? [], array_flip(['role', 'turn', 'connection', 'ice', 'path', 'rttMs', 'received', 'sent', 'lost'])),
+            'ua' => substr((string) $request->userAgent(), 0, 120),
+        ]);
+        return response()->json(['ok' => true]);
+    }
+
     /** Relay one handshake message to the other person's browser. */
     public function signal(Request $request, int $id): JsonResponse
     {

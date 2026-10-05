@@ -166,6 +166,7 @@ if (typeof window.Call === 'undefined') {
     async function createPc() {
         const iceServers = await S.icePromise;
         if (!S) return null;
+        S.hasTurn = iceServers.some((x) => x.username);
         const pc = new RTCPeerConnection({ iceServers });
         S.pc = pc;
         S.local.getAudioTracks().forEach((t) => pc.addTrack(t, S.local));
@@ -180,6 +181,13 @@ if (typeof window.Call === 'undefined') {
             if (a) { a.srcObject = e.streams[0] || new MediaStream([e.track]); a.play().catch(() => {}); }
         };
         pc.onconnectionstatechange = () => onConn(pc);
+        // Not connected after a while: say so honestly (and let the server know why) instead of sitting on "Connecting…".
+        S.connTimer = setTimeout(() => {
+            if (S && S.pc === pc && !S.connectedAt) {
+                setStatus("Can't connect directly. Your network may be blocking calls…");
+                sendDiag('timeout');
+            }
+        }, 15000);
         // anything that arrived before the connection object existed
         const q = S.queue; S.queue = [];
         for (const m of q) await onSignal(m);
@@ -190,11 +198,12 @@ if (typeof window.Call === 'undefined') {
         if (!S || S.pc !== pc) return;
         const st = pc.connectionState;
         if (st === 'connected') {
-            if (!S.connectedAt) { S.connectedAt = Date.now(); blip(880); startTimer(); startHeartbeat(); }
+            if (!S.connectedAt) { S.connectedAt = Date.now(); clearTimeout(S.connTimer); blip(880); startTimer(); startHeartbeat(); setTimeout(() => sendDiag('connected'), 1500); }
             setStatus(fmt(0));
         } else if (st === 'disconnected') {
             setStatus('Reconnecting…');
         } else if (st === 'failed') {
+            sendDiag('failed');
             if (S.role === 'caller' && !S.restarted) {          // one ICE restart before giving up
                 S.restarted = true; setStatus('Reconnecting…');
                 pc.createOffer({ iceRestart: true }).then((o) => pc.setLocalDescription(o))
@@ -256,11 +265,38 @@ if (typeof window.Call === 'undefined') {
         for (const c of q) await S.pc.addIceCandidate(c).catch(() => {});
     }
 
+    // What the connection actually looks like (direct vs relayed, packets flowing?) — for troubleshooting a bad call.
+    async function statsNow() {
+        if (!S || !S.pc) return null;
+        const rep = await S.pc.getStats(), by = {};
+        rep.forEach((r) => { by[r.id] = r; });
+        const out = { connection: S.pc.connectionState, ice: S.pc.iceConnectionState };
+        rep.forEach((r) => {
+            if (r.type === 'transport' && r.selectedCandidatePairId && by[r.selectedCandidatePairId]) {
+                const pair = by[r.selectedCandidatePairId];
+                out.path = (by[pair.localCandidateId] || {}).candidateType + ' -> ' + (by[pair.remoteCandidateId] || {}).candidateType;
+                out.rttMs = pair.currentRoundTripTime != null ? Math.round(pair.currentRoundTripTime * 1000) : null;
+            }
+            if (r.type === 'inbound-rtp' && r.kind === 'audio') Object.assign(out, { received: r.packetsReceived, lost: r.packetsLost, energy: r.totalAudioEnergy, jitterMs: Math.round((r.jitter || 0) * 1000) });
+            if (r.type === 'outbound-rtp' && r.kind === 'audio') out.sent = r.packetsSent;
+        });
+        return out;
+    }
+
+    // Tell the server how a call went on this side, so a call that won't connect can be diagnosed afterwards.
+    async function sendDiag(event) {
+        if (!S) return;
+        try {
+            const st = (await statsNow()) || {};
+            await api('POST', `/api/calls/${S.id}/diag`, { event, detail: Object.assign({ role: S.role, turn: !!S.hasTurn }, st) });
+        } catch (e) {}
+    }
+
     // ── call lifecycle ─────────────────────────────────────────────────────
     function cleanup(message) {
         stopTone(); flashTitle(false); hideIncoming();
         if (S) {
-            clearInterval(S.timer); clearInterval(S.hb); clearTimeout(S.ringTimer); clearTimeout(S.iceFlush);
+            clearInterval(S.timer); clearInterval(S.hb); clearTimeout(S.ringTimer); clearTimeout(S.iceFlush); clearTimeout(S.connTimer);
             try { S.pc && S.pc.close(); } catch (e) {}
             try { S.local && S.local.getTracks().forEach((t) => t.stop()); } catch (e) {}
             S = null;
@@ -398,7 +434,7 @@ if (typeof window.Call === 'undefined') {
     async function bootPopup() {
         const p = new URLSearchParams(location.search);
         const say = (t) => { const m = document.getElementById('call-root'); if (m && !S) m.innerHTML = '<div style="height:100%;display:flex;align-items:center;justify-content:center;padding:20px;text-align:center;color:#cbd5e1;font-size:15px;">' + t.replace(/</g, '&lt;') + '</div>'; };
-        window.showToast = (m) => { say(m); setTimeout(() => window.close(), 3500); };
+        window.showToast = (m) => { say(m); setTimeout(() => window.close(), 10000); };
         say('Connecting…');
         try { await window.__rtReady; } catch (e) {}
         if (p.get('mode') === 'start') return startInPage(parseInt(p.get('uid'), 10), p.get('name'), p.get('avatar'));
@@ -416,22 +452,8 @@ if (typeof window.Call === 'undefined') {
         active: () => !!S,
         popupBoot: bootPopup,
         // What the connection actually looks like (direct vs relayed, packets flowing?) — for troubleshooting a bad call.
-        async stats() {
-            if (!S || !S.pc) return null;
-            const rep = await S.pc.getStats(), by = {};
-            rep.forEach((r) => { by[r.id] = r; });
-            const out = { connection: S.pc.connectionState, ice: S.pc.iceConnectionState };
-            rep.forEach((r) => {
-                if (r.type === 'transport' && r.selectedCandidatePairId && by[r.selectedCandidatePairId]) {
-                    const pair = by[r.selectedCandidatePairId];
-                    out.path = (by[pair.localCandidateId] || {}).candidateType + ' -> ' + (by[pair.remoteCandidateId] || {}).candidateType;
-                    out.rttMs = pair.currentRoundTripTime != null ? Math.round(pair.currentRoundTripTime * 1000) : null;
-                }
-                if (r.type === 'inbound-rtp' && r.kind === 'audio') Object.assign(out, { received: r.packetsReceived, lost: r.packetsLost, energy: r.totalAudioEnergy, jitterMs: Math.round((r.jitter || 0) * 1000) });
-                if (r.type === 'outbound-rtp' && r.kind === 'audio') out.sent = r.packetsSent;
-            });
-            return out;
-        },
+        stats: statsNow,
+
         // Show the phone button in a chat header only for a one-to-one chat.
         updateButton(btnId, conv) {
             const b = document.getElementById(btnId);
