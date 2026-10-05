@@ -74,4 +74,15 @@ class PerfReportTest extends TestCase
         $this->assertStringNotContainsString('<b>', $log);
         $this->assertStringContainsString('"dpr":20', $log);                      // clamped
     }
+
+    public function test_the_reporter_measures_long_sessions_not_just_the_first_seconds(): void
+    {
+        $u = User::factory()->create(['is_active' => true, 'role' => 'super_admin']);
+        $html = $this->actingAs($u)->get('/chat')->assertOk()->getContent();
+
+        $this->assertStringContainsString('setInterval(() => { if (!document.hidden) send(); }, 60000)', $html);   // a report every minute in use
+        $this->assertStringContainsString("document.visibilityState === 'hidden'", $html);                          // and when the tab is left
+        $this->assertStringContainsString('winStart = now; longs = []; cls = 0; frames = 0;', $html);              // each report covers only the period since the last
+        $this->assertStringNotContainsString('if (sent ||', $html);                                                 // no more "once per page view"
+    }
 }

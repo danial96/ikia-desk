@@ -4283,48 +4283,56 @@ if (typeof window.Push === 'undefined') {
 
 @auth
 <script>
-// A tiny, anonymous-ish performance report per page view (page, load timings, how many times the page froze,
-// the machine's cores/memory and the network quality), sent once when the tab is left. It exists so that
-// "Desk lags on some computers" can be answered with data from those computers instead of guesses.
+// A small performance report (page, load timings, how often the page froze, how many frames were slow, the machine's
+// cores/memory/screen and the network quality). It exists so that "Desk lags on some computers" can be answered with
+// data from those computers instead of guesses. No content is sent.
+// Sent every minute while the tab is in use, and when it is hidden or closed, each covering the time since the last one,
+// so a long session in one tab is measured too (not just the first seconds).
 (function () {
     if (window.__perfReport || !('PerformanceObserver' in window)) return;
     window.__perfReport = true;
     const t0 = performance.now();
-    const longs = []; let cls = 0, sent = false;
+    let winStart = t0;                                    // start of the period the next report covers
+    let longs = [], cls = 0;                               // freezes and layout shifts in that period
+    let frames = 0, j50 = 0, j100 = 0, maxGap = 0, lastTs = 0, looping = false;
+    let steadyFrames = 0, steadyJank = 0, decided = false;   // for the one-off Light mode decision (first 10s of the page)
+    let lastSend = 0;
 
-    // Frame pacing while the tab is visible, for the first 90s of the page view: how many frames took longer than
-    // 50ms / 100ms to appear ("jerk"), and the worst gap. Long tasks alone miss painting/GPU stalls.
-    let frames = 0, j50 = 0, j100 = 0, maxGap = 0, lastTs = 0, steadyFrames = 0, steadyJank = 0, decided = false;
     const liteMode = () => { try { return localStorage.getItem('lite_ui') || 'auto'; } catch (e) { return 'auto'; } };
     // If this computer can't keep up (more than 1 frame in 20 takes longer than 50ms once the page has settled; healthy
-    // computers measure under 2%, struggling ones 7-40%),
-    // switch to Light mode for this browser. Judged on the 3s-10s window so the heavy first paint doesn't count.
+    // computers measure under 2%, struggling ones 7-40%), switch to Light mode for this browser. Judged on the 3s-10s
+    // window so the heavy first paint doesn't count.
     function maybeEnableLite() {
         decided = true;
         if (steadyFrames < 30 || steadyJank < 6 || steadyJank / steadyFrames <= 0.05) return;
         if (liteMode() !== 'auto' || document.documentElement.classList.contains('lite')) return;
         try { localStorage.setItem('lite_ui', 'auto-on'); } catch (e) {}
         document.documentElement.classList.add('lite');
-        if (window.showToast) showToast('Desk switched to Light mode because this computer was struggling. You can change this in Profile \u2192 Notifications \u2192 Performance mode.');
+        if (window.showToast) showToast('Desk switched to Light mode because this computer was struggling. You can change this in Profile → Notifications → Performance mode.');
     }
-    (function frame(ts) {
-        if (document.hidden) lastTs = 0;
-        else {
-            if (lastTs) {
-                const g = ts - lastTs; frames++; if (g > 50) j50++; if (g > 100) j100++; if (g > maxGap) maxGap = g;
-                if (performance.now() - t0 > 3000) { steadyFrames++; if (g > 50) steadyJank++; }
-            }
-            lastTs = ts;
+
+    // Frame pacing while the tab is visible: how many frames took longer than 50ms / 100ms to appear ("jerk") and the
+    // worst gap. Long tasks alone miss painting/GPU stalls. The loop idles while the tab is hidden.
+    function frame(ts) {
+        if (document.hidden) { looping = false; lastTs = 0; return; }
+        if (lastTs) {
+            const g = ts - lastTs; frames++; if (g > 50) j50++; if (g > 100) j100++; if (g > maxGap) maxGap = g;
+            if (!decided && performance.now() - t0 > 3000) { steadyFrames++; if (g > 50) steadyJank++; }
         }
+        lastTs = ts;
         if (!decided && performance.now() - t0 > 10000) maybeEnableLite();
-        if (performance.now() - t0 < 90000) requestAnimationFrame(frame);
-    })(performance.now());
+        requestAnimationFrame(frame);
+    }
+    function startLoop() { if (!looping && !document.hidden) { looping = true; lastTs = 0; requestAnimationFrame(frame); } }
+    startLoop();
+
     try { new PerformanceObserver((l) => l.getEntries().forEach((e) => longs.push(Math.round(e.duration)))).observe({ type: 'longtask', buffered: true }); } catch (e) {}
     try { new PerformanceObserver((l) => l.getEntries().forEach((e) => { if (!e.hadRecentInput) cls += e.value; })).observe({ type: 'layout-shift', buffered: true }); } catch (e) {}
 
     function send() {
-        if (sent || performance.now() - t0 < 5000) return;      // ignore bounces
-        sent = true;
+        const now = performance.now();
+        if (now - winStart < 5000 || now - lastSend < 2000) return;      // ignore bounces and double events (hide + pagehide)
+        lastSend = now;
         try {
             const n = performance.getEntriesByType('navigation')[0] || {};
             const c = navigator.connection || {};
@@ -4338,7 +4346,7 @@ if (typeof window.Push === 'undefined') {
                 heap: performance.memory ? Math.round(performance.memory.usedJSHeapSize / 1048576) : null,
                 cores: navigator.hardwareConcurrency || null, mem: navigator.deviceMemory || null,
                 net: c.effectiveType || null, rtt: c.rtt != null ? c.rtt : null, down: c.downlink != null ? c.downlink : null,
-                rt: !!(window.Realtime && Realtime.connected), stay: Math.round((performance.now() - t0) / 1000),
+                rt: !!(window.Realtime && Realtime.connected), stay: Math.round((now - winStart) / 1000),
                 frames: frames, j50: j50, j100: j100, maxGap: Math.round(maxGap), lite: document.documentElement.classList.contains('lite') ? 1 : 0,
                 dpr: window.devicePixelRatio || null, scr: screen.width + 'x' + screen.height, win: innerWidth + 'x' + innerHeight,
                 _token: (document.querySelector('meta[name="csrf-token"]') || {}).content || '',
@@ -4347,9 +4355,16 @@ if (typeof window.Push === 'undefined') {
             Object.keys(body).forEach((k) => { if (body[k] !== null) fd.append(k, body[k]); });
             navigator.sendBeacon('/api/perf', fd);
         } catch (e) {}
+        // the next report covers what happens from here on
+        winStart = now; longs = []; cls = 0; frames = 0; j50 = 0; j100 = 0; maxGap = 0;
     }
-    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') send(); });
+
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'hidden') send();
+        else { winStart = performance.now(); longs = []; cls = 0; frames = 0; j50 = 0; j100 = 0; maxGap = 0; startLoop(); }   // coming back: measure afresh
+    });
     window.addEventListener('pagehide', send);
+    setInterval(() => { if (!document.hidden) send(); }, 60000);
 })();
 </script>
 @endauth
