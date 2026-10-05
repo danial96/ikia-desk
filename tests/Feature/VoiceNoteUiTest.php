@@ -21,4 +21,15 @@ class VoiceNoteUiTest extends TestCase
         $this->assertStringContainsString('function vnMeterStart', $html);              // live level bars while recording
         $this->assertStringContainsString("localStorage.setItem('vn_speed'", $html);
     }
+
+    public function test_forwarding_a_message_sends_the_csrf_token_like_every_other_chat_request(): void
+    {
+        $user = User::factory()->create(['is_active' => true, 'role' => 'super_admin']);
+        $html = $this->actingAs($user)->get('/chat')->assertOk()->getContent();
+
+        $start = strpos($html, 'function forward(rawText');
+        $this->assertNotFalse($start);
+        $block = substr($html, $start, 2500);
+        $this->assertStringContainsString("'X-CSRF-TOKEN': csrf", $block);        // without it the server answers 419 and the forward just "fails"
+    }
 }

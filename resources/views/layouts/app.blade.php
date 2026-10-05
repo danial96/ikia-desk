@@ -3654,10 +3654,14 @@ window.MsgUX = (function () {
                 const id = +el.dataset.id;
                 el.style.opacity = '.5';
                 try {
-                    const r = await fetch(API_BASE + '/api/chat/convs/' + id + '/send', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' }, body: JSON.stringify({ content: rawText }) });
-                    const d = await r.json();
+                    // The CSRF header is required: without it Laravel answers 419 and the forward silently "failed".
+                    const csrf = (document.querySelector('meta[name="csrf-token"]') || {}).content || '';
+                    const r = await fetch(API_BASE + '/api/chat/convs/' + id + '/send', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': csrf }, body: JSON.stringify({ content: rawText }) });
+                    const d = await r.json().catch(() => ({}));
                     ov.remove();
-                    if (d.ok && window.showToast) showToast('Message forwarded.', 'success'); else if (window.showToast) showToast('Could not forward the message.');
+                    const why = d.errors && d.errors.content ? d.errors.content[0] : (d.error || '');
+                    if (r.ok && d.ok) { if (window.showToast) showToast('Message forwarded.', 'success'); }
+                    else if (window.showToast) showToast('Could not forward the message' + (why ? ': ' + why : '.'));
                 } catch (e) { ov.remove(); if (window.showToast) showToast('Could not forward the message.'); }
             }); };
         draw('');
