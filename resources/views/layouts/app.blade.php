@@ -2604,6 +2604,9 @@ function chatUpdateBadge(count) {
     window.chatLoadConvs = chatLoadConvs;
     window.chatSelectConv = chatSelectConv;
     window.chatBubble = chatBubble;
+    // The voice-note recorder lives in another script and needs these two (they are private to this function):
+    window.chatActiveConvId = () => _activeConvId;
+    window.chatNoteSentId = (id) => { _lastMsgId = Math.max(_lastMsgId, id); };
 })();
 
 window.tpChatBubble = chatBubble;
@@ -3251,7 +3254,8 @@ window.vnSend = function(panel) {
             if (!d.url) throw new Error('No URL');
             const tag = `[voice dur="${dur}"]${d.url}[/voice]`;
             if (panel === 'chat') {
-                if (!_activeConvId) return;
+                const convId = window.chatActiveConvId && window.chatActiveConvId();
+                if (!convId) return;
                 const el  = document.getElementById('chat-msg-area');
                 const now = new Date();
                 const ts  = now.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true,timeZone:APP_TZ}).toLowerCase();
@@ -3260,14 +3264,14 @@ window.vnSend = function(panel) {
                 const _echo3 = _inner3.lastElementChild;
                 if (_echo3) { _echo3.dataset.local = '1'; _echo3.dataset.echoText = tag; }
                 el.scrollTop = el.scrollHeight;
-                const r3 = await fetch(API_BASE + '/api/chat/convs/' + _activeConvId + '/send', {
+                const r3 = await fetch(API_BASE + '/api/chat/convs/' + convId + '/send', {
                     method: 'POST',
                     headers: {'Content-Type':'application/json','X-CSRF-TOKEN':CSRF},
                     body: JSON.stringify({content: tag}),
                 });
                 const d3 = await r3.json();
                 if (d3.message?.id) {
-                    _lastMsgId = Math.max(_lastMsgId, d3.message.id);
+                    if (window.chatNoteSentId) chatNoteSentId(d3.message.id);
                     if (_echo3 && _echo3.dataset.local === '1') {
                         // See chatSend()'s rebuild — the optimistic echo has no msgId so
                         // chatBubble() left out the react/more (delete) button.
@@ -3280,7 +3284,10 @@ window.vnSend = function(panel) {
             } else if (panel === 'cp' && window.cpSendRaw) {
                 await window.cpSendRaw(tag);
             }
-        } catch(e) { console.error('Voice upload failed', e); }
+        } catch(e) {
+            console.error('Voice upload failed', e);
+            if (window.showToast) showToast('The voice note could not be sent. Please try again.');
+        }
     };
     _vnRec.stop();
 };

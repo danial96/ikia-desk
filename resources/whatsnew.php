@@ -59,4 +59,10 @@ return [
             'Chats, the chat list and tasks you opened before now appear instantly when you open them again; attachments and images are kept by the browser instead of being downloaded every time.',
         ],
     ],
+    [
+        'id' => 9, 'date' => '2026-10-05',
+        'items' => [
+            'Fixed: voice notes sent from the chat panel (the side chat) were not being sent.',
+        ],
+    ],
 ];

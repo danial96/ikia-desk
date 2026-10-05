@@ -32,4 +32,22 @@ class VoiceNoteUiTest extends TestCase
         $block = substr($html, $start, 6000);
         $this->assertStringContainsString("'X-CSRF-TOKEN': csrf", $block);        // without it the server answers 419 and the forward just "fails"
     }
+
+    public function test_the_voice_recorder_never_touches_variables_that_are_private_to_the_popup_chat(): void
+    {
+        $user = User::factory()->create(['is_active' => true, 'role' => 'super_admin']);
+        $html = $this->actingAs($user)->get('/tasks/kanban?status=in_progress')->assertOk()->getContent();
+
+        // The recorder is a separate script from the popup chat. Reading the popup's private _activeConvId / _lastMsgId from
+        // there threw a ReferenceError after the upload, so a voice note from the popup chat was never sent (silently).
+        $start = strpos($html, 'VOICE NOTE RECORDER');
+        $this->assertNotFalse($start);
+        $recorder = substr($html, $start, strpos($html, '</script>', $start) - $start);
+        foreach (['_activeConvId', '_lastMsgId', '_chatLastAuthor', '_chatConvType', '_allConvs', '_chatOpen'] as $private) {
+            $this->assertStringNotContainsString($private, $recorder, "recorder must not use $private");
+        }
+        $this->assertStringContainsString('window.chatActiveConvId()', $recorder);
+        $this->assertStringContainsString('window.chatActiveConvId = () => _activeConvId;', $html);       // handed over explicitly
+        $this->assertStringContainsString("showToast('The voice note could not be sent. Please try again.')", $recorder);   // and a failure is visible
+    }
 }
