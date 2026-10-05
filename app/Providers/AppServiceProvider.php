@@ -26,8 +26,7 @@ class AppServiceProvider extends ServiceProvider
      *
      * This runs on EVERY page. It used to aggregate MAX(created_at) over the whole messages table to find
      * "last message per conversation" (~330ms on production, on every single navigation). Now it only touches
-     * the handful of direct conversations you are in, and finds each one's newest message through the
-     * (conversation_id, deleted_at, id) index.
+     * the handful of direct conversations you are in, and finds each one's newest message with one index seek.
      */
     private function teamRail(int $me)
     {
@@ -44,17 +43,15 @@ class AppServiceProvider extends ServiceProvider
 
         $lastByUser = [];
         if ($others->isNotEmpty()) {
-            // newest message id per conversation (index only), then just those few rows for their timestamps
-            $newestIds = DB::table('messages')
-                ->whereIn('conversation_id', $others->keys())
-                ->whereNull('deleted_at')
-                ->groupBy('conversation_id')
-                ->selectRaw('MAX(id) as id')
-                ->pluck('id');
-
-            foreach (DB::table('messages')->whereIn('id', $newestIds)->get(['conversation_id', 'created_at']) as $m) {
-                $uid = $others[$m->conversation_id] ?? null;
-                if ($uid && (!isset($lastByUser[$uid]) || $m->created_at > $lastByUser[$uid])) $lastByUser[$uid] = $m->created_at;
+            // One index seek per conversation (newest non-deleted message). A GROUP BY / MAX() over these
+            // conversations was measured at ~260ms on production because MySQL reads every message in them.
+            $rows = DB::table('conversations as c')
+                ->whereIn('c.id', $others->keys())
+                ->selectRaw('c.id, (select m.created_at from messages m where m.conversation_id = c.id and m.deleted_at is null order by m.id desc limit 1) as last_at')
+                ->get();
+            foreach ($rows as $r) {
+                $uid = $others[$r->id] ?? null;
+                if ($uid && $r->last_at && (!isset($lastByUser[$uid]) || $r->last_at > $lastByUser[$uid])) $lastByUser[$uid] = $r->last_at;
             }
         }
 
