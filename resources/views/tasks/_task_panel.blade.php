@@ -1713,7 +1713,12 @@ let _rtTaskTimer = null;
 window.addEventListener('rt:task', function (e) {
     const d = e.detail || {};
     if (d.by === window.ME_LOCAL_ID) return;            // our own action in this tab is already on screen
-    if (typeof kbUpdateCard === 'function' && d.k === 'activity' && document.getElementById('kb-task-' + d.t)) kbUpdateCard(d.t);
+    if (typeof kbUpdateCard === 'function' && d.k === 'activity' && document.getElementById('kb-task-' + d.t)) {
+        // several changes to one task arrive in a burst: refresh its card once, not once per change
+        window._kbCardTimers = window._kbCardTimers || {};
+        clearTimeout(window._kbCardTimers[d.t]);
+        window._kbCardTimers[d.t] = setTimeout(() => kbUpdateCard(d.t), 500);
+    }
     if (!_currentTaskId || String(d.t) !== String(_currentTaskId) || document.hidden) return;   // hidden: refreshed when the tab returns
     clearTimeout(_rtTaskTimer);
     _rtTaskTimer = setTimeout(() => tpPollOnce(_currentTaskId), 60);

@@ -479,7 +479,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/api/kanban-task/{id}', function ($id) {
         $task = \App\Models\Task::select('id','title','status','priority','deadline','assigned_to','project_id','created_by')->with(['assignee:id,name','project:id,name'])->findOrFail($id);
         $user = auth()->user();
-        if (!$user->isSuperAdmin() && !$task->isMember($user) && $task->created_by !== $user->id && $task->assigned_to !== $user->id) {
+        // Same rule as opening the task itself (people with the "view all tasks" permission, and people who were
+        // @mentioned in it, can see its card on the board too). A narrower rule here made the card refresh 403.
+        if (!$task->canBeOpenedBy($user)) {
             abort(403);
         }
         $today    = now()->startOfDay();
