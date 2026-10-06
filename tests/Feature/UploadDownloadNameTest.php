@@ -38,7 +38,7 @@ class UploadDownloadNameTest extends TestCase
         $res = $this->actingAs($user)->get('/uploads/' . $stored . '/' . rawurlencode($realName) . '?name=' . rawurlencode($realName));
 
         $res->assertOk();
-        $this->assertStringContainsString('inline', $res->headers->get('Content-Disposition'));
+        $this->assertStringContainsString('attachment', $res->headers->get('Content-Disposition'));
         // the real (non-ASCII) name is still delivered, via the RFC 5987 filename* parameter
         if (preg_match('/[^ -~]/', $realName)) {
             $this->assertStringContainsString("filename*=utf-8''" . rawurlencode($realName), $res->headers->get('Content-Disposition'));

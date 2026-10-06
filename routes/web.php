@@ -314,9 +314,13 @@ Route::middleware('auth')->group(function () {
         // Stored files never change under the same URL (each upload gets a unique name), so let the browser keep them:
         // reopening a task or chat shows its images and attachments from the local cache instead of downloading them again.
         // 'private': only this browser may keep it, never a shared cache or CDN (these files are for signed-in people only).
-        $file = response()->file($full)->setContentDisposition('inline', $niceName)
+        // Only what a browser can show properly stays inline (images, PDF, audio, video); every other type is a download,
+        // so a .sql/.txt/.zip never turns into a tab of text. nosniff: the browser must not guess a more active type.
+        $inline = in_array($ext, ['jpg','jpeg','png','gif','webp','bmp','avif','ico','pdf','mp3','wav','ogg','m4a','aac','weba','webm','mp4','mov','m4v'], true);
+        $file = response()->file($full)->setContentDisposition($inline ? 'inline' : 'attachment', $niceName)
             ->setPrivate()->setMaxAge(2592000)->setImmutable()
             ->setEtag(md5($full . '|' . filemtime($full) . '|' . filesize($full)));
+        $file->headers->set('X-Content-Type-Options', 'nosniff');
         $file->isNotModified($request);      // browser already has this exact file: answer 304 without sending it again
         return $file;
     })->where('path', '.*')->name('uploads.show');

@@ -1019,6 +1019,23 @@ window.fileViewHref = function(url) {
         return url;
     };
 }
+
+// Attributes for a link to an attached file: things a browser can show (images, PDF, audio/video, docx/xlsx through the
+// viewer) open in a new tab; everything else (.sql, .zip, .txt ...) is a plain download, so the click saves the file
+// instead of opening a tab full of text. Same-origin only; any other address keeps the old behaviour.
+window.fileLinkAttrs = function(url, name) {
+    const open = ' target="_blank" rel="noopener"';
+    try {
+        const u = new URL(url, location.origin);
+        if (u.origin !== location.origin) return open;
+        let n = name || u.searchParams.get('name') || '';
+        if (!n) { try { n = decodeURIComponent(u.pathname.split('/').pop() || ''); } catch (e) { n = u.pathname.split('/').pop() || ''; } }
+        const ext = n.indexOf('.') > -1 ? n.split('.').pop().toLowerCase() : '';
+        const viewable = ['jpg','jpeg','png','gif','webp','bmp','avif','ico','pdf','mp3','wav','ogg','m4a','aac','weba','webm','mp4','mov','m4v','docx','xlsx','xls'];
+        if (viewable.indexOf(ext) > -1) return open;
+        return ' download="' + String(n).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;') + '"';
+    } catch (e) { return open; }
+};
 // Clicking a reply's quoted preview jumps to (and briefly highlights) the original message —
 // shared by chat, the chat popup, and task comments, all of which render a quote preview above
 // a reply. Only works if the original message is already in the DOM (no older-message lazy-load).
@@ -1678,7 +1695,7 @@ function renderMsgContent(text, isMine) {
             out += `<img src="${escH(imgM[1])}" style="max-width:280px;max-height:220px;object-fit:cover;border-radius:8px;display:block;margin:4px 0;cursor:zoom-in;transition:opacity .15s;" loading="lazy" onmouseover="this.style.opacity='.88'" onmouseout="this.style.opacity='1'" onclick="${fn}">`;
         } else if (fileM) {
             const _fu = /^(https?:\/\/|\/)/i.test(fileM[2]) ? fileM[2] : '#';
-            out += `<a href="${escH(fileViewHref(_fu))}" target="_blank" rel="noopener"
+            out += `<a href="${escH(fileViewHref(_fu))}"${window.fileLinkAttrs?fileLinkAttrs(_fu,fileM[1]):' target="_blank" rel="noopener"'}
                 style="display:inline-flex;align-items:center;gap:6px;background:rgba(0,0,0,.12);border-radius:7px;padding:5px 10px;color:inherit;text-decoration:none;font-size:11.5px;margin:3px 0;">
                 <i class="fas fa-file" style="opacity:.7;"></i>${escH(fileM[1])}
             </a>`;
@@ -3615,7 +3632,7 @@ window.ChatAbout = (function () {
                 h += imgs.length ? '<div style="padding:0 10px 10px;display:grid;grid-template-columns:repeat(3,1fr);gap:6px;">' + imgs.map(m => '<img data-open="' + esc(m.url) + '" src="' + esc(m.url) + '" loading="lazy" title="' + esc(m.author + ' · ' + m.date) + '" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;cursor:zoom-in;display:block;" alt="">').join('') + '</div>'
                                  : '<div style="text-align:center;padding:60px;color:#a0aab1;">No photos yet.</div>';
             } else {
-                h += files.length ? files.map(f => '<a href="' + esc(f.url) + '" target="_blank" style="' + card + 'padding:10px 14px;display:flex;align-items:center;gap:12px;text-decoration:none;color:#333;"><i class="fas fa-file" style="color:#6b7680;font-size:20px;"></i><span style="min-width:0;flex:1;"><span style="display:block;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + esc(f.name) + '</span><span style="font-size:12px;color:#a0aab1;">' + esc(f.author) + ' · ' + esc(f.date) + '</span></span></a>').join('')
+                h += files.length ? files.map(f => '<a href="' + esc(f.url) + '"' + (window.fileLinkAttrs ? fileLinkAttrs(f.url, f.name) : ' target="_blank"') + ' style="' + card + 'padding:10px 14px;display:flex;align-items:center;gap:12px;text-decoration:none;color:#333;"><i class="fas fa-file" style="color:#6b7680;font-size:20px;"></i><span style="min-width:0;flex:1;"><span style="display:block;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + esc(f.name) + '</span><span style="font-size:12px;color:#a0aab1;">' + esc(f.author) + ' · ' + esc(f.date) + '</span></span></a>').join('')
                                    : '<div style="text-align:center;padding:60px;color:#a0aab1;">No files yet.</div>';
             }
             wrap('Files and media', h, true);

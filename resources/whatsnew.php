@@ -71,4 +71,10 @@ return [
             "Task attachments: clicking an image now opens a viewer with next / previous arrows for the task's other images.",
         ],
     ],
+    [
+        'id' => 11, 'date' => '2026-10-06',
+        'items' => [
+            'Fixed: clicking a file attachment such as a .sql, .zip or .txt now downloads it instead of opening a new tab.',
+        ],
+    ],
 ];
