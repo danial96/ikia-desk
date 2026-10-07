@@ -286,6 +286,7 @@ const TP_LOCAL_URL      = '{{ url("/api/local-task") }}';
 const TP_TASKS_URL      = '{{ url("/tasks") }}';
 const TP_CSRF           = '{{ csrf_token() }}';
 if (typeof window.ME_LOCAL_ID === 'undefined') { window.ME_LOCAL_ID = {{ auth()->id() }}; }
+window.TP_IS_ADMIN = {{ auth()->user()->isSuperAdmin() ? 'true' : 'false' }};
 const ME_B24_ID         = {{ (int) env('BITRIX_USER_ID', 155) }};
 
 /* ─── helpers ──────────────────────────────────────────── */
@@ -2062,21 +2063,24 @@ window.tpSubmitComment=function(taskId){
     const txt=(ta.value||'').trim();
 
     if (window._tpEditingId) {
-        if (!txt) return;
-        if (msgTooLong(txt.length)) return;
+        // the comment's attachments stay (unless removed with the x in the edit bar); the box holds only its text
+        const keptTags = window._tpEditTags || [];
+        const newRaw = keptTags.length ? keptTags.join('\n') + (txt ? '\n' + txt : '') : txt;
+        if (!newRaw) { showToast('Nothing left in this comment. Use Delete to remove the whole comment.'); return; }
+        if (msgTooLong(newRaw.length)) return;
         const id = window._tpEditingId;
         tpCancelEdit();
         fetch('/api/local-task/comments/'+id, {
             method:'PATCH',
             headers:{'Content-Type':'application/json','X-CSRF-TOKEN':TP_CSRF,'Accept':'application/json'},
-            body: JSON.stringify({content: txt}),
+            body: JSON.stringify({content: newRaw}),
         }).then(r=>r.json()).then(resp=>{
             if (resp?.error || resp?.errors) { showToast(resp.error === 'Too late to edit' ? 'Too late to edit this comment.' : 'Could not edit the comment.'); return; }
             const row = document.querySelector(`#tp-messages [data-msg-id="${id}"]`);
             const t = row?.querySelector('[data-raw]');
             if (t) {
-                t.dataset.raw = txt;
-                t.innerHTML = parseMsg(txt);
+                t.dataset.raw = newRaw;
+                t.innerHTML = parseMsg(newRaw);
                 const meta = t.parentElement.querySelector('div[style*="text-align:right"]');
                 if (meta && !meta.querySelector('.tp-edited')) meta.insertAdjacentHTML('afterbegin', '<span class="tp-edited" style="font-size:11px;color:rgba(0,0,0,.4);margin-right:4px;font-style:italic;">edited</span>');
             }
@@ -2149,8 +2153,12 @@ window.tpStartEdit = function(msgId) {
     if (!raw) return;
     tpCancelReply();
     window._tpEditingId = msgId;
+    // attachments ([img] / [file] / [voice] tags) are kept aside and shown as chips; the box holds just the text
+    const tagRe = /\[img\][\s\S]*?\[\/img\]|\[file name="[^"]*"\][\s\S]*?\[\/file\]|\[voice[^\]]*\][\s\S]*?\[\/voice\]/g;
+    window._tpEditTags = raw.match(tagRe) || [];
+    const bodyText = raw.replace(tagRe, '').replace(/^\s+|\s+$/g, '');
     const ta = document.getElementById('tp-comment-text');
-    if (ta) { ta.value = raw; ta.focus(); ta.selectionStart = ta.selectionEnd = ta.value.length; tpComposerState(); }
+    if (ta) { ta.value = bodyText; ta.focus(); ta.selectionStart = ta.selectionEnd = ta.value.length; tpComposerState(); }
     let bar = document.getElementById('tp-edit-bar');
     if (!bar) {
         bar = document.createElement('div');
@@ -2162,10 +2170,40 @@ window.tpStartEdit = function(msgId) {
     }
     bar.style.display = 'flex';
     const snip = document.getElementById('tp-edit-snip');
-    if (snip) snip.textContent = raw.replace(/\s+/g, ' ').slice(0, 120);
+    if (snip) snip.textContent = bodyText.replace(/\s+/g, ' ').slice(0, 120);
+    tpRenderEditTags();
+};
+// the comment's attachments while editing: each can be taken off with its x (applies when you send the edit)
+window.tpRenderEditTags = function() {
+    let box = document.getElementById('tp-edit-atts');
+    const bar = document.getElementById('tp-edit-bar');
+    if (!bar) return;
+    if (!box) {
+        box = document.createElement('div');
+        box.id = 'tp-edit-atts';
+        box.style.cssText = 'display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;';
+        const holder = bar.querySelector('span[style*="flex:1"]') || bar;
+        holder.appendChild(box);
+    }
+    const tags = window._tpEditTags || [];
+    const label = t => {
+        let m = t.match(/^\[file name="([^"]*)"\]/); if (m) return m[1] || 'file';
+        if (/^\[img\]/.test(t)) { try { return decodeURIComponent((t.replace(/^\[img\]|\[\/img\]$/g, '').split('?')[0].split('/').pop()) || 'image'); } catch (e) { return 'image'; } }
+        return 'voice note';
+    };
+    box.innerHTML = tags.map((t, i) => '<span style="display:inline-flex;align-items:center;gap:6px;max-width:220px;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:14px;padding:2px 4px 2px 9px;font-size:11.5px;color:#334155;">'
+        + '<i class="fas fa-paperclip" style="font-size:10px;color:#64748b;"></i><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + esc(label(t)) + '</span>'
+        + '<button type="button" onclick="tpDropEditTag(' + i + ')" title="Remove this attachment" style="border:none;background:none;cursor:pointer;color:#94a3b8;font-size:13px;line-height:1;padding:1px 5px;">&times;</button></span>').join('');
+};
+window.tpDropEditTag = function(i) {
+    if (!window._tpEditTags) return;
+    window._tpEditTags.splice(i, 1);
+    tpRenderEditTags();
 };
 window.tpCancelEdit = function() {
     window._tpEditingId = null;
+    window._tpEditTags = [];
+    const _ab = document.getElementById('tp-edit-atts'); if (_ab) _ab.innerHTML = '';
     const ta = document.getElementById('tp-comment-text'); if (ta) { ta.value = ''; tpComposerState(); }
     const bar = document.getElementById('tp-edit-bar'); if (bar) bar.style.display = 'none';
 };
@@ -2205,6 +2243,12 @@ window.tpCommentCtx = function(e, btn, msgId, isMine, createdTs) {
             if (!id) return;
             if (action === 'reply') window.tpStartReply(id);
             else if (action === 'edit') window.tpStartEdit(id);
+            else if (action === 'delete') {
+                appDeleteConfirm('/api/local-task/comments/' + id, function () {
+                    const r = document.querySelector(`#tp-messages [data-msg-id="${id}"]`);
+                    if (r) r.remove();
+                }, { title: 'Delete comment', text: 'Delete this comment and its attachments?', note: 'This cannot be undone.' });
+            }
             else if (action === 'copy') {
                 const row = document.querySelector(`#tp-messages [data-msg-id="${id}"]`);
                 const raw = row?.querySelector('[data-raw]')?.dataset.raw || '';
@@ -2216,10 +2260,12 @@ window.tpCommentCtx = function(e, btn, msgId, isMine, createdTs) {
     _tpCtxId = msgId;
     const row = document.querySelector(`#tp-messages [data-msg-id="${msgId}"]`);
     const raw = row?.querySelector('[data-raw]')?.dataset.raw || '';
-    const canEdit = isMine && (Date.now()/1000 - (createdTs||0)) < 86400 && !/\[(img|file|voice)/i.test(raw);
+    const canEdit = isMine && (Date.now()/1000 - (createdTs||0)) < 86400;
+    const canDelete = isMine || window.TP_IS_ADMIN;
     menu.innerHTML = `<div class="chat-ctx-item" data-action="reply"><span>Reply</span><i class="fas fa-quote-right"></i></div>` +
         `<div class="chat-ctx-item" data-action="copy"><span>Copy</span><i class="far fa-copy"></i></div>` +
-        (canEdit ? `<div class="chat-ctx-item" data-action="edit"><span>Edit</span><i class="fas fa-pen"></i></div>` : '');
+        (canEdit ? `<div class="chat-ctx-item" data-action="edit"><span>Edit</span><i class="fas fa-pen"></i></div>` : '') +
+        (canDelete ? `<div class="chat-ctx-item" data-action="delete" style="color:#ef4444;"><span>Delete</span><i class="far fa-trash-can"></i></div>` : '');
     menu.style.display = 'block';
     const r = btn.getBoundingClientRect(), mW = menu.offsetWidth||150, mH = menu.offsetHeight||90;
     let x = r.left + r.width/2 - mW/2, y = r.bottom + 6;

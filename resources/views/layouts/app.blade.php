@@ -4075,10 +4075,10 @@ document.addEventListener('click', function(e) {
             <div style="width:60px;height:60px;border-radius:16px;background:#fee2e2;display:flex;align-items:center;justify-content:center;margin:0 auto 18px;box-shadow:0 4px 14px rgba(239,68,68,.18);">
                 <i class="fas fa-trash-alt" style="font-size:22px;color:#ef4444;"></i>
             </div>
-            <div style="font-size:16px;font-weight:700;color:#111827;margin-bottom:8px;letter-spacing:-.01em;">Delete Task</div>
+            <div id="app-del-title" style="font-size:16px;font-weight:700;color:#111827;margin-bottom:8px;letter-spacing:-.01em;">Delete Task</div>
             <div style="font-size:13.5px;color:#6b7280;line-height:1.65;">
-                Are you sure you want to delete this task?
-                <span style="display:block;margin-top:3px;font-weight:600;color:#374151;">It moves to Trash — the task owner or an admin can restore it.</span>
+                <span id="app-del-text">Are you sure you want to delete this task?</span>
+                <span id="app-del-note" style="display:block;margin-top:3px;font-weight:600;color:#374151;">It moves to Trash — the task owner or an admin can restore it.</span>
             </div>
         </div>
 
@@ -4105,8 +4105,13 @@ document.addEventListener('click', function(e) {
 <script>
 var _appDelUrl = null, _appDelCb = null;
 
-window.appDeleteConfirm = function(url, cb) {
+// opts (optional) re-words the dialog for something other than a task: {title, text, note}
+window.appDeleteConfirm = function(url, cb, opts) {
     _appDelUrl = url; _appDelCb = cb || null;
+    opts = opts || {};
+    document.getElementById('app-del-title').textContent = opts.title || 'Delete Task';
+    document.getElementById('app-del-text').textContent  = opts.text  || 'Are you sure you want to delete this task?';
+    document.getElementById('app-del-note').textContent  = opts.note  || 'It moves to Trash — the task owner or an admin can restore it.';
     var ov   = document.getElementById('app-del-overlay');
     var card = document.getElementById('app-del-card');
     var btn  = document.getElementById('app-del-btn');
@@ -4138,7 +4143,7 @@ window.appDelExecute = function(btn) {
     }).then(function(res) {
         appDelCancel();
         if (res && res.status === 403) {
-            if (window.showToast) showToast('Only the task owner or an admin can delete this.');
+            if (window.showToast) showToast(_appDelUrl && _appDelUrl.indexOf('/comments/') > -1 ? 'Only the author or an admin can delete this comment.' : 'Only the task owner or an admin can delete this.');
             btn.innerHTML = '<i class="fas fa-trash-alt" style="font-size:10px;"></i>Delete'; btn.disabled = false;
             return;
         }

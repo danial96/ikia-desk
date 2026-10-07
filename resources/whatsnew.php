@@ -76,6 +76,7 @@ return [
         'items' => [
             'Fixed: clicking a file attachment such as a .sql, .zip or .txt now downloads it instead of opening a new tab.',
             'Task description with several attached files: "Download all" (one zip) is back in its Files list.',
+            'Task comments: the ⋯ menu now has Delete (your own comment, or any if you are an admin), and Edit works on comments with attachments too — you can take an attachment off with its ×.',
         ],
     ],
 ];

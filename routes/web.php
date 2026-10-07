@@ -579,6 +579,18 @@ Route::middleware('auth')->group(function () {
         return response()->json(['ok' => true, 'editedAt' => $comment->edited_at->format('g:i a')]);
     });
 
+    // Delete a task comment (with the attachments it carries): its author, or an admin
+    Route::delete('/api/local-task/comments/{id}', function ($id) {
+        $user    = auth()->user();
+        $comment = \App\Models\TaskComment::with('task')->findOrFail($id);
+        if ((int) $comment->user_id !== (int) $user->id && !$user->isSuperAdmin()) return response()->json(['error' => 'Forbidden'], 403);
+        $task = $comment->task;
+        if (!$task || !$task->canBeOpenedBy($user)) return response()->json(['error' => 'Forbidden'], 403);
+        $comment->delete();
+        $task->broadcastChange('comment', $user->id);
+        return response()->json(['ok' => true]);
+    })->name('api.local.comment.delete');
+
     // Toggle a reaction on a task comment
     Route::post('/api/local-task/comments/{id}/react', function ($id, \Illuminate\Http\Request $request) {
         $request->validate(['emoji' => 'required|string|max:8']);
