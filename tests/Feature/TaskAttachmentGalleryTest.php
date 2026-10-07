@@ -33,4 +33,13 @@ class TaskAttachmentGalleryTest extends TestCase
         $this->assertStringContainsString('const descGalKey = descImgUrls.length > 1', $html);
         $this->assertStringContainsString('`imgLightbox(${descGalKey},${_di})`', $html);
     }
+
+    public function test_files_named_in_a_task_description_offer_download_all_as_a_zip(): void
+    {
+        $u = User::factory()->create(['is_active' => true, 'role' => 'super_admin']);
+        $html = $this->actingAs($u)->get('/tasks/kanban?status=in_progress')->assertOk()->getContent();
+
+        $this->assertStringContainsString('MsgUX.dlAllHtml(raw)', $html);
+        $this->assertStringContainsString("sLabel('fa-paperclip','Files'+dlAllLink)", $html);
+    }
 }

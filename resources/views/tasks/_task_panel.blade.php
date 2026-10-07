@@ -405,7 +405,10 @@ const parseDescAttachments = raw => {
         </a>`;
     }).join('');
 
-    return sec(`${sLabel('fa-paperclip','Files')}<div style="display:flex;flex-wrap:wrap;gap:8px;">${cards}</div>`);
+    // two or more uploaded files named in the description: one "Download all" zip, same as the comments have
+    const dlAll = window.MsgUX && MsgUX.dlAllHtml ? MsgUX.dlAllHtml(raw) : '';
+    const dlAllLink = dlAll ? `<span style="margin-left:auto;text-transform:none;letter-spacing:0;font-weight:500;font-size:13px;">${dlAll.replace('margin-top:6px;','margin-top:0;')}</span>` : '';
+    return sec(`${sLabel('fa-paperclip','Files'+dlAllLink)}<div style="display:flex;flex-wrap:wrap;gap:8px;">${cards}</div>`);
 };
 
 const parseMsg = txt => {

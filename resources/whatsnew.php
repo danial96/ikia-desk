@@ -75,6 +75,7 @@ return [
         'id' => 11, 'date' => '2026-10-06',
         'items' => [
             'Fixed: clicking a file attachment such as a .sql, .zip or .txt now downloads it instead of opening a new tab.',
+            'Task description with several attached files: "Download all" (one zip) is back in its Files list.',
         ],
     ],
 ];
