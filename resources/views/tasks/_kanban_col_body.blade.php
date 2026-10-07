@@ -46,7 +46,7 @@
     <div style="display:flex;align-items:center;gap:4px;">
         @if($task->creator)<img src="{{ $task->creator->avatar_url }}" title="{{ $task->creator->name }}" alt="" style="width:22px;height:22px;border-radius:50%;object-fit:cover;">@endif
         <i class="fas fa-chevron-right" style="font-size:8px;color:#c0c6cc;"></i>
-        @if($task->assignee)<img src="{{ $task->assignee->avatar_url }}" title="{{ $task->assignee->name }}" alt="" style="width:22px;height:22px;border-radius:50%;object-fit:cover;">@endif
+        <span class="kb-assignee" style="display:inline-flex;">@if($task->assignee)<img src="{{ $task->assignee->avatar_url }}" title="{{ $task->assignee->name }}" alt="" style="width:22px;height:22px;border-radius:50%;object-fit:cover;">@endif</span>
     </div>
 </div>
 @empty

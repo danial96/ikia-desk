@@ -1080,7 +1080,7 @@ function renderAssigneeBlock(assignee, taskId, employees) {
             </div>
         </div>`);
 }
-window.tpSetAssignee=function(taskId,userId){ tpUpdateField(taskId,'assigned_to',userId,()=>{ fetch(TP_LOCAL_URL+'/'+taskId,{headers:{'X-CSRF-TOKEN':TP_CSRF,'Accept':'application/json'}}).then(r=>r.json()).then(d=>tpRenderLocal(d)); }); tpToggleDropdown('tp-drop-assignee'); };
+window.tpSetAssignee=function(taskId,userId){ tpUpdateField(taskId,'assigned_to',userId,()=>{ fetch(TP_LOCAL_URL+'/'+taskId,{headers:{'X-CSRF-TOKEN':TP_CSRF,'Accept':'application/json'}}).then(r=>r.json()).then(d=>tpRenderLocal(d)); if (typeof kbUpdateCard === 'function') kbUpdateCard(taskId); }); tpToggleDropdown('tp-drop-assignee'); };
 
 /* ─── render Bitrix task ───────────────────────────────── */
 function tpRenderB24(data, bxId) {
@@ -1876,6 +1876,17 @@ function kbUpdateCard(taskId) {
         const stColors  = {new:['#f1f5f9','#334155','#cbd5e1'],in_progress:['#dbeafe','#1d4ed8','#bfdbfe'],reviewing:['#ede9fe','#6d28d9','#ddd6fe'],paused:['#fef3c7','#b45309','#fde68a'],completed:['#dcfce7','#166534','#bbf7d0']};
         if(badges[0]&&priColors[d.priority]){ badges[0].style.background=priColors[d.priority][0]; badges[0].style.color=priColors[d.priority][1]; badges[0].textContent=d.priority.toUpperCase(); }
         if(badges[1]&&stColors[d.status])  { const sc=stColors[d.status]; badges[1].style.background=sc[0]; badges[1].style.color=sc[1]; badges[1].style.borderColor=sc[2]; badges[1].textContent=d.status.replace('_',' ').replace(/\b\w/g,c=>c.toUpperCase()); }
+        // The responsible person's avatar on the card
+        const asg = card.querySelector('.kb-assignee');
+        if (asg) {
+            asg.textContent = '';
+            if (d.assignee) {
+                const im = document.createElement('img');
+                im.src = d.assignee.avatar || ''; im.title = d.assignee.name || ''; im.alt = '';
+                im.style.cssText = 'width:22px;height:22px;border-radius:50%;object-fit:cover;';
+                asg.appendChild(im);
+            }
+        }
         // Move card to correct column
         const targetCol = document.getElementById('kb-col-' + d.col);
         if (targetCol && card.parentElement !== targetCol) {

@@ -80,4 +80,22 @@ class TaskResponsibleRolesTest extends TestCase
         $this->actingAs($pm)->patchJson(route('tasks.field', $task), ['field' => 'assigned_to', 'value' => null])->assertOk();
         $this->assertSame([$dev->id], $task->fresh()->observers()->pluck('users.id')->all());
     }
+
+    public function test_the_kanban_card_shows_and_refreshes_the_responsibles_avatar_after_a_change(): void
+    {
+        $pm  = User::factory()->create(['role' => 'admin', 'is_active' => true]);
+        $a   = User::factory()->create(['is_active' => true, 'name' => 'Aaa First']);
+        $b   = User::factory()->create(['is_active' => true, 'name' => 'Bbb Second']);
+        $task = Task::create(['title' => 'Card', 'created_by' => $pm->id, 'assigned_to' => $a->id, 'priority' => 'medium', 'status' => 'in_progress']);
+
+        // the board draws the avatar inside a slot the page script can refill
+        $html = $this->actingAs($pm)->get('/tasks/kanban?status=in_progress')->assertOk()->getContent();
+        $this->assertStringContainsString('class="kb-assignee"', $html);
+        $this->assertStringContainsString("const asg = card.querySelector('.kb-assignee');", $html);
+        $this->assertStringContainsString("if (typeof kbUpdateCard === 'function') kbUpdateCard(taskId);", $html);   // panel dropdown refreshes the card
+
+        // and the card refresh endpoint answers with the NEW responsible
+        $this->actingAs($pm)->patchJson(route('tasks.field', $task), ['field' => 'assigned_to', 'value' => $b->id])->assertOk();
+        $this->actingAs($pm)->getJson("/api/kanban-task/{$task->id}")->assertOk()->assertJsonPath('assignee.name', 'Bbb Second');
+    }
 }
