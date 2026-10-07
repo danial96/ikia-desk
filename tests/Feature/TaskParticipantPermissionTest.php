@@ -60,4 +60,27 @@ class TaskParticipantPermissionTest extends TestCase
             ->assertForbidden();
         $this->assertFalse($task->fresh()->members()->where('user_id', $other->id)->exists());
     }
+
+    public function test_an_observer_can_take_themselves_off_but_not_add_or_remove_anyone_else(): void
+    {
+        $creator  = $this->makeUser();
+        $watcher  = $this->makeUser();
+        $other    = $this->makeUser();
+        $task     = $this->makeTask($creator);
+        $task->observers()->attach([$watcher->id, $other->id]);
+
+        // not someone else, and not adding anybody
+        $this->actingAs($watcher)->postJson(route('tasks.observers.toggle', $task), ['user_id' => $other->id])->assertForbidden();
+        $newbie = $this->makeUser();
+        $this->actingAs($watcher)->postJson(route('tasks.observers.toggle', $task), ['user_id' => $newbie->id])->assertForbidden();
+        $this->assertSame(2, $task->fresh()->observers()->count());
+
+        // themselves: fine, and the page is told the task is no longer theirs to open
+        $this->actingAs($watcher)->postJson(route('tasks.observers.toggle', $task), ['user_id' => $watcher->id])
+            ->assertOk()->assertJson(['success' => true, 'action' => 'removed', 'left' => true]);
+        $this->assertFalse($task->fresh()->observers()->where('user_id', $watcher->id)->exists());
+
+        // and, no longer an observer, they cannot add themselves back
+        $this->actingAs($watcher)->postJson(route('tasks.observers.toggle', $task), ['user_id' => $watcher->id])->assertForbidden();
+    }
 }

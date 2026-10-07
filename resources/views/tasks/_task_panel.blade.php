@@ -766,6 +766,13 @@ window.tpUpdateField = function(taskId, field, value, onDone, onFail) {
 window.tpToggleMember = function(taskId,userId,onDone){
     fetch(TP_TASKS_URL+'/'+taskId+'/participants/toggle',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-TOKEN':TP_CSRF,'Accept':'application/json'},body:JSON.stringify({user_id:userId})}).then(r=>r.json()).then(resp=>{if(onDone)onDone(resp);}).catch(()=>{if(onDone)onDone({success:false});});
 };
+// You took yourself off a task you could only see as an observer: close it and drop its card from the board.
+window.tpLeftTask = function(taskId){
+    if(window.showToast) showToast('You are no longer an observer of this task.');
+    tpClose();
+    const card=document.getElementById('kb-task-'+taskId); if(card) card.remove();
+    const row=document.querySelector('[data-task-id="'+taskId+'"]'); if(row) row.remove();
+};
 window.tpToggleObserver = function(taskId,userId,onDone){
     fetch(TP_TASKS_URL+'/'+taskId+'/observers/toggle',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-TOKEN':TP_CSRF,'Accept':'application/json'},body:JSON.stringify({user_id:userId})}).then(r=>r.json()).then(resp=>{if(onDone)onDone(resp);}).catch(()=>{if(onDone)onDone({success:false});});
 };
@@ -817,7 +824,7 @@ window.tpToggleMemberUI = function(taskId,userId,type) {
     const key=type+'-'+taskId, st=(window._tpPS||{})[key];
     const fn=type==='observer'?tpToggleObserver:tpToggleMember;
     const dropId='tp-drop-'+type+'-'+taskId;
-    if(!st||!$(dropId)){ fn(taskId,userId,()=>fetch(TP_LOCAL_URL+'/'+taskId,{headers:{'X-CSRF-TOKEN':TP_CSRF,'Accept':'application/json'}}).then(r=>r.json()).then(d=>tpRenderLocal(d))); return; }
+    if(!st||!$(dropId)){ fn(taskId,userId,(resp)=>{ if(resp&&resp.left){ tpLeftTask(taskId); return; } fetch(TP_LOCAL_URL+'/'+taskId,{headers:{'X-CSRF-TOKEN':TP_CSRF,'Accept':'application/json'}}).then(r=>r.json()).then(d=>tpRenderLocal(d)); }); return; }
     // Optimistic: update chips + dropdown in place right away, save in the background.
     // drop/holder are looked up FRESH every call, not captured once — apply() replaces its own
     // ancestor's innerHTML, which detaches the very nodes a stale reference would point at, so
@@ -840,6 +847,7 @@ window.tpToggleMemberUI = function(taskId,userId,type) {
     apply(has?before.filter(u=>u.id!==userId):before.concat(emp?[emp]:[]));
     fn(taskId,userId,(resp)=>{
         if(resp&&resp.success===false){ showToast(resp.message||'Update failed. You may not have permission.'); apply(before); }
+        else if(resp&&resp.left) tpLeftTask(taskId);
     });
 };
 document.addEventListener('click',function(e){

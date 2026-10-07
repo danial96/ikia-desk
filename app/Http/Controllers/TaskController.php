@@ -526,10 +526,13 @@ class TaskController extends Controller
     public function toggleObserver(Request $request, Task $task)
     {
         $user = Auth::user();
-        if (!$user->isSuperAdmin() && $task->created_by !== $user->id && $task->assigned_to !== $user->id) {
+        $uid  = (int) $request->user_id;
+        // Admin / owner / responsible manage observers. An observer may also take THEMSELVES off (never add anyone, themselves included).
+        $manager = $user->isSuperAdmin() || $task->created_by === $user->id || $task->assigned_to === $user->id;
+        $leaving = $uid === (int) $user->id && $task->observers()->where('user_id', $uid)->exists();
+        if (!$manager && !$leaving) {
             return response()->json(['success' => false], 403);
         }
-        $uid = (int) $request->user_id;
         $targetUser = User::find($uid);
         $targetName = $targetUser?->name ?? $uid;
         if ($task->observers()->where('user_id', $uid)->exists()) {
@@ -543,7 +546,9 @@ class TaskController extends Controller
             Notification::notify([$uid], $user, 'task_observer', $task,
                 $user->name . ' added you as observer in "' . $task->title . '"');
         }
-        return response()->json(['success' => true, 'action' => $action]);
+        // someone who just took themselves off may have no other way into the task: tell the page to close it
+        $left = $action === 'removed' && $uid === (int) $user->id && !$task->fresh()->canBeOpenedBy($user);
+        return response()->json(['success' => true, 'action' => $action, 'left' => $left]);
     }
 
     private function taskInterestedIds(Task $task): array

@@ -79,6 +79,7 @@ return [
             'Task comments: the ⋯ menu now has Delete (your own comment, or any if you are an admin), and Edit works on comments with attachments too — you can take an attachment off with its ×.',
             'Tasks: choosing someone as Responsible no longer also adds them to the Participants; participants are only who you pick. When the responsible hands a task to someone else, they stay on it as an Observer.',
             "Fixed: the responsible person's avatar on a kanban card did not change when the responsible was changed.",
+            'Tasks: an observer can now remove themselves from the Observers (click your own name).',
         ],
     ],
 ];
