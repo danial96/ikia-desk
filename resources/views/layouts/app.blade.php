@@ -3681,7 +3681,7 @@ window.MsgUX = (function () {
         return Object.entries(reactions).filter(([, ids]) => (ids || []).length).map(([emoji, ids]) => {
             const mine = (ids || []).includes(myId);
             const av = ids.slice(0, 2).map(id => avatars && avatars[id]
-                ? '<img src="' + esc(avatars[id]) + '" style="width:20px;height:20px;border-radius:50%;object-fit:cover;border:1.5px solid #fff;margin-left:-6px;" alt="">' : '').join('');
+                ? '<img src="' + esc(avatars[id]) + '" style="flex:0 0 20px;width:20px;height:20px;min-width:20px;max-width:none;box-sizing:border-box;border-radius:50%;object-fit:cover;border:1.5px solid #fff;margin-left:-6px;" alt="">' : '').join('');
             const more = ids.length > 2 ? '<span style="font-size:11px;font-weight:700;margin-left:4px;">' + ids.length + '</span>' : (!av ? '<span style="font-size:11px;font-weight:700;margin-left:2px;">' + ids.length + '</span>' : '');
             return '<span onclick="' + fnName + '(event,null,' + msgId + ',\'' + emoji + '\')" title="' + (mine ? 'Remove your reaction' : 'React too') + '" style="display:inline-flex;align-items:center;gap:6px;padding:3px 9px 3px 5px;border-radius:16px;cursor:pointer;user-select:none;background:' + (mine ? '#35b8f5' : '#5cc4f7') + ';color:#fff;">' +
                 glyph(emoji).replace('#1f9df0', '#fff').replace('color:#fff', 'color:#1f9df0') + '<span style="display:inline-flex;align-items:center;padding-left:6px;">' + av + more + '</span></span>';
