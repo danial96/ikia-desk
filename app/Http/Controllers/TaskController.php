@@ -200,10 +200,6 @@ class TaskController extends Controller
             $task->observers()->attach($request->observers);
         }
 
-        if ($request->assigned_to && !in_array($request->assigned_to, (array)$request->members)) {
-            $task->members()->syncWithoutDetaching([$request->assigned_to]);
-        }
-
         $task->logActivity(Auth::user(), 'created');
 
         $creator   = Auth::user();
@@ -303,14 +299,14 @@ class TaskController extends Controller
         $task->update($updateData);
 
         if ($request->has('members')) {
-            $members = $request->members ?? [];
-            if ($task->assigned_to) $members[] = $task->assigned_to;
-            $task->members()->sync($members);
+            // The responsible person is NOT added to the participants for them: participants are exactly who was chosen.
+            $task->members()->sync($request->members ?? []);
         }
 
         if ($request->has('observers')) {
             $task->observers()->sync($request->observers ?? []);
         }
+        if (isset($changes['assigned_to'])) $this->keepOutgoingResponsibleAsObserver($task, $changes['assigned_to']['old']);
 
         foreach ($changes as $field => $vals) {
             $old = $vals['old'];
@@ -408,6 +404,18 @@ class TaskController extends Controller
         return redirect()->route('tasks.trash')->with('success', '"' . $task->title . '" restored.');
     }
 
+    /**
+     * When the responsible person is changed, the one who was responsible stays on the task as an observer, so handing a
+     * task to someone else doesn't make it vanish from them. Nothing is added when they are the new responsible, the
+     * task's owner (who sees it anyway) or already an observer. Participants are never touched.
+     */
+    private function keepOutgoingResponsibleAsObserver(Task $task, $oldId): void
+    {
+        $oldId = (int) $oldId;
+        if (!$oldId || $oldId === (int) $task->assigned_to || $oldId === (int) $task->created_by) return;
+        $task->observers()->syncWithoutDetaching([$oldId]);
+    }
+
     public function updateField(Request $request, Task $task)
     {
         $user  = Auth::user();
@@ -444,6 +452,7 @@ class TaskController extends Controller
         // ACTING user's own timezone, so convert to the app's canonical storage zone before saving.
         $newValue = $field === 'deadline' ? Tz::toApp($value) : ($value ?: null);
         $task->update([$field => $newValue]);
+        if ($field === 'assigned_to') $this->keepOutgoingResponsibleAsObserver($task, $oldValue);
         $logOld = $oldValue;
         $logNew = $field === 'deadline' ? $newValue : ($value ?: null);
         if ($field === 'assigned_to') {
