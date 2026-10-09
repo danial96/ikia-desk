@@ -337,8 +337,18 @@ const parseDescText = raw => {
             .replace(/\n/g,'<br>');
     };
     // Split on [disk file id=n{id}...] and render inline images
-    const parts = (raw||'').split(/(\[disk\s+file\s+id=n\d+[^\]]*\])/gi);
+    const inlineUrls = [];
+    String(raw||'').replace(/\[img\]([\s\S]*?)\[\/img\]/g, (m, u) => { inlineUrls.push(u.trim()); return m; });
+    const inlineKey = inlineUrls.length && window.registerGallery ? window.registerGallery(inlineUrls) : null;
+    let inlineIdx = 0;
+    const parts = (raw||'').split(/(\[disk\s+file\s+id=n\d+[^\]]*\]|\[img\][\s\S]*?\[\/img\])/gi);
     return parts.map(p => {
+        const im = p.match(/^\[img\]([\s\S]*?)\[\/img\]$/i);
+        if (im) {
+            const u = im[1].trim(), n = inlineIdx++;
+            const click = inlineKey !== null ? `imgLightbox(${inlineKey},${n})` : `imgLightbox(${esc(JSON.stringify(u))},0)`;
+            return `<div style="margin:8px 0;"><img src="${esc(safeUrl(u))}" loading="lazy" style="max-width:100%;max-height:400px;object-fit:contain;border-radius:8px;cursor:zoom-in;" onclick="${click}"></div>`;
+        }
         const dm = p.match(/^\[disk\s+file\s+id=n(\d+)[^\]]*\]$/i);
         if (dm) {
             const url = diskFileUrl(dm[1]);
@@ -363,7 +373,7 @@ const parseDescAttachments = raw => {
     let m;
     while ((m = re.exec(raw||'')) !== null) {
         if (m[1] !== undefined)      atts.push({ type:'img',  url: diskFileUrl(m[1]), isDisk:true });
-        else if (m[2] !== undefined) atts.push({ type:'img',  url: m[2].trim() });
+        else if (m[2] !== undefined) { /* [img] markers are drawn in the description text itself, at their place */ }
         else                         atts.push({ type:'file', name: m[3], url: m[4].trim() });
     }
     if (!atts.length) return '';
@@ -1935,14 +1945,16 @@ window.tpEditOpenFull = function(taskId, data) {
     // Plain text extractor for textarea (parseDescText returns display HTML)
     const descToPlain = raw => {
         if (!raw) return '';
+        const keep = [];       // [img] markers stay in the text, at the place they were put
         return raw
-            .replace(/\[img\][\s\S]*?\[\/img\]/g,'')
+            .replace(/\[img\][\s\S]*?\[\/img\]/g, m => '\u0001' + (keep.push(m) - 1) + '\u0002')
             .replace(/\[file name="[^"]*"\][\s\S]*?\[\/file\]/g,'')
             .replace(/&amp;/gi,'&').replace(/&lt;/gi,'<').replace(/&gt;/gi,'>').replace(/&nbsp;/gi,' ').replace(/&quot;/gi,'"')
             .replace(/<br\s*\/?>/gi,'\n')
             .replace(/<[^>]+>/g,'')
             .replace(/\[\/?\w[^\]]*\]/g,'')
-            .trim();
+            .trim()
+            .replace(/\u0001(\d+)\u0002/g, (m, i) => keep[+i]);
     };
 
     // Pre-fill form fields

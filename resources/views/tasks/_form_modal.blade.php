@@ -35,7 +35,13 @@
 #nt-title-input { font-size:21px !important; font-weight:500 !important; color:#000 !important; }
 #nt-title-input::placeholder { color:#9aa5ad; font-weight:400; }
 #nt-desc-card { border:none !important; border-radius:11px !important; box-shadow:none; }
-#nt-desc-card textarea { font-size:15px !important; padding:16px 20px !important; min-height:220px !important; }
+#nt-desc-card textarea { display:none !important; }
+#nt-desc-ed { display:block; width:100%; min-height:220px; max-height:62vh; overflow-y:auto; padding:16px 20px; font-size:15px; line-height:1.65; color:#374151; outline:none; box-sizing:border-box; word-break:break-word; font-family:inherit; }
+#nt-desc-ed.is-empty::before { content:attr(data-placeholder); color:#9ca3af; float:left; height:0; pointer-events:none; }
+#nt-desc-ed .nt-ed-img { display:block; position:relative; width:fit-content; max-width:100%; margin:8px 0; user-select:none; }
+#nt-desc-ed .nt-ed-img img { display:block; max-width:100%; max-height:320px; border-radius:8px; border:1px solid #e2e8f0; cursor:zoom-in; }
+#nt-desc-ed .nt-ed-rm { position:absolute; top:-7px; right:-7px; width:20px; height:20px; border-radius:50%; background:#ef4444; border:none; color:#fff; font-size:13px; line-height:1; cursor:pointer; padding:0; }
+#nt-desc-ed .nt-ed-up { display:block; margin:8px 0; color:#9ca3af; font-size:13px; }
 .nt-card { background:#fff; border-radius:11px; padding:6px 0; margin-bottom:12px; }
 .nt-card .nt-sec { display:flex; align-items:center; padding:7px 20px; border:none !important; min-height:42px; }
 .nt-card .nt-sec > .nt-lbl { flex:0 0 170px; margin:0; }
@@ -158,13 +164,8 @@
                            style="display:none" onchange="ntDescUploadFiles(this)">
                     <div id="nt-desc-card"
                          style="border:1.5px solid #e2e8f0;border-radius:10px;background:#fff;overflow:hidden;transition:border-color .15s;">
-                        <textarea name="description" id="nt-desc-ta" rows="4"
-                                  placeholder="Description"
-                                  oninput="ntSaveDraft()"
-                                  onfocus="document.getElementById('nt-desc-card').style.borderColor='#0ea5e9'" onblur="document.getElementById('nt-desc-card').style.borderColor='#e2e8f0'"
-                                  style="display:block;width:100%;border:none;outline:none;background:transparent;padding:12px 14px;font-size:13.5px;color:#374151;resize:none;font-family:inherit;line-height:1.65;box-sizing:border-box;min-height:90px;"></textarea>
-                        {{-- Attached images, shown inside the description box (the same files are also listed under "Files") --}}
-                        <div id="nt-desc-inline" style="display:none;gap:10px;padding:2px 20px 14px;overflow-x:auto;flex-wrap:nowrap;align-items:flex-start;"></div>
+                        <div id="nt-desc-ed" class="is-empty" contenteditable="true" role="textbox" aria-multiline="true" data-placeholder="Description"></div>
+                        <textarea name="description" id="nt-desc-ta" hidden tabindex="-1" aria-hidden="true"></textarea>
                         {{-- Toolbar --}}
                         <div style="display:flex;align-items:center;gap:2px;padding:5px 10px 7px;border-top:1px solid #f1f5f9;">
                             <button type="button" title="Attach file"
@@ -1249,34 +1250,9 @@
             + '</div>';
     }
 
-    // Images attached to the task are also shown right inside the description box (click one to open it large)
-    function ntRenderInlineImages() {
-        var box = document.getElementById('nt-desc-inline');
-        if (!box) return;
-        var imgs = [];
-        _ntAtt.forEach(function(a, i){ if (a.isImage && a.url && !a.uploading) imgs.push({ a: a, i: i }); });
-        if (!imgs.length) { box.style.display = 'none'; box.innerHTML = ''; return; }
-        var key = window.registerGallery ? window.registerGallery(imgs.map(function(x){ return x.a.url; })) : null;
-        box.style.display = 'flex';
-        box.innerHTML = imgs.map(function(x, n){
-            var name = String(x.a.name || '').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
-            return '<div style="position:relative;flex:0 0 auto;">'
-                + '<img src="'+x.a.url+'" alt="'+name+'" title="'+name+'" data-n="'+n+'" style="display:block;height:110px;max-width:240px;width:auto;object-fit:cover;border-radius:8px;border:1px solid #e2e8f0;cursor:zoom-in;">'
-                + '<button type="button" data-rm="'+x.i+'" title="Remove" style="position:absolute;top:-6px;right:-6px;width:18px;height:18px;border-radius:50%;background:#ef4444;border:none;color:#fff;font-size:11px;line-height:1;cursor:pointer;padding:0;">&times;</button>'
-                + '</div>';
-        }).join('');
-        box.onclick = function(e){
-            var rm = e.target.closest('[data-rm]');
-            if (rm) { ntRemoveAttachment(parseInt(rm.getAttribute('data-rm'), 10)); return; }
-            var im = e.target.closest('img[data-n]');
-            if (im && key !== null && window.imgLightbox) imgLightbox(key, parseInt(im.getAttribute('data-n'), 10));
-        };
-    }
-
     window.ntRenderAttachments = function() {
         var container = document.getElementById('nt-desc-attachments');
         if (!container) return;
-        ntRenderInlineImages();
         if (!_ntAtt.length) { container.style.display = 'none'; container.innerHTML = ''; return; }
         var cards = _ntAtt.map(function(a, i){ return ntFileCardHtml(a, i); }).join('');
         container.style.display = 'flex';
@@ -1291,8 +1267,13 @@
     };
 
     window.ntRemoveAttachment = function(idx) {
-        _ntAtt.splice(idx, 1);
+        var gone = _ntAtt.splice(idx, 1)[0];
         ntRenderAttachments();
+        if (gone && gone.url) {
+            var ed = document.getElementById('nt-desc-ed');
+            if (ed) Array.prototype.forEach.call(ed.querySelectorAll('.nt-ed-img'), function(w) { if (w.getAttribute('data-url') === gone.url) w.parentNode.removeChild(w); });
+            if (window.ntEdSync) ntEdSync();
+        }
         ntSaveDraft();
     };
 
@@ -1314,27 +1295,7 @@
         if (!input.files.length) return;
         var files = Array.from(input.files);
         input.value = '';
-        for (var i = 0; i < files.length; i++) {
-            var file = files[i];
-            var ext = (file.name.split('.').pop() || '').toLowerCase();
-            var isImage = /^(jpe?g|png|gif|webp|svg)$/.test(ext);
-            var placeholderIdx = _ntAtt.length;
-            _ntAtt.push({ name: file.name, url: null, isImage: isImage, ext: ext, uploading: true });
-            ntRenderAttachments();
-            try {
-                var fd = new FormData();
-                fd.append('file', file);
-                fd.append('_token', document.querySelector('meta[name="csrf-token"]').content);
-                var r = await fetch(API_BASE + '/api/upload', { method: 'POST', body: fd });
-                var d = await r.json();
-                if (!d.url) throw new Error('no url');
-                _ntAtt[placeholderIdx] = { name: file.name, url: d.url, isImage: isImage, ext: ext, uploading: false };
-            } catch(e) {
-                _ntAtt.splice(placeholderIdx, 1);
-            }
-            ntRenderAttachments();
-            ntSaveDraft();
-        }
+        for (var i = 0; i < files.length; i++) await ntAddFile(files[i], true);
     };
 
     /* ── Drag-and-drop upload on panel ── */
@@ -1365,27 +1326,7 @@
             overlay.style.display = 'none';
             var files = Array.from(e.dataTransfer.files);
             if (!files.length) return;
-            for (var i = 0; i < files.length; i++) {
-                var file = files[i];
-                var ext = (file.name.split('.').pop() || '').toLowerCase();
-                var isImage = /^(jpe?g|png|gif|webp|svg)$/.test(ext);
-                var placeholderIdx = _ntAtt.length;
-                _ntAtt.push({ name: file.name, url: null, isImage: isImage, ext: ext, uploading: true });
-                ntRenderAttachments();
-                try {
-                    var fd = new FormData();
-                    fd.append('file', file);
-                    fd.append('_token', document.querySelector('meta[name="csrf-token"]').content);
-                    var r = await fetch(API_BASE + '/api/upload', { method: 'POST', body: fd });
-                    var d = await r.json();
-                    if (!d.url) throw new Error('no url');
-                    _ntAtt[placeholderIdx] = { name: file.name, url: d.url, isImage: isImage, ext: ext, uploading: false };
-                } catch(err) {
-                    _ntAtt.splice(placeholderIdx, 1);
-                }
-                ntRenderAttachments();
-                if (typeof ntSaveDraft === 'function') ntSaveDraft();
-            }
+            for (var i = 0; i < files.length; i++) await ntAddFile(files[i], true);
         });
     })();
 
@@ -1430,12 +1371,14 @@
         var editUrl = form.getAttribute('data-edit-action');
 
         // Inject attachment tags into description (create and edit mode)
-        var tags = _ntAtt.filter(function(a){ return a.url; }).map(function(a){
+        var taNow = document.getElementById('nt-desc-ta');
+        var curDesc = taNow ? taNow.value : '';
+        var tags = _ntAtt.filter(function(a){ return a.url && curDesc.indexOf(a.url) === -1; }).map(function(a){
             return a.isImage ? '[img]'+a.url+'[/img]' : '[file name="'+a.name+'"]'+a.url+'[/file]';
         }).join('\n');
-        if (tags) {
-            var ta = document.getElementById('nt-desc-ta');
-            if (ta) ta.value = (ta.value ? ta.value + '\n' : '') + tags;
+        if (tags && taNow) {
+            // native write: the editor must not redraw while the form is being sent
+            Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value').set.call(taNow, (curDesc ? curDesc + '\n' : '') + tags);
         }
 
         // Loading state
@@ -1534,54 +1477,267 @@
         }, 3000);
     };
 
-    // Insert text at textarea cursor position
-    window.ntDescInsert = function(prefix) {
+    /* ── Description editor: text with images placed right where you put them (like a WordPress post) ──
+       The visible box is #nt-desc-ed (contenteditable). The hidden textarea #nt-desc-ta stays the single source of truth
+       the rest of the form reads (draft, submit, edit prefill): it always holds plain text with [img]url[/img] markers
+       at the same positions, and writing to its .value redraws the editor. */
+    var _taValue = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value');
+    var _ntRange = null;           // last caret position inside the editor (survives focus moving to a button / file dialog)
+
+    function ntEd() { return document.getElementById('nt-desc-ed'); }
+
+    function ntMakeImg(url) {
+        var w = document.createElement('span');
+        w.className = 'nt-ed-img';
+        w.contentEditable = 'false';
+        w.setAttribute('data-url', url);
+        var im = document.createElement('img');
+        im.src = url; im.alt = '';
+        w.appendChild(im);
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'nt-ed-rm'; b.title = 'Remove'; b.textContent = '×';
+        w.appendChild(b);
+        return w;
+    }
+
+    // editor DOM -> text ([img] markers on their own line)
+    function ntEdSerialize(root) {
+        var out = '';
+        function nl() { if (out && out.slice(-1) !== '\n') out += '\n'; }
+        (function walk(node) {
+            for (var c = node.firstChild; c; c = c.nextSibling) {
+                if (c.nodeType === 3) { out += c.nodeValue.replace(/ /g, ' '); }
+                else if (c.nodeType === 1) {
+                    if (c.classList.contains('nt-ed-img')) { nl(); out += '[img]' + c.getAttribute('data-url') + '[/img]\n'; }
+                    else if (c.classList.contains('nt-ed-up')) { /* still uploading */ }
+                    else if (c.tagName === 'BR') { out += '\n'; }
+                    else if (c.tagName === 'DIV' || c.tagName === 'P') { nl(); walk(c); }
+                    else { walk(c); }
+                }
+            }
+        })(root);
+        return out.replace(/\n+$/, '');
+    }
+
+    // text -> editor DOM
+    function ntEdRender(text) {
+        var ed = ntEd();
+        if (!ed) return;
+        ed.innerHTML = '';
+        text = String(text || '');
+        if (text) {
+            text.split('\n').forEach(function(line) {
+                var div = document.createElement('div');
+                var re = /\[img\]([\s\S]*?)\[\/img\]/g, last = 0, m;
+                while ((m = re.exec(line)) !== null) {
+                    if (m.index > last) div.appendChild(document.createTextNode(line.slice(last, m.index)));
+                    div.appendChild(ntMakeImg(m[1].trim()));
+                    last = re.lastIndex;
+                }
+                if (last < line.length) div.appendChild(document.createTextNode(line.slice(last)));
+                if (!div.firstChild) div.appendChild(document.createElement('br'));
+                ed.appendChild(div);
+            });
+        }
+        ntEdMarkEmpty();
+    }
+
+    function ntEdMarkEmpty() {
+        var ed = ntEd();
+        if (!ed) return;
+        ed.classList.toggle('is-empty', ntEdSerialize(ed) === '' && !ed.querySelector('.nt-ed-img, .nt-ed-up'));
+    }
+
+    // editor -> hidden textarea (+ draft)
+    window.ntEdSync = ntEdSync;
+    function ntEdSync() {
+        var ed = ntEd(), ta = document.getElementById('nt-desc-ta');
+        if (!ed || !ta) return;
+        _taValue.set.call(ta, ntEdSerialize(ed));
+        ntEdMarkEmpty();
+        if (window.ntSaveDraft) ntSaveDraft();
+    }
+
+    // writing .value on the hidden textarea (draft restore, edit prefill, reset after save, "new task from message") redraws the editor
+    (function() {
         var ta = document.getElementById('nt-desc-ta');
         if (!ta) return;
-        var start = ta.selectionStart, end = ta.selectionEnd;
-        var val   = ta.value;
-        // If cursor is mid-line, jump to start of next line first
-        var before = val.slice(0, start);
-        var needsNewline = before.length > 0 && before[before.length - 1] !== '\n';
-        var insert = (needsNewline ? '\n' : '') + prefix;
-        ta.value = before + insert + val.slice(end);
-        var pos = before.length + insert.length;
-        ta.setSelectionRange(pos, pos);
-        ta.focus();
-        ta.dispatchEvent(new Event('input'));
+        Object.defineProperty(ta, 'value', {
+            configurable: true,
+            get: function() { return _taValue.get.call(ta); },
+            set: function(v) { _taValue.set.call(ta, v); ntEdRender(v); }
+        });
+    })();
+
+    function ntEdPlaceCaret(range) {
+        var s = window.getSelection();
+        s.removeAllRanges();
+        s.addRange(range);
+    }
+
+    function ntEdRestoreCaret() {
+        var ed = ntEd(), s = window.getSelection();
+        ed.focus();
+        if (s.rangeCount && ed.contains(s.anchorNode)) return;
+        var r;
+        if (_ntRange && ed.contains(_ntRange.startContainer)) { r = _ntRange; }
+        else { r = document.createRange(); r.selectNodeContents(ed); r.collapse(false); }
+        ntEdPlaceCaret(r);
+    }
+
+    document.addEventListener('selectionchange', function() {
+        var ed = ntEd(), s = window.getSelection();
+        if (ed && s.rangeCount && ed.contains(s.anchorNode)) _ntRange = s.getRangeAt(0).cloneRange();
+    });
+
+    // put a node (image / uploading placeholder) at the caret and leave the caret on an editable line after it
+    function ntEdInsertNode(node) {
+        var ed = ntEd();
+        ntEdRestoreCaret();
+        var r = window.getSelection().getRangeAt(0);
+        r.deleteContents();
+        r.insertNode(node);
+        var after = node.nextSibling;
+        var isBlock = after && after.nodeType === 1 && after.classList && (after.classList.contains('nt-ed-img') || after.classList.contains('nt-ed-up'));
+        if (!after || isBlock) {
+            var d = document.createElement('div');
+            d.appendChild(document.createElement('br'));
+            node.parentNode.insertBefore(d, after);
+            after = d;
+        }
+        var nr = document.createRange();
+        nr.setStart(after, 0);
+        nr.collapse(true);
+        ntEdPlaceCaret(nr);
+        _ntRange = nr.cloneRange();
+    }
+
+    // text before the caret, in the same text format as the textarea (for list helpers)
+    function ntBeforeCaret() {
+        var ed = ntEd(), s = window.getSelection();
+        var r = (s.rangeCount && ed.contains(s.anchorNode)) ? s.getRangeAt(0) : _ntRange;
+        if (!r) return ntEdSerialize(ed);
+        var pre = document.createRange();
+        pre.selectNodeContents(ed);
+        pre.setEnd(r.startContainer, r.startOffset);
+        var tmp = document.createElement('div');
+        tmp.appendChild(pre.cloneContents());
+        return ntEdSerialize(tmp);
+    }
+
+    // upload one file; an image is placed in the text at the caret (when inline), every file also lands in the Files list
+    window.ntAddFile = async function(file, inline) {
+        var ext = (file.name.split('.').pop() || '').toLowerCase();
+        if (!file.name || file.name.indexOf('.') < 0) {      // pasted screenshot: no file name
+            var mt = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/gif': 'gif', 'image/webp': 'webp' }[file.type];
+            if (mt) { ext = mt; file = new File([file], 'pasted-' + Date.now() + '.' + mt, { type: file.type }); }
+        }
+        var isImage = /^(jpe?g|png|gif|webp|svg)$/.test(ext) || /^image\//.test(file.type || '');
+        var rec = { name: file.name, url: null, isImage: isImage, ext: ext, uploading: true };
+        _ntAtt.push(rec);
+        ntRenderAttachments();
+        var ph = null;
+        if (inline && isImage) {
+            ph = document.createElement('span');
+            ph.className = 'nt-ed-up';
+            ph.contentEditable = 'false';
+            ph.textContent = 'Uploading ' + file.name + '…';
+            ntEdInsertNode(ph);
+        }
+        try {
+            var fd = new FormData();
+            fd.append('file', file);
+            fd.append('_token', document.querySelector('meta[name="csrf-token"]').content);
+            var r = await fetch(API_BASE + '/api/upload', { method: 'POST', body: fd });
+            var d = await r.json();
+            if (!d.url) throw new Error('no url');
+            var done = { name: file.name, url: d.url, isImage: isImage, ext: ext, uploading: false };
+            var i = _ntAtt.indexOf(rec);
+            if (i >= 0) _ntAtt[i] = done;
+            if (ph && ph.parentNode) ph.parentNode.replaceChild(ntMakeImg(d.url), ph);
+        } catch (e) {
+            var j = _ntAtt.indexOf(rec);
+            if (j >= 0) _ntAtt.splice(j, 1);
+            if (ph && ph.parentNode) ph.parentNode.removeChild(ph);
+            if (window.showToast) showToast('Upload failed. Please try again.');
+        }
+        ntRenderAttachments();
+        ntEdSync();
     };
 
-    // Numbered list — finds next number automatically
+    document.addEventListener('DOMContentLoaded', function() {
+        var ed = ntEd(), card = document.getElementById('nt-desc-card');
+        if (!ed) return;
+        ed.addEventListener('input', ntEdSync);
+        ed.addEventListener('focus', function() { if (card) card.style.borderColor = '#0ea5e9'; });
+        ed.addEventListener('blur',  function() { if (card) card.style.borderColor = '#e2e8f0'; });
+        // pasting: a screenshot / image file becomes an inline image, anything else goes in as plain text
+        ed.addEventListener('paste', function(e) {
+            var cd = e.clipboardData;
+            if (!cd) return;
+            var files = Array.prototype.filter.call(cd.files || [], function(f) { return /^image\//.test(f.type); });
+            if (files.length) {
+                e.preventDefault();
+                (async function() { for (var i = 0; i < files.length; i++) await ntAddFile(files[i], true); })();
+                return;
+            }
+            e.preventDefault();
+            document.execCommand('insertText', false, cd.getData('text/plain'));
+        });
+        // images: x removes (also from the Files list), a click opens it large with the others one arrow away
+        ed.addEventListener('click', function(e) {
+            var rm = e.target.closest ? e.target.closest('.nt-ed-rm') : null;
+            if (rm) {
+                var w = rm.parentNode, url = w.getAttribute('data-url');
+                w.parentNode.removeChild(w);
+                for (var i = 0; i < _ntAtt.length; i++) { if (_ntAtt[i].url === url) { _ntAtt.splice(i, 1); break; } }
+                ntRenderAttachments();
+                ntEdSync();
+                return;
+            }
+            var im = e.target.tagName === 'IMG' && e.target.parentNode.classList.contains('nt-ed-img') ? e.target : null;
+            if (im && window.registerGallery && window.imgLightbox) {
+                var all = Array.prototype.slice.call(ed.querySelectorAll('.nt-ed-img img'));
+                imgLightbox(registerGallery(all.map(function(x) { return x.getAttribute('src'); })), all.indexOf(im));
+            }
+        });
+    });
+
+    // Insert text at the caret (jumps to a fresh line first when the caret is mid-line)
+    window.ntDescInsert = function(prefix) {
+        ntEdRestoreCaret();
+        var before = ntBeforeCaret();
+        if (before.length > 0 && before.slice(-1) !== '\n') document.execCommand('insertParagraph');
+        document.execCommand('insertText', false, prefix);
+        ntEdSync();
+    };
+
+    // Numbered list: finds the next number automatically
     window.ntDescInsertNumbered = function() {
-        var ta = document.getElementById('nt-desc-ta');
-        if (!ta) return;
-        var lines  = ta.value.slice(0, ta.selectionStart).split('\n');
-        var num    = 1;
+        ntEdRestoreCaret();
+        var lines = ntBeforeCaret().split('\n');
+        var num = 1;
         for (var i = lines.length - 1; i >= 0; i--) {
             var m = lines[i].match(/^(\d+)\.\s/);
-            if (m) { num = parseInt(m[1]) + 1; break; }
+            if (m) { num = parseInt(m[1], 10) + 1; break; }
         }
         window.ntDescInsert(num + '. ');
     };
 
-    // Checklist — insert [ ] item and auto-continue on Enter
+    // Checklist: insert [ ] item and keep going on Enter
     window.ntDescChecklist = function() {
         window.ntDescInsert('[ ] ');
-        var ta = document.getElementById('nt-desc-ta');
-        if (!ta || ta._checklistBound) return;
-        ta._checklistBound = true;
-        ta.addEventListener('keydown', function(e) {
-            if (e.key !== 'Enter') return;
-            var val   = this.value;
-            var pos   = this.selectionStart;
-            var line  = val.slice(0, pos).split('\n').pop();
-            // Continue checklist if current line starts with [ ] or [x]
+        var ed = ntEd();
+        if (!ed || ed._checklistBound) return;
+        ed._checklistBound = true;
+        ed.addEventListener('keydown', function(e) {
+            if (e.key !== 'Enter' || e.shiftKey) return;
+            var line = ntBeforeCaret().split('\n').pop();
             if (/^\[([ xX])\] /.test(line)) {
                 e.preventDefault();
-                var insert = '\n[ ] ';
-                this.value = val.slice(0, pos) + insert + val.slice(this.selectionEnd);
-                var np = pos + insert.length;
-                this.setSelectionRange(np, np);
+                document.execCommand('insertParagraph');
+                document.execCommand('insertText', false, '[ ] ');
+                ntEdSync();
             }
         });
     };
