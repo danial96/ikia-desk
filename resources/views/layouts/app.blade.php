@@ -2753,6 +2753,36 @@ document.addEventListener('click', function(e) {
 /* ── File Upload (shared) ── */
 const _pendingAtts = {};
 
+/* Many attachments in the composer: show the first ATT_VISIBLE as thumbnails, then one "+N" tile; a click on it shows them all. */
+const ATT_VISIBLE = 10;
+function attRefreshOverflow(pEl) {
+    if (!pEl) return;
+    const chips = Array.from(pEl.children).filter(c => c.dataset && c.dataset.att === '1');
+    const more = pEl.querySelector(':scope > .att-more');
+    const expanded = pEl.dataset.expanded === '1';
+    if (chips.length <= ATT_VISIBLE) {
+        if (more) more.remove();
+        pEl.dataset.expanded = '';
+        chips.forEach(c => { c.style.display = ''; });
+        return;
+    }
+    chips.forEach((c, i) => { c.style.display = (expanded || i < ATT_VISIBLE) ? '' : 'none'; });
+    const hidden = chips.length - ATT_VISIBLE;
+    let tile = more;
+    if (!tile) {
+        tile = document.createElement('button');
+        tile.type = 'button';
+        tile.className = 'att-more';
+        tile.style.cssText = 'flex-shrink:0;width:64px;height:64px;border-radius:10px;border:2px solid rgba(14,165,233,.35);background:#eef6fb;color:#0b7bb5;font-size:18px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;padding:0;';
+        tile.addEventListener('click', function () { pEl.dataset.expanded = pEl.dataset.expanded === '1' ? '' : '1'; attRefreshOverflow(pEl); });
+    }
+    tile.textContent = expanded ? 'Less' : '+' + hidden;
+    tile.style.fontSize = expanded ? '13px' : '18px';
+    tile.title = expanded ? 'Show fewer' : 'Show all ' + chips.length + ' attachments';
+    pEl.appendChild(tile);      // always the last item
+}
+
+
 window.uploadAndInsert = async function(textareaId, fileInputId, previewId) {
     const input = document.getElementById(fileInputId);
     const files = Array.from(input.files || []);
@@ -2803,7 +2833,9 @@ async function uploadOneAndInsert(file, textareaId, previewId) {
                     chip.innerHTML = `<div style="width:64px;height:64px;border-radius:10px;background:${_bg};display:flex;align-items:center;justify-content:center;border:2px solid rgba(255,255,255,.2);"><i class="fas ${_ico}" style="color:#fff;font-size:24px;"></i></div>
                         <p style="font-size:9.5px;color:rgba(255,255,255,.7);text-align:center;margin:3px 0 0;width:64px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${_safe}">${_sn}</p>${_rmBtn}`;
                 }
+                chip.dataset.att = '1';
                 pEl.appendChild(chip);
+                attRefreshOverflow(pEl);
             }
         }
     } catch(e) {
@@ -2822,6 +2854,7 @@ window.removeAttachment = function(textareaId, attId, previewId) {
     const el = document.getElementById(attId);
     if (el) el.remove();
     const pEl = previewId ? document.getElementById(previewId) : null;
+    if (pEl) attRefreshOverflow(pEl);
     if (pEl && !pEl.children.length) pEl.style.display = 'none';
 };
 
@@ -2872,7 +2905,9 @@ window.uploadFileDirect = async function(file, textareaId, previewId) {
                     chip.innerHTML = `<div style="width:64px;height:64px;border-radius:10px;background:${_bg2};display:flex;align-items:center;justify-content:center;border:2px solid rgba(255,255,255,.2);"><i class="fas ${_ico2}" style="color:#fff;font-size:24px;"></i></div>
                         <p style="font-size:9.5px;color:rgba(255,255,255,.7);text-align:center;margin:3px 0 0;width:64px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${_safe2}">${_sn2}</p>${_rmBtn2}`;
                 }
+                chip.dataset.att = '1';
                 pEl.appendChild(chip);
+                attRefreshOverflow(pEl);
             }
         }
     } catch(e) { console.error('Upload failed', e); }
@@ -2890,7 +2925,7 @@ window.getAttachmentTags = function(textareaId) {
 window.clearAttachments = function(textareaId, previewId) {
     _pendingAtts[textareaId] = [];
     const pEl = previewId ? document.getElementById(previewId) : null;
-    if (pEl) { pEl.innerHTML = ''; pEl.style.display = 'none'; }
+    if (pEl) { pEl.innerHTML = ''; pEl.dataset.expanded = ''; pEl.style.display = 'none'; }
 };
 })();
 </script>

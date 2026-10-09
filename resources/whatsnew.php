@@ -80,6 +80,7 @@ return [
             'Tasks: choosing someone as Responsible no longer also adds them to the Participants; participants are only who you pick. When the responsible hands a task to someone else, they stay on it as an Observer.',
             "Fixed: the responsible person's avatar on a kanban card did not change when the responsible was changed.",
             'Tasks: an observer can now remove themselves from the Observers (click your own name).',
+            'Attaching many files or photos to a message or comment no longer fills the screen: the first 10 show, the rest collapse into a +N tile (click it to see all).',
         ],
     ],
 ];
