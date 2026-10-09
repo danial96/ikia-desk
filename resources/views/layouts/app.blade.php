@@ -598,7 +598,7 @@
             {{-- Bell notifications --}}
             <button id="notif-btn" onclick="notifToggle()" class="topbar-btn" style="position:relative;" title="Notifications">
                 <i class="fas fa-bell" style="font-size:15px;"></i>
-                <span id="notif-badge" style="display:none;position:absolute;top:3px;right:3px;min-width:16px;height:16px;background:#ef4444;border-radius:8px;font-size:10px;font-weight:700;color:#fff;line-height:16px;text-align:center;padding:0 3px;border:1.5px solid rgba(10,15,60,.5);transition:transform .3s cubic-bezier(.34,1.56,.64,1);"></span>
+                <span id="notif-badge" style="display:none;position:absolute;top:0;right:0;box-sizing:border-box;min-width:18px;height:18px;align-items:center;justify-content:center;background:#ef4444;border-radius:9px;font-size:10px;font-weight:700;color:#fff;line-height:1;padding:0 4px;border:1.5px solid rgba(10,15,60,.5);transition:transform .3s cubic-bezier(.34,1.56,.64,1);"></span>
             </button>
 
             <div style="width:1px;height:20px;background:rgba(255,255,255,.1);"></div>
@@ -3991,7 +3991,7 @@ async function notifMarkAllRead() {
 function notifUpdateBadge(count) {
     const badge = document.getElementById('notif-badge');
     if (count > 0) {
-        badge.style.display = 'block';
+        badge.style.display = 'flex';
         badge.textContent = count > 9 ? '9+' : count;
     } else {
         badge.style.display = 'none';
