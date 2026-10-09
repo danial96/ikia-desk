@@ -35,7 +35,7 @@
 #nt-title-input { font-size:21px !important; font-weight:500 !important; color:#000 !important; }
 #nt-title-input::placeholder { color:#9aa5ad; font-weight:400; }
 #nt-desc-card { border:none !important; border-radius:11px !important; box-shadow:none; }
-#nt-desc-card textarea { font-size:15px !important; padding:16px 20px !important; min-height:110px !important; }
+#nt-desc-card textarea { font-size:15px !important; padding:16px 20px !important; min-height:220px !important; }
 .nt-card { background:#fff; border-radius:11px; padding:6px 0; margin-bottom:12px; }
 .nt-card .nt-sec { display:flex; align-items:center; padding:7px 20px; border:none !important; min-height:42px; }
 .nt-card .nt-sec > .nt-lbl { flex:0 0 170px; margin:0; }
@@ -163,6 +163,8 @@
                                   oninput="ntSaveDraft()"
                                   onfocus="document.getElementById('nt-desc-card').style.borderColor='#0ea5e9'" onblur="document.getElementById('nt-desc-card').style.borderColor='#e2e8f0'"
                                   style="display:block;width:100%;border:none;outline:none;background:transparent;padding:12px 14px;font-size:13.5px;color:#374151;resize:none;font-family:inherit;line-height:1.65;box-sizing:border-box;min-height:90px;"></textarea>
+                        {{-- Attached images, shown inside the description box (the same files are also listed under "Files") --}}
+                        <div id="nt-desc-inline" style="display:none;gap:10px;padding:2px 20px 14px;overflow-x:auto;flex-wrap:nowrap;align-items:flex-start;"></div>
                         {{-- Toolbar --}}
                         <div style="display:flex;align-items:center;gap:2px;padding:5px 10px 7px;border-top:1px solid #f1f5f9;">
                             <button type="button" title="Attach file"
@@ -1247,9 +1249,34 @@
             + '</div>';
     }
 
+    // Images attached to the task are also shown right inside the description box (click one to open it large)
+    function ntRenderInlineImages() {
+        var box = document.getElementById('nt-desc-inline');
+        if (!box) return;
+        var imgs = [];
+        _ntAtt.forEach(function(a, i){ if (a.isImage && a.url && !a.uploading) imgs.push({ a: a, i: i }); });
+        if (!imgs.length) { box.style.display = 'none'; box.innerHTML = ''; return; }
+        var key = window.registerGallery ? window.registerGallery(imgs.map(function(x){ return x.a.url; })) : null;
+        box.style.display = 'flex';
+        box.innerHTML = imgs.map(function(x, n){
+            var name = String(x.a.name || '').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+            return '<div style="position:relative;flex:0 0 auto;">'
+                + '<img src="'+x.a.url+'" alt="'+name+'" title="'+name+'" data-n="'+n+'" style="display:block;height:110px;max-width:240px;width:auto;object-fit:cover;border-radius:8px;border:1px solid #e2e8f0;cursor:zoom-in;">'
+                + '<button type="button" data-rm="'+x.i+'" title="Remove" style="position:absolute;top:-6px;right:-6px;width:18px;height:18px;border-radius:50%;background:#ef4444;border:none;color:#fff;font-size:11px;line-height:1;cursor:pointer;padding:0;">&times;</button>'
+                + '</div>';
+        }).join('');
+        box.onclick = function(e){
+            var rm = e.target.closest('[data-rm]');
+            if (rm) { ntRemoveAttachment(parseInt(rm.getAttribute('data-rm'), 10)); return; }
+            var im = e.target.closest('img[data-n]');
+            if (im && key !== null && window.imgLightbox) imgLightbox(key, parseInt(im.getAttribute('data-n'), 10));
+        };
+    }
+
     window.ntRenderAttachments = function() {
         var container = document.getElementById('nt-desc-attachments');
         if (!container) return;
+        ntRenderInlineImages();
         if (!_ntAtt.length) { container.style.display = 'none'; container.innerHTML = ''; return; }
         var cards = _ntAtt.map(function(a, i){ return ntFileCardHtml(a, i); }).join('');
         container.style.display = 'flex';

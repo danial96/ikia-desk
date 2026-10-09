@@ -81,6 +81,7 @@ return [
             "Fixed: the responsible person's avatar on a kanban card did not change when the responsible was changed.",
             'Tasks: an observer can now remove themselves from the Observers (click your own name).',
             'Attaching many files or photos to a message or comment no longer fills the screen: the first 10 show, the rest collapse into a +N tile (click it to see all).',
+            'New task / edit task: images you attach now also show inside the description box (click one to enlarge), and the description box is twice as tall. The Files list stays as it was.',
         ],
     ],
 ];
