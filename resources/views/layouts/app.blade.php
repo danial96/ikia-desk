@@ -534,6 +534,19 @@
                 Messenger
             </a>
 
+            @if(auth()->user()->canAccessPaymentTerminal())
+            <div class="nav-section">Finance</div>
+
+            <a href="{{ route('payment.terminal') }}" target="_blank" rel="noopener noreferrer"
+               class="nav-link">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                          d="M3 10h18M5 6h14a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2zm3 8h3"/>
+                </svg>
+                Payment Terminal
+            </a>
+            @endif
+
             @if(auth()->user()->isAdmin())
             <div class="nav-section">People</div>
 

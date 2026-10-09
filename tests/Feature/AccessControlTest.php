@@ -161,7 +161,7 @@ class AccessControlTest extends TestCase
         ])->assertRedirect();
 
         $this->assertSame(
-            ['create_tasks' => false, 'view_all_tasks' => false, 'create_projects' => true],
+            ['create_tasks' => false, 'view_all_tasks' => false, 'create_projects' => true, 'access_payment_terminal' => false],
             $employee->fresh()->permissions
         );
     }

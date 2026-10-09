@@ -9,12 +9,12 @@ use Illuminate\Support\Facades\Auth;
 class PermissionController extends Controller
 {
     // Only permissions the app actually enforces
-    public const PERMISSIONS = ['create_tasks', 'view_all_tasks', 'create_projects'];
+    public const PERMISSIONS = ['create_tasks', 'view_all_tasks', 'create_projects', 'access_payment_terminal'];
 
     public function index(Request $request)
     {
         if (!Auth::user()->isAdmin()) abort(403);
-        $query = User::where('role', 'employee');
+        $query = User::whereIn('role', ['employee', 'admin']);   // admins are listed too: the Payment Terminal tab can be switched on for them
 
         $status = $request->input('status', 'active');
         if ($status === 'active') {

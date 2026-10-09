@@ -19,6 +19,7 @@ $permLabels = [
     'create_tasks'     => ['label' => 'Create Tasks',     'desc' => 'Can create and assign tasks to others'],
     'view_all_tasks'   => ['label' => 'View All Tasks',   'desc' => 'Can see all tasks, not just assigned ones'],
     'create_projects'  => ['label' => 'Create Projects',  'desc' => 'Can create new projects'],
+    'access_payment_terminal' => ['label' => 'Payment Terminal', 'desc' => 'Sees the Payment Terminal tab in the sidebar and can open it'],
 ];
 @endphp
 

@@ -47,6 +47,8 @@ class User extends Authenticatable
     public function isAdmin(): bool { return in_array($this->role, ['super_admin', 'admin']); }
     public function canViewAllTasks(): bool { return $this->isSuperAdmin() || !empty($this->permissions['view_all_tasks']); }
     public function canCreateProjects(): bool { return $this->isAdmin() || !empty($this->permissions['create_projects']); }
+    /** The sidebar's Payment Terminal tab: the super admin, and anyone an admin switched it on for on the Permissions page. */
+    public function canAccessPaymentTerminal(): bool { return $this->isSuperAdmin() || !empty($this->permissions['access_payment_terminal']); }
 
     public function departments() { return $this->belongsToMany(Department::class, 'department_user'); }
     public function projects() { return $this->hasMany(Project::class, 'created_by'); }

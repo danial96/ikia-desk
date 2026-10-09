@@ -95,6 +95,13 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile/{id}', [ProfileController::class, 'show'])->name('profile.show.user');
     Route::post('/profile/{id}', [ProfileController::class, 'update'])->name('profile.update.user');
 
+    // Payment Terminal: an external site; only people with the permission (and the super admin) are sent on.
+    // The address lives only on the server, so nobody else ever sees it in the page.
+    Route::get('/payment-terminal', function () {
+        if (!auth()->user()->canAccessPaymentTerminal()) abort(403);
+        return redirect()->away(config('desk.payment_terminal_url'))->header('Referrer-Policy', 'no-referrer');
+    })->name('payment.terminal');
+
     // Permissions
     Route::get('/permissions', [PermissionController::class, 'index'])->name('permissions.index');
     Route::post('/permissions/{employee}', [PermissionController::class, 'update'])->name('permissions.update');
