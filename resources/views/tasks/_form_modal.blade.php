@@ -1682,7 +1682,9 @@
                 return;
             }
             e.preventDefault();
-            document.execCommand('insertText', false, cd.getData('text/plain'));
+            var html = cd.getData('text/html');
+            var md = html && window.htmlToMarkup && window.PASTE_HAS_FORMAT.test(html) ? window.htmlToMarkup(html) : '';
+            document.execCommand('insertText', false, md || cd.getData('text/plain'));
         });
         // images: x removes (also from the Files list), a click opens it large with the others one arrow away
         ed.addEventListener('click', function(e) {

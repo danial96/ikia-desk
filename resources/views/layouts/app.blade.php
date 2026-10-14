@@ -1044,11 +1044,91 @@ window.fileLinkAttrs = function(url, name) {
         let n = name || u.searchParams.get('name') || '';
         if (!n) { try { n = decodeURIComponent(u.pathname.split('/').pop() || ''); } catch (e) { n = u.pathname.split('/').pop() || ''; } }
         const ext = n.indexOf('.') > -1 ? n.split('.').pop().toLowerCase() : '';
-        const viewable = ['jpg','jpeg','png','gif','webp','bmp','avif','ico','pdf','mp3','wav','ogg','m4a','aac','weba','webm','mp4','mov','m4v','docx','xlsx','xls'];
+        const viewable = ['jpg','jpeg','png','gif','webp','bmp','svg','avif','ico','pdf','mp3','wav','ogg','m4a','aac','weba','webm','mp4','mov','m4v','docx','xlsx','xls'];
         if (viewable.indexOf(ext) > -1) return open;
         return ' download="' + String(n).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;') + '"';
     } catch (e) { return open; }
 };
+/* Pasting formatted text (Word, Google Docs, a web page, another task) keeps its bold, italic, links, lists and headings as the markup
+   comments and task descriptions already understand ([b] [i] [url=..]..[/url], "• " and "1. " lines); anything else pastes as plain text. */
+window.PASTE_HAS_FORMAT = /<(b|strong|i|em|a|ul|ol|li|h[1-6]|table)[\s>]|font-weight\s*:\s*(bold|[6-9]00)|font-style\s*:\s*italic/i;
+window.htmlToMarkup = function (html) {
+    var doc = new DOMParser().parseFromString(html, 'text/html');
+    function wrapLines(s, open, close) {
+        return s.split('\n').map(function (l) {
+            return l.trim() ? l.replace(/^(\s*)([\s\S]*?)(\s*)$/, function (m, a, b, c) { return a + open + b + close + c; }) : l;
+        }).join('\n');
+    }
+    function conv(node, ctx) {
+        if (node.nodeType === 3) return ctx.pre ? node.nodeValue : node.nodeValue.replace(/[\s ]+/g, ' ');
+        if (node.nodeType !== 1) return '';
+        var tag = node.tagName.toLowerCase();
+        if (/^(script|style|head|meta|link|title|noscript|svg|img|iframe|button|input|select|textarea)$/.test(tag)) return '';
+        if (tag === 'br') return '\n';
+        if (tag === 'hr') return '\n';
+        var st = node.style || {};
+        var child = ctx;
+        if (tag === 'ul' || tag === 'ol') child = { pre: ctx.pre, depth: (ctx.depth || 0) + 1, list: { ordered: tag === 'ol', n: 0 } };
+        else if (tag === 'pre') child = { pre: true, depth: ctx.depth, list: ctx.list };
+        var inner = '';
+        for (var c = node.firstChild; c; c = c.nextSibling) inner += conv(c, child);
+
+        if (tag === 'a') {
+            var href = node.getAttribute('href') || '';
+            var label = node.textContent.replace(/[\s ]+/g, ' ').trim();
+            if (/^https?:\/\//i.test(href) && !/[\[\]]/.test(href) && label && label !== href) inner = '[url=' + href + ']' + label + '[/url]';
+            else inner = label || href;
+            return inner;
+        }
+        var fw = String(st.fontWeight || '');
+        // Google Docs wraps everything in <b style="font-weight:normal">: that wrapper is not bold
+        var bold = (/^(b|strong)$/.test(tag) && fw !== 'normal' && fw !== '400') || /^h[1-6]$/.test(tag) || /^(bold|[6-9]00)$/.test(fw);
+        var ital = /^(i|em)$/.test(tag) || st.fontStyle === 'italic';
+        if (bold && inner.trim()) inner = wrapLines(inner, '[b]', '[/b]');
+        if (ital && inner.trim()) inner = wrapLines(inner, '[i]', '[/i]');
+
+        if (tag === 'li') {
+            var l = ctx.list, ind = new Array(Math.max(0, (ctx.depth || 1) - 1) + 1).join('  ');
+            var mark = l && l.ordered ? (++l.n) + '. ' : '• ';
+            return '\n' + ind + mark + inner.replace(/^\s+/, '').replace(/\n{2,}/g, '\n') + '\n';
+        }
+        if (tag === 'td' || tag === 'th') return inner.trim() + '\t';
+        if (tag === 'tr') return '\n' + inner.replace(/\t$/, '').replace(/\t/g, ' | ') + '\n';
+        if (/^(p|div|section|article|header|footer|blockquote|pre|h[1-6]|table|ul|ol|thead|tbody|tfoot)$/.test(tag)) return '\n' + inner + '\n';
+        return inner;
+    }
+    var s = conv(doc.body, { pre: false, depth: 0 });
+    s = s.split('\n').map(function (l) { return /^\s*(•|\d+\.) /.test(l) ? l.replace(/\s+$/, '') : l.trim(); }).join('\n');
+    // no blank lines between the items of a list / the rows of a table
+    var isItem = function (l) { return /^\s*(\u2022|\d+\.) /.test(l) || / \| /.test(l); };
+    var ls = s.split('\n'), kept = [];
+    for (var i = 0; i < ls.length; i++) {
+        if (ls[i] === '' && kept.length && isItem(kept[kept.length - 1])) {
+            var j = i; while (j < ls.length && ls[j] === '') j++;
+            if (j < ls.length && isItem(ls[j])) { i = j - 1; continue; }
+        }
+        kept.push(ls[i]);
+    }
+    return kept.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+};
+
+// the task comment box and the quick description edit are plain text boxes: put the converted markup in at the caret
+document.addEventListener('paste', function (e) {
+    var t = e.target;
+    if (!t || !/^(tp-comment-text|tpe-desc)$/.test(t.id || '')) return;
+    var cd = e.clipboardData;
+    if (!cd || (cd.files && cd.files.length)) return;          // pasted pictures keep their own handling
+    var html = cd.getData('text/html');
+    if (!html || !window.PASTE_HAS_FORMAT.test(html)) return;  // nothing to keep: normal paste
+    var md = window.htmlToMarkup(html);
+    if (!md) return;
+    e.preventDefault();
+    if (!document.execCommand('insertText', false, md)) {
+        var a = t.selectionStart, b = t.selectionEnd;
+        t.setRangeText(md, a, b, 'end');
+        t.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+}, true);
 // Clicking a reply's quoted preview jumps to (and briefly highlights) the original message —
 // shared by chat, the chat popup, and task comments, all of which render a quote preview above
 // a reply. Only works if the original message is already in the DOM (no older-message lazy-load).

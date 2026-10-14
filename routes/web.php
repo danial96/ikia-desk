@@ -310,7 +310,8 @@ Route::middleware('auth')->group(function () {
         // Anything that can carry a <script> and render in a browser tab (html/svg/xml/...) must
         // download rather than execute inline — otherwise an uploaded file could run script in an
         // authenticated user's session under our own origin (stored XSS via file upload).
-        $renderRisk = ['html','htm','xhtml','shtml','mhtml','xml','svg'];
+        // (svg is not on this list: it is served as an image with a locked-down CSP below, so it shows in <img> and can't run script)
+        $renderRisk = ['html','htm','xhtml','shtml','mhtml','xml'];
         $ext = strtolower(pathinfo($full, PATHINFO_EXTENSION));
         if (in_array($ext, $renderRisk)) {
             return response()->download($full, $niceName, ['Content-Type' => 'application/octet-stream']);
@@ -323,11 +324,16 @@ Route::middleware('auth')->group(function () {
         // 'private': only this browser may keep it, never a shared cache or CDN (these files are for signed-in people only).
         // Only what a browser can show properly stays inline (images, PDF, audio, video); every other type is a download,
         // so a .sql/.txt/.zip never turns into a tab of text. nosniff: the browser must not guess a more active type.
-        $inline = in_array($ext, ['jpg','jpeg','png','gif','webp','bmp','avif','ico','pdf','mp3','wav','ogg','m4a','aac','weba','webm','mp4','mov','m4v'], true);
+        $inline = in_array($ext, ['jpg','jpeg','png','gif','webp','bmp','svg','avif','ico','pdf','mp3','wav','ogg','m4a','aac','weba','webm','mp4','mov','m4v'], true);
         $file = response()->file($full)->setContentDisposition($inline ? 'inline' : 'attachment', $niceName)
             ->setPrivate()->setMaxAge(2592000)->setImmutable()
             ->setEtag(md5($full . '|' . filemtime($full) . '|' . filesize($full)));
         $file->headers->set('X-Content-Type-Options', 'nosniff');
+        if ($ext === 'svg') {
+            // an SVG can carry script: as a picture (<img>) it never runs, and opened on its own the CSP below (no script, sandboxed) stops it
+            $file->headers->set('Content-Type', 'image/svg+xml');
+            $file->headers->set('Content-Security-Policy', "default-src 'none'; style-src 'unsafe-inline'; img-src data:; sandbox");
+        }
         $file->isNotModified($request);      // browser already has this exact file: answer 304 without sending it again
         return $file;
     })->where('path', '.*')->name('uploads.show');
