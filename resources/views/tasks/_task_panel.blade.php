@@ -656,7 +656,9 @@ window.tpOpen = function(type, id) {
     // changed, so this never shows stale data for more than a moment.
     window._tpCache = window._tpCache || {};
     const cacheKey = type + ':' + id;
-    const cached = window._tpCache[cacheKey] || LocalCache.get('task', cacheKey);     // in memory, else what this browser saw last time
+    // in memory, else what this browser saw last time. Only a real task counts: an error reply that got stored once must never be drawn
+    let cached = window._tpCache[cacheKey] || LocalCache.get('task', cacheKey);
+    if (cached && !cached.task) { cached = null; delete window._tpCache[cacheKey]; LocalCache.set('task', cacheKey, null); }
     if (cached) { if (type==='b24') tpRenderB24(cached,id); else tpRenderLocal(cached); }
     else tpSkeleton();
 
@@ -668,6 +670,8 @@ window.tpOpen = function(type, id) {
     fetch(url,{headers:{'X-CSRF-TOKEN':TP_CSRF,'Accept':'application/json'}})
         .then(r=>r.json())
         .then(data=>{
+            // an error reply (no access, server hiccup) is neither drawn nor remembered
+            if (!data || !data.task) { if (!cached) $('tp-left-body').innerHTML='<p style="color:#ef4444;padding:24px 0;">Could not load task details.</p>'; return; }
             const changed = !cached || JSON.stringify(data) !== JSON.stringify(cached);
             window._tpCache[cacheKey] = data;
             LocalCache.set('task', cacheKey, data);
@@ -1227,6 +1231,7 @@ function tpRenderMembersPanel(data) {
 
 /* ─── render local task ────────────────────────────────── */
 function tpRenderLocal(data) {
+    if (!data || !data.task) return;
     const t=data.task, feed=data.feed||[], employees=data.employees||[];
     const assignee=data.assignee||null, creator=data.creator||null;
     const participants=data.participants||[], observers=data.observers||[];

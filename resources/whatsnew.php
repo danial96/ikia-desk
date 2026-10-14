@@ -134,4 +134,10 @@ return [
             'Update notice now lists what changed.',
         ],
     ],
+    [
+        'id' => 21, 'date' => '2026-10-14',
+        'items' => [
+            'Fixed: a task sometimes would not open (stuck after a bad reply).',
+        ],
+    ],
 ];
