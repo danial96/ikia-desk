@@ -74,64 +74,64 @@ return [
     [
         'id' => 11, 'date' => '2026-10-06',
         'items' => [
-            'Fixed: clicking a file attachment such as a .sql, .zip or .txt now downloads it instead of opening a new tab.',
+            'Fixed: .sql, .zip etc. now download on click.',
         ],
     ],
     [
         'id' => 12, 'date' => '2026-10-07',
         'items' => [
-            'Task description with several attached files: "Download all" (one zip) is back in its Files list.',
-            'Task comments: the ⋯ menu now has Delete (your own comment, or any if you are an admin), and Edit works on comments with attachments too. You can take an attachment off with its ×.',
+            'Fixed: "Download all" back in task files.',
+            'New: delete and edit task comments, even with attachments.',
         ],
     ],
     [
         'id' => 13, 'date' => '2026-10-07',
         'items' => [
-            'Tasks: choosing someone as Responsible no longer also adds them to the Participants; participants are only who you pick. When the responsible hands a task to someone else, they stay on it as an Observer.',
+            'Responsible no longer becomes a participant; old responsible stays as observer.',
         ],
     ],
     [
         'id' => 14, 'date' => '2026-10-07',
         'items' => [
-            "Fixed: the responsible person's avatar on a kanban card did not change when the responsible was changed.",
+            'Fixed: kanban card avatar updates when responsible changes.',
         ],
     ],
     [
         'id' => 15, 'date' => '2026-10-08',
         'items' => [
-            'Tasks: an observer can now remove themselves from the Observers (click your own name).',
+            'New: observers can remove themselves.',
         ],
     ],
     [
         'id' => 16, 'date' => '2026-10-09',
         'items' => [
-            'Fixed: attaching many files or photos to a message or comment no longer fills the screen. The first 10 show, the rest collapse into a +N tile (click it to see all).',
-            'Fixed: the 9+ on the notification bell is centred inside its red badge.',
+            'Fixed: many attachments collapse into a +N tile.',
+            'Fixed: bell "9+" badge alignment.',
         ],
     ],
     [
         'id' => 17, 'date' => '2026-10-09',
         'items' => [
-            'New task / edit task: the description is now a proper editor. Attach or paste (Ctrl+V) a picture and it lands exactly where your cursor is, so you can write around it. The box is twice as tall, and the Files list stays as it was. Saved tasks show the pictures in the same places.',
+            'New: task description is an editor; pictures go where your cursor is.',
         ],
     ],
     [
         'id' => 18, 'date' => '2026-10-09',
         'items' => [
-            'New sidebar tab: Payment Terminal, shown only to people an admin gave the "Payment Terminal" permission (Permissions page).',
+            'New: Payment Terminal tab (by permission).',
         ],
     ],
     [
         'id' => 19, 'date' => '2026-10-14',
         'items' => [
-            'Fixed: SVG attachments now show as pictures instead of a broken image.',
-            'Fixed: pasting formatted text (Word, Google Docs, web pages) into a task comment or description now keeps bold, italic, links and lists.',
+            'Fixed: SVG attachments show.',
+            'Fixed: pasting keeps bold, links and lists.',
         ],
     ],
     [
         'id' => 20, 'date' => '2026-10-14',
         'items' => [
-            'The "new version" notice now lists everything that changed since you opened this page, not just the last update.',
+            'Update notice now lists what changed.',
         ],
     ],
 ];
