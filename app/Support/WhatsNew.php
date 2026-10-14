@@ -19,7 +19,7 @@ class WhatsNew
     }
 
     /** Releases newer than $sinceId, oldest first, at most the newest $limit of them. */
-    public static function since(int $sinceId, int $limit = 3): array
+    public static function since(int $sinceId, int $limit = 12): array
     {
         $newer = array_values(array_filter(self::all(), fn ($r) => $r['id'] > $sinceId));
         return array_slice($newer, -$limit);

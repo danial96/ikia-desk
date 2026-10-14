@@ -38,7 +38,7 @@ class UpdateBannerTest extends TestCase
         $this->assertStringContainsString("'/api/whats-new?since='", $html);
     }
 
-    public function test_a_browser_on_an_old_version_gets_every_newer_release_oldest_first_capped_at_three(): void
+    public function test_a_browser_on_an_old_version_gets_every_newer_release_oldest_first_capped_at_twelve(): void
     {
         $latest = WhatsNew::latestId();
         $this->assertGreaterThanOrEqual(3, $latest);
@@ -47,7 +47,7 @@ class UpdateBannerTest extends TestCase
         $this->assertSame([], $none);
 
         $all = $this->actingAs($this->user())->getJson('/api/whats-new?since=0')->assertOk()->json('releases');
-        $this->assertCount(3, $all);
+        $this->assertCount(min(12, count(require resource_path('whatsnew.php'))), $all);
         $ids = array_column($all, 'id');
         $sorted = $ids; sort($sorted);
         $this->assertSame($sorted, $ids);

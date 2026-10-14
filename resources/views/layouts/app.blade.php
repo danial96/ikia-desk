@@ -4604,8 +4604,12 @@ if (typeof window.Push === 'undefined') {
                 const items = [];
                 (d.releases || []).forEach((rel) => (rel.items || []).forEach((t) => items.push(t)));
                 if (!items.length) return;
+                const head = document.createElement('div');
+                head.textContent = 'What changed';
+                head.style.cssText = 'margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#94a3b8;';
+                bar.appendChild(head);
                 const ul = document.createElement('ul');
-                ul.style.cssText = 'margin:10px 0 2px;padding-left:18px;font-size:13px;line-height:1.45;color:#cbd5e1;max-height:40vh;overflow:auto;';
+                ul.style.cssText = 'margin:4px 0 2px;padding-left:18px;font-size:13px;line-height:1.45;color:#cbd5e1;max-height:40vh;overflow:auto;';
                 items.forEach((t) => { const li = document.createElement('li'); li.style.margin = '3px 0'; li.textContent = t; ul.appendChild(li); });
                 bar.appendChild(ul);
             }).catch(() => {});
