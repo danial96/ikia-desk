@@ -140,4 +140,10 @@ return [
             'Fixed: a task sometimes would not open (stuck after a bad reply).',
         ],
     ],
+    [
+        'id' => 22, 'date' => '2026-10-15',
+        'items' => [
+            'Fixed: a photo showed twice while it was being sent.',
+        ],
+    ],
 ];

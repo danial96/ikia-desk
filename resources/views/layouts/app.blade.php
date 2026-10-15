@@ -2182,7 +2182,8 @@ window.msgImgMosaic = function (urls, galKey) {
         try {
             const area = tgt.area && tgt.area();
             const q = files2.map(f => ({ f, st: 'wait', url: isImg(f) ? URL.createObjectURL(f) : null }));
-            const imgsQ = () => q.filter(it => it.url && it.st !== 'cancel' && it.st !== 'sent');
+            // a photo that is being sent already has its own message bubble: it must not also stay in the "uploading" one (it showed twice)
+            const imgsQ = () => q.filter(it => it.url && it.st !== 'cancel' && it.st !== 'sent' && it.st !== 'sending');
             const veil = it =>
                 '<div style="position:absolute;inset:0;background:rgba(0,0,0,.30);display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-size:12px;gap:4px;">' +
                 '<span data-cancel="' + q.indexOf(it) + '" title="Don\'t send this one" style="width:38px;height:38px;border-radius:50%;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;font-size:20px;cursor:pointer;pointer-events:auto;">&times;</span>' +
@@ -2190,6 +2191,8 @@ window.msgImgMosaic = function (urls, galKey) {
             const paint = () => {
                 if (!pending) return;
                 const list = imgsQ();
+                if (!list.length) { pending.style.display = 'none'; return; }
+                pending.style.display = 'flex';
                 const tile = it => '<img src="' + it.url + '" style="width:100%;height:100%;object-fit:cover;display:block;">' + veil(it);
                 pending.firstElementChild.innerHTML = list.length === 1
                     ? '<div style="position:relative;width:280px;max-width:100%;border-radius:8px;overflow:hidden;"><img src="' + list[0].url + '" style="width:100%;display:block;">' + veil(list[0]) + '</div>'
@@ -2212,6 +2215,7 @@ window.msgImgMosaic = function (urls, galKey) {
                 if (it.st === 'cancel') continue;
                 it.st = 'up'; paint();
                 await window.uploadFileDirect(it.f, textareaId, tgt.preview);
+                it.st = 'sending'; paint();      // the real message appears now; take this photo out of the uploading bubble
                 ta.value = sent === 0 ? (caption || keep) : '';
                 const r = tgt.send();
                 if (r && typeof r.then === 'function') await r; else await new Promise(res => setTimeout(res, 350));
