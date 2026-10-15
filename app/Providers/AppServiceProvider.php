@@ -3,8 +3,11 @@
 namespace App\Providers;
 
 use App\Models\User;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 
@@ -14,6 +17,16 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // The app polls a little and the chat is chatty: generous, but still a ceiling. Keyed per phone (its token), else per address.
+        RateLimiter::for('mobile', fn (Request $request) => Limit::perMinute(300)->by(
+            $request->bearerToken() ? 'tok:' . sha1($request->bearerToken()) : 'ip:' . $request->ip()
+        ));
+
+        // A new password signs every phone out (the website's other sessions are already handled by Laravel).
+        User::updated(function (User $user) {
+            if ($user->wasChanged('password')) $user->apiTokens()->delete();
+        });
+
         View::composer('layouts.app', function ($view) {
             if (Auth::check()) {
                 $view->with('onlineUsers', $this->teamRail(Auth::id()));

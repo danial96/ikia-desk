@@ -18,7 +18,7 @@ class TaskController extends Controller
      * and Pending (Bitrix's "Pending" = accepted, not yet started) and Reviewing — otherwise
      * those tasks would vanish from the default view. Every other status filters exactly.
      */
-    private static function expandStatuses(array $statuses): array
+    public static function expandStatuses(array $statuses): array
     {
         return in_array('in_progress', $statuses, true)
             ? array_values(array_unique(array_merge($statuses, ['new', 'pending', 'reviewing'])))
@@ -629,7 +629,8 @@ class TaskController extends Controller
 
     public function kanban(Request $request)
     {
-        $this->rememberTaskView(Auth::user(), 'kanban');
+        // The mobile app reads the board too; that must not flip the layout the person chose on the website.
+        if (!$request->attributes->get('via_api')) $this->rememberTaskView(Auth::user(), 'kanban');
 
         // Default to the In Progress filter on a genuine full page load (never on the AJAX
         // re-filter — clearing the chip must actually clear it for the rest of the session, not

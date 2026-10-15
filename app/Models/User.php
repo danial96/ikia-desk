@@ -50,6 +50,7 @@ class User extends Authenticatable
     /** The sidebar's Payment Terminal tab: the super admin, and anyone an admin switched it on for on the Permissions page. */
     public function canAccessPaymentTerminal(): bool { return $this->isSuperAdmin() || !empty($this->permissions['access_payment_terminal']); }
 
+    public function apiTokens() { return $this->hasMany(ApiToken::class); }
     public function departments() { return $this->belongsToMany(Department::class, 'department_user'); }
     public function projects() { return $this->hasMany(Project::class, 'created_by'); }
     public function tasks() { return $this->hasMany(Task::class, 'assigned_to'); }
