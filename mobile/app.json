@@ -1,0 +1,50 @@
+{
+  "expo": {
+    "name": "IKIA Desk",
+    "slug": "ikia-desk",
+    "scheme": "ikiadesk",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.ikiatech.desk"
+    },
+    "android": {
+      "package": "com.ikiatech.desk",
+      "adaptiveIcon": {
+        "backgroundColor": "#04252b",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#04252b",
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 200
+        }
+      ],
+      "expo-font"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "apiBaseUrl": "https://desk.ikiatech.com"
+    }
+  }
+}
