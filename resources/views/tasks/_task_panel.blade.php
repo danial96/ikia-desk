@@ -46,7 +46,7 @@
 .tp-people-dropdown .opt:hover { background:#f1f5f9; }
 .tp-people-dropdown .opt.selected { color:#0ea5e9; }
 /* ── Bitrix-style look ── */
-#tp-overlay { inset:0 64px 0 0 !important; }              /* keep the user rail visible, like Bitrix */
+#tp-overlay { inset:0 calc(64px * var(--uz, 1)) 0 0 !important; }              /* keep the user rail visible, like Bitrix */
 @media (max-width:1024px){ #tp-overlay { inset:0 !important; } }
 #tp-desc-content a, #tp-left-body .tp-card a { color:#2067b0 !important; text-decoration:none !important; }
 #tp-desc-content a:hover { text-decoration:underline !important; }

@@ -146,4 +146,10 @@ return [
             'Fixed: a photo showed twice while it was being sent.',
         ],
     ],
+    [
+        'id' => 23, 'date' => '2026-10-15',
+        'items' => [
+            'Laptop screens (1025-1535px): same desktop layout, everything just a bit smaller.',
+        ],
+    ],
 ];

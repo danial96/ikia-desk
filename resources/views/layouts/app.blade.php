@@ -314,6 +314,25 @@
             #sidebar.hidden-sidebar .sb-user a { flex: 0 0 auto !important; }
         }
 
+        /* ─── Laptop screens (1025–1535px): keep the full desktop layout and just draw it smaller ───
+           The page is laid out as if the window were ~1500px wide and scaled to fit, like browser zoom, so nothing is hidden
+           or rearranged. Only the three layout columns are scaled: pop-ups, menus and toasts hang off <body> and stay full
+           size, which keeps their positions exact. --uz is the scale, --vh100 a full window height in the scaled units. */
+        :root { --uz: 1; --vh100: 100vh; }
+        @media (min-width: 1025px) and (max-width: 1099px) { :root { --uz: .70; } }
+        @media (min-width: 1100px) and (max-width: 1199px) { :root { --uz: .75; } }
+        @media (min-width: 1200px) and (max-width: 1279px) { :root { --uz: .80; } }
+        @media (min-width: 1280px) and (max-width: 1365px) { :root { --uz: .85; } }
+        @media (min-width: 1366px) and (max-width: 1439px) { :root { --uz: .90; } }
+        @media (min-width: 1440px) and (max-width: 1535px) { :root { --uz: .93; } }
+        @media (min-width: 1025px) and (max-width: 1535px) {
+            :root { --vh100: calc(100vh / var(--uz)); }
+            #sidebar, #main-content, #right-panel { zoom: var(--uz); }
+            /* the big slide-over panels (task, new task, messenger) are scaled the same way; their gap to the user rail scales too */
+            #tp-panel, #tp-side-actions, #nt-panel, #chat-panel { zoom: var(--uz); }
+            #nt-overlay { margin-right: calc(50px * var(--uz)) !important; }
+        }
+
         /* ─── Responsive: tablets & phones ─── */
         @media (max-width: 1024px) {
             /* Sidebar becomes a slide-over; content uses the full width */

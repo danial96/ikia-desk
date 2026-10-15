@@ -7,7 +7,7 @@
 // Remove main padding so chat fills the full content area
 document.addEventListener('DOMContentLoaded', function() {
     const mc = document.getElementById('main-content');
-    if (mc) { mc.style.overflow = 'hidden'; mc.style.height = '100vh'; mc.style.minHeight = 'unset'; }
+    if (mc) { mc.style.overflow = 'hidden'; mc.style.height = 'var(--vh100, 100vh)'; mc.style.minHeight = 'unset'; }
     const main = document.querySelector('#main-content main');
     if (main) { main.style.padding = '0'; main.style.overflow = 'hidden'; main.style.display = 'flex'; main.style.flexDirection = 'column'; main.style.flex = '1'; main.style.minHeight = '0'; }
 });

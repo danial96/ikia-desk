@@ -82,7 +82,7 @@ $csrf    = csrf_token();
 .chat-icon-btn:hover { background:#f1f5f9;color:#475569; }
 </style>
 
-<div class="task-panel" style="display:flex;height:calc(100vh - 76px);border-radius:14px;overflow:hidden;border:1px solid #e2e8f0;box-shadow:0 8px 32px rgba(0,0,0,.1);">
+<div class="task-panel" style="display:flex;height:calc(var(--vh100, 100vh) - 76px);border-radius:14px;overflow:hidden;border:1px solid #e2e8f0;box-shadow:0 8px 32px rgba(0,0,0,.1);">
 
 {{-- ════ LEFT PANEL ════ --}}
 <div style="flex:0 0 40%;min-width:0;display:flex;flex-direction:column;background:#fff;border-right:1px solid #e8edf2;">

@@ -84,7 +84,7 @@
             </div>
 
             {{-- Column body --}}
-            <div id="kb-col-{{ $key }}" style="background:transparent;border:none;border-left:1px dashed rgba(255,255,255,.3);border-right:1px dashed rgba(255,255,255,.3);border-radius:0;padding:4px 8px 8px;display:flex;flex-direction:column;gap:7px;height:calc(100vh - 210px);overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.15) transparent;">
+            <div id="kb-col-{{ $key }}" style="background:transparent;border:none;border-left:1px dashed rgba(255,255,255,.3);border-right:1px dashed rgba(255,255,255,.3);border-radius:0;padding:4px 8px 8px;display:flex;flex-direction:column;gap:7px;height:calc(var(--vh100, 100vh) - 210px);overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.15) transparent;">
 
                 @include('tasks._kanban_col_body', ['tasks' => $tasks, 'colKey' => $key, 'completedTotal' => $completedTotal])
 
@@ -448,7 +448,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!dragging) return;
         const track   = document.getElementById('kb-track');
         const thumb   = document.getElementById('kb-thumb');
-        const dx      = e.clientX - startX;
+        const uz      = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--uz')) || 1;   // laptop scaling: mouse moves are on screen, the track is in scaled units
+        const dx      = (e.clientX - startX) / uz;
         const ratio   = dx / (track.clientWidth - thumb.offsetWidth);
         el.scrollLeft = startScroll + ratio * (el.scrollWidth - el.clientWidth);
     });
