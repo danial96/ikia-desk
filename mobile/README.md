@@ -35,11 +35,23 @@ npx expo-doctor     # dependency / config health
 
 | Path | What |
 |---|---|
-| `src/app/` | Screens (Expo Router). `sign-in`, `update-required`, and `(app)/` tabs: tasks, messenger, notifications, profile |
+| `src/app/` | Screens (Expo Router). `sign-in`, `update-required`, and `(app)/`: the tab bar `(tabs)/` (tasks, messenger, notifications, profile) plus `task/[id]` (detail), `task/[id]/edit`, `task/new`, `trash` |
+| `src/api/tasks.ts` | React Query hooks for tasks, board, comments, checklist, trash, pick-lists |
+| `src/components/tasks/` | `TaskRow`, `BoardView`, `Comment`, `TaskForm` |
+| `src/lib/` | `time` (profile-zone clock, board columns), `richText` (message/description tags), `permissions`, `activity`, `files` (private download) |
 | `src/api/client.ts` | The one `fetch` wrapper: bearer token, `X-App-Version`, errors (`ApiError`, `NetworkError`), 401 → sign out, 426 → update screen |
 | `src/auth/` | `SessionProvider` (startup, sign in/out) and `tokenStore` (token + profile in Keychain/Keystore) |
 | `src/lib/queryClient.ts` | React Query wired to NetInfo (offline) and AppState (refresh on return) |
 | `src/components/ui.tsx` | `Screen`, `Button`, `TextField`, `Loading`, `Message`, offline banner |
+
+## What works (Phase 2: tasks)
+
+List (Active / Paused / Done, search, "Mine"), deadline board (hold a card to move it), task page (status, priority, deadline, responsible person,
+description with photos/links, checklist, files, comments with reply / reactions / edit / delete / @mention, history), create and edit, Trash.
+Not yet: attaching files or photos to a task or comment (comes with the chat media work), realtime updates (task pages refresh every 15 s).
+
+Quick browser check without a phone: `EXPO_PUBLIC_API_URL=http://127.0.0.1:8000 npx expo start --web` (login works through a localStorage
+stand-in for the secure store; the deadline field is a plain text box there).
 
 ## Notes
 

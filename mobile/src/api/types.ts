@@ -84,3 +84,104 @@ export type NotificationsResponse = {
   notifications: NotificationItem[];
   unread_count: number;
 };
+
+// ── Tasks ──────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+export type Member = { id: number; name: string; avatar: string; position?: string | null };
+
+export type TaskFile = { id: number; name: string; mime?: string | null; size: number | null; downloadUrl: string; isLocal: boolean };
+
+export type Reactions = Record<string, number[]>;
+
+export type CommentItem = {
+  type: 'comment';
+  at: string;
+  id: number;
+  isSystem: boolean;
+  author: { id: number; name: string; avatar: string };
+  text: string;
+  editedAt: string | null;
+  parentId: number | null;
+  parentPreview: { author: string; text: string } | null;
+  reactions: Reactions;
+  myReactions: string[];
+  files: TaskFile[];
+};
+
+export type ActivityItem = {
+  type: 'activity';
+  at: string;
+  author: string;
+  action: string;
+  field: string | null;
+  old: string | null;
+  new: string | null;
+};
+
+export type FeedItem = CommentItem | ActivityItem;
+
+export type ChecklistItem = { id: number; text: string; is_complete: boolean; completed_by: number | null };
+
+export type TaskDetail = {
+  task: {
+    id: number;
+    bitrixId: number | null;
+    title: string;
+    description: string | null;
+    status: TaskStatus;
+    priority: TaskPriority;
+    assigned_to: number | null;
+    deadline: string | null;
+    createdAt: string;
+    project: { id: number; name: string } | null;
+  };
+  assignee: Member | null;
+  creator: Member | null;
+  participants: Member[];
+  observers: Member[];
+  feed: FeedItem[];
+  viewedBy: { id: number; name: string; avatar: string; viewedAt: string }[];
+  lastSeenBy: { name: string; viewedAt: string } | null;
+  canEdit: boolean;
+  checklists: ChecklistItem[];
+  localFiles: TaskFile[];
+};
+
+export type BoardCard = {
+  id: number;
+  title: string;
+  priority: TaskPriority;
+  status: TaskStatus;
+  project: string | null;
+  assignee: { name: string; avatar: string } | null;
+  creator: { name: string; avatar: string } | null;
+  members: string[];
+  files_count: number;
+  can_move: boolean;
+  dl: { label: string; kind: 'done' | 'overdue' | 'today' | 'normal' } | null;
+  hot: boolean;
+};
+
+export type Board = {
+  columns: Record<string, BoardCard[]>;
+  completedTotal: number;
+  unseenTaskIds: number[];
+};
+
+export type TrashedTask = TaskCard & { deleted_at: string | null; deleted_by: string | null };
+
+export type ProjectLite = { id: number; name: string };
+export type UserLite = { id: number; name: string; position: string | null; avatar: string };
+
+export type TaskInput = {
+  title: string;
+  description?: string | null;
+  project_id?: number | null;
+  assigned_to?: number | null;
+  priority: TaskPriority;
+  status?: TaskStatus;
+  /** Wall-clock in the sender's profile zone, e.g. "2026-10-15T18:30", or null to clear. */
+  deadline?: string | null;
+  members?: number[];
+  observers?: number[];
+};
