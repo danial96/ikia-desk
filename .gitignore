@@ -26,3 +26,6 @@ Homestead.json
 Homestead.yaml
 Thumbs.db
 *.zip
+
+# Phone app file served by the website (uploaded by hand, see mobile/README.md)
+/public/downloads

@@ -67,6 +67,40 @@ registers its Expo push token, shows alerts for chat messages and task activity,
 chats + unread alerts. A message for the chat you are reading makes no banner. **One-off setup**: `eas login`, `eas init` (writes
 `extra.eas.projectId` into app.json), then `eas credentials` / the first `eas build` creates the Apple push key and Google FCM key for you.
 
+## Releasing (one-time setup, then per release)
+
+You need an Expo account (free), and for stores: Google Play ($25 once) and/or Apple Developer ($99/year). Employees-only distribution works without stores:
+an Android `.apk` from the website, and iPhone through TestFlight.
+
+```bash
+npm i -g eas-cli          # or: npx eas-cli@latest <command>
+eas login
+eas init                  # links the app to your Expo account, writes extra.eas.projectId into app.json
+```
+
+**Android app file (no Google Play needed)**
+
+```bash
+eas build --platform android --profile preview     # prints a download link for the .apk
+```
+
+Download it, put it on the server as `public/downloads/ikia-desk.apk` (the folder is git-ignored, so deploys never touch it) and set in the server `.env`:
+`DESK_MOBILE_APK_URL=https://desk.ikiatech.com/downloads/ikia-desk.apk`. The sidebar's **Download app** button appears as soon as any link is set.
+
+**iPhone / stores**
+
+```bash
+eas build --platform ios --profile production      # asks for your Apple login the first time and creates the certificates
+eas submit --platform ios                          # uploads to App Store Connect / TestFlight
+eas build --platform android --profile production  # an .aab for Google Play
+eas submit --platform android
+```
+
+Then set `DESK_MOBILE_IOS_URL` (TestFlight or App Store link) and/or `DESK_MOBILE_ANDROID_URL` (Play Store link) in the server `.env`.
+
+**Retire old builds**: raise `DESK_MOBILE_MIN_VERSION` in the server `.env`; older apps then show "Please update" with the store link.
+Bump `version` in `app.json` for each release (build numbers are automatic).
+
 ## Notes
 
 - **Do not add packages with `npm install`**, use `npx expo install <pkg>` so versions match the SDK. `.npmrc` sets `legacy-peer-deps`

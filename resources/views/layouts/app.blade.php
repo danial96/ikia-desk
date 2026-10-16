@@ -589,6 +589,18 @@
             @endif
         </nav>
 
+        @if(\App\Support\MobileApp::available())
+        {{-- Phone app: sits right above the profile --}}
+        <div style="padding:0 0 6px;">
+            <a href="{{ route('app.download') }}" class="nav-link {{ request()->routeIs('app.download') ? 'active' : '' }}" title="Download the phone app">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                </svg>
+                Download app
+            </a>
+        </div>
+        @endif
+
         {{-- User info --}}
         <div class="sb-user" style="padding:12px;border-top:1px solid rgba(255,255,255,.07);">
             <div style="display:flex;align-items:center;gap:10px;">

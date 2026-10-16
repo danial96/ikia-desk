@@ -102,6 +102,11 @@ Route::middleware('auth')->group(function () {
         return redirect()->away(config('desk.payment_terminal_url'))->header('Referrer-Policy', 'no-referrer');
     })->name('payment.terminal');
 
+    // Get the phone app (the sidebar's "Download app" button)
+    Route::get('/app', fn () => \App\Support\MobileApp::available()
+        ? view('app-download', ['links' => \App\Support\MobileApp::links()])
+        : abort(404))->name('app.download');
+
     // Permissions
     Route::get('/permissions', [PermissionController::class, 'index'])->name('permissions.index');
     Route::post('/permissions/{employee}', [PermissionController::class, 'update'])->name('permissions.update');

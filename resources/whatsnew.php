@@ -152,4 +152,10 @@ return [
             'Laptop screens (1025-1535px): same desktop layout, everything just a bit smaller.',
         ],
     ],
+    [
+        'id' => 24, 'date' => '2026-10-16',
+        'items' => [
+            'New: the IKIA Desk phone app. Tasks and chats stay in sync with this computer. Tap "Download app" in the sidebar.',
+        ],
+    ],
 ];
