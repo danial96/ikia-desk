@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Alert, FlatList, KeyboardAvoidingView, Platform, Pressable, Text, View } from 'react-native';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
@@ -17,6 +17,7 @@ import { buildRows, type ChatRow } from '@/lib/chatRows';
 import { errorMessage } from '@/lib/errors';
 import { isImage } from '@/lib/media';
 import { goBack } from '@/lib/nav';
+import { setActiveChat } from '@/push/activeChat';
 import { useRealtimeConnected } from '@/realtime/RealtimeProvider';
 import { spacing, useColors } from '@/theme';
 
@@ -28,6 +29,12 @@ export default function ChatScreen() {
   const { user } = useSession();
   const live = useRealtimeConnected();
   const q = useChat(convId, live ? 30_000 : 6_000);
+
+  // tell the notification handler which chat is being read, so it does not banner messages for it
+  useEffect(() => {
+    setActiveChat(convId);
+    return () => setActiveChat(null);
+  }, [convId]);
 
   if (!user) return null;
   if (q.isPending) return <Loading />;

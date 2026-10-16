@@ -60,6 +60,13 @@ everyone, @mentions in groups, read/delivered ticks, failed-send retry, older me
 voice messages (record and play), and photos or files attached to a task or a comment. Updates arrive live over Pusher when the server has it on
 (`/auth/me` returns `realtime_channel`); otherwise the screens poll (every 6 s in a chat, 20 s for the list).
 
+## What works (Phase 4: push)
+
+On a real phone (not Expo Go on Android, which has no remote push since SDK 53; use a development build) the app asks for notification permission,
+registers its Expo push token, shows alerts for chat messages and task activity, and opens the right chat/task on tap. The icon badge is unread
+chats + unread alerts. A message for the chat you are reading makes no banner. **One-off setup**: `eas login`, `eas init` (writes
+`extra.eas.projectId` into app.json), then `eas credentials` / the first `eas build` creates the Apple push key and Google FCM key for you.
+
 ## Notes
 
 - **Do not add packages with `npm install`**, use `npx expo install <pkg>` so versions match the SDK. `.npmrc` sets `legacy-peer-deps`

@@ -74,10 +74,10 @@ class Notification extends Model
      */
     private static function pushToDevices(array $created, string $title, string $body, string $url, bool $isTask): void
     {
-        if (!$created || !\App\Support\WebPush::enabled()) return;
+        if (!$created || !\App\Support\Push::enabled()) return;
         $pref = $isTask ? 'notify_tasks' : 'notify_messages';
         foreach (User::whereIn('id', array_keys($created))->where($pref, true)->pluck('id') as $uid) {
-            \App\Support\WebPush::sendToUsers([$uid], [
+            \App\Support\Push::sendToUsers([$uid], [
                 'title' => $title,
                 'body'  => \App\Support\WebPush::snippet($body),
                 'url'   => $url,

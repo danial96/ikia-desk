@@ -901,8 +901,8 @@ Route::post('/chat/convs/{id}/send', function (\Illuminate\Http\Request $request
     }
     // Everyone else gets a plain "new message" push (mentioned / replied-to people already got
     // their own, more specific one above).
-    if ($conv->type !== 'notes' && \App\Support\WebPush::enabled()) {
-        \App\Support\WebPush::sendToUsers(
+    if ($conv->type !== 'notes' && \App\Support\Push::enabled()) {
+        \App\Support\Push::sendToUsers(
             \App\Models\User::whereIn('id', array_diff($memberIds, [$user->id], $mentions, $repliedTo))
                 ->where('notify_messages', true)->pluck('id')->all(),
             \App\Support\WebPush::chatPayload($conv, $user, $request->content, $chatUrl)

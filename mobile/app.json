@@ -55,7 +55,14 @@
           "microphonePermission": "IKIA Desk uses the microphone to record voice messages."
         }
       ],
-      "expo-asset"
+      "expo-asset",
+      [
+        "expo-notifications",
+        {
+          "color": "#0b6b73",
+          "defaultChannel": "messages"
+        }
+      ]
     ],
     "extra": {
       "apiBaseUrl": "https://desk.ikiatech.com"

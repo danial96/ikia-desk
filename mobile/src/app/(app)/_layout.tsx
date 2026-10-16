@@ -1,5 +1,6 @@
 import { Stack } from 'expo-router';
 
+import { PushProvider } from '@/push/PushProvider';
 import { RealtimeProvider } from '@/realtime/RealtimeProvider';
 import { useColors } from '@/theme';
 
@@ -8,6 +9,7 @@ export default function AppStack() {
   const c = useColors();
   return (
     <RealtimeProvider>
+    <PushProvider>
     <Stack
       screenOptions={{
         headerStyle: { backgroundColor: c.card },
@@ -24,6 +26,7 @@ export default function AppStack() {
       <Stack.Screen name="chat/[id]/search" options={{ title: 'Search' }} />
       <Stack.Screen name="chat/new" options={{ title: 'New chat', presentation: 'modal' }} />
     </Stack>
+    </PushProvider>
     </RealtimeProvider>
   );
 }

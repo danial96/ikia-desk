@@ -44,6 +44,13 @@ return [
         'channel_prefix' => env('PUSHER_CHANNEL_PREFIX'),
     ],
 
+    // Phone-app push goes through Expo's push service (no Firebase/Apple secrets on this server). The access token is
+    // optional: set it only if "enhanced push security" is switched on for the Expo project.
+    'expo_push' => [
+        'enabled'      => env('EXPO_PUSH_ENABLED', true),
+        'access_token' => env('EXPO_ACCESS_TOKEN'),
+    ],
+
     // Voice calls (WebRTC). STUN alone connects most networks; a TURN relay is what makes the rest work
     // (strict offices, mobile carriers). Either give static TURN credentials, or a Cloudflare Calls TURN key.
     'webrtc' => [

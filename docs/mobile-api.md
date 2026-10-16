@@ -85,6 +85,23 @@ While the app is open, call `GET chat/convs` about every 20 s: that heartbeat is
   browser session, so the app must fetch them as `https://desk.ikiatech.com/api/v1/uploads/up_x.png/Name.png` **with the bearer header**
   (rewrite the path: `/uploads/` → `/api/v1/uploads/`). Avatars (`/storage/...`, `/avatar-initials`) are public and need no header.
 
+## Push notifications (phones)
+
+The app registers its **Expo push token** (`ExponentPushToken[...]`) with `POST devices`. The server (`App\Support\MobilePush`) POSTs to Expo's push
+service, which delivers through Apple/Google, so the server holds no Firebase or Apple secrets. It is triggered from the same places as browser
+push (`App\Support\Push` fans out to both): new chat messages, mentions/replies, task alerts. People's "messages" / "tasks" notification switches
+apply. Voice-call rings are not sent to the app. Each push carries `data`:
+
+| key | meaning |
+|---|---|
+| `conversation_id` | open `/chat/{id}` |
+| `task_id` | open `/task/{id}` |
+| `url`, `type` | the website-style address and `message` / `task` |
+
+Android channels: `messages` (high) and `tasks`. A push for a chat or task replaces the previous one (`collapseId`). A phone Expo reports as
+`DeviceNotRegistered` is removed (only visible when the server sends synchronously; in production sending is a detached `curl`, so dead phones are
+dropped by the 90-day cleanup and on logout).
+
 ## Message text format (chat and task comments)
 
 `content` is plain text with tags the app must render:
