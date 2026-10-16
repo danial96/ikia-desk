@@ -1,12 +1,13 @@
 import { createContext, use, useEffect, useMemo, useState, type PropsWithChildren } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import Pusher from 'pusher-js/react-native';
+import type Pusher from 'pusher-js';
 
 import { fetchAppConfig } from '@/api/auth';
 import { getAuthToken } from '@/api/client';
 import { API_URL } from '@/config';
 import { useSession } from '@/auth/session';
 import { handleRealtime } from './events';
+import { createPusher } from './pusherClient';
 
 const RealtimeContext = createContext<{ connected: boolean }>({ connected: false });
 
@@ -36,7 +37,7 @@ export function RealtimeProvider({ children }: PropsWithChildren) {
       }
       if (cancelled || !cfg.realtime) return;
 
-      pusher = new Pusher(cfg.realtime.key, {
+      pusher = createPusher(cfg.realtime.key, {
         cluster: cfg.realtime.cluster,
         channelAuthorization: {
           endpoint: `${API_URL}/realtime/auth`,
@@ -58,7 +59,9 @@ export function RealtimeProvider({ children }: PropsWithChildren) {
         qc.invalidateQueries({ queryKey: ['chat'] });
         qc.invalidateQueries({ queryKey: ['notifications'] });
       });
-    })();
+    })().catch(() => {
+      /* live updates are a bonus: if they cannot start, screens simply keep polling */
+    });
 
     return () => {
       cancelled = true;
