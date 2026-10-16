@@ -22,7 +22,13 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK",
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -66,7 +72,12 @@
       ]
     ],
     "extra": {
-      "apiBaseUrl": "https://desk.ikiatech.com"
-    }
+      "apiBaseUrl": "https://desk.ikiatech.com",
+      "router": {},
+      "eas": {
+        "projectId": "d973f9f9-5718-45b5-bc8b-b33e7f4bb2d3"
+      }
+    },
+    "owner": "huzaifa36"
   }
 }
