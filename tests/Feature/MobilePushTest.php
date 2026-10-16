@@ -81,16 +81,30 @@ class MobilePushTest extends TestCase
         $this->assertSame([$good->push_token], array_column($this->sent(), 'to'));
     }
 
-    public function test_nothing_is_sent_without_phones_and_calls_never_ring_the_app(): void
+    public function test_nothing_is_sent_to_a_person_without_phones(): void
     {
         Http::fake();
         $u = $this->user();
 
         MobilePush::sendToUsers([$u->id], ['title' => 't', 'body' => 'b']);
-        $this->phone($u);
-        MobilePush::sendToUsers([$u->id], ['title' => 'Ali', 'body' => 'Incoming voice call', 'type' => 'call']);
 
         Http::assertNothingSent();
+    }
+
+    public function test_a_voice_call_rings_the_phone_on_its_own_loud_channel_and_names_the_call(): void
+    {
+        Http::fake([self::EXPO => Http::response(['data' => [['status' => 'ok']]])]);
+        $u = $this->user();
+        $this->phone($u);
+
+        MobilePush::sendToUsers([$u->id], ['title' => 'Ali', 'body' => 'Incoming voice call', 'url' => '/?call=88', 'tag' => 'call-88', 'type' => 'call', 'ttl' => 45]);
+
+        $m = $this->sent()[0];
+        $this->assertSame('calls', $m['channelId']);
+        $this->assertSame('high', $m['priority']);
+        $this->assertSame(45, $m['ttl']);
+        $this->assertSame(88, $m['data']['call_id']);
+        $this->assertSame('Incoming voice call', $m['body']);
     }
 
     public function test_it_can_be_switched_off(): void

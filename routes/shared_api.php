@@ -997,3 +997,13 @@ Route::post('/notifications/task/{taskId}/read', function ($taskId) {
         ->update(['read_at' => now()]);
     return response()->json(['ok' => true]);
 })->name('api.notifications.task-read');
+
+// ── Voice calls (WebRTC audio; signalling relayed over the realtime channel). Website and phone app use the same switchboard. ──
+Route::get('/calls/ice', [\App\Http\Controllers\CallController::class, 'ice'])->name('calls.ice');
+Route::post('/calls', [\App\Http\Controllers\CallController::class, 'start'])->name('calls.start');
+Route::get('/calls/{id}', [\App\Http\Controllers\CallController::class, 'show'])->whereNumber('id')->name('calls.show');
+Route::post('/calls/{id}/accept', [\App\Http\Controllers\CallController::class, 'accept'])->whereNumber('id')->name('calls.accept');
+Route::post('/calls/{id}/end', [\App\Http\Controllers\CallController::class, 'end'])->whereNumber('id')->name('calls.end');
+Route::post('/calls/{id}/ping', [\App\Http\Controllers\CallController::class, 'ping'])->whereNumber('id')->name('calls.ping');
+Route::post('/calls/{id}/diag', [\App\Http\Controllers\CallController::class, 'diag'])->whereNumber('id')->name('calls.diag');
+Route::post('/calls/{id}/signal', [\App\Http\Controllers\CallController::class, 'signal'])->whereNumber('id')->name('calls.signal');

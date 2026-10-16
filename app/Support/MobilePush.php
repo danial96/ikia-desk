@@ -30,11 +30,11 @@ class MobilePush
 
     /**
      * Push $payload (title/body/url/type/tag, the same shape WebPush takes) to every phone of the given users.
-     * Voice-call rings are website-only for now.
+     * A voice call rings the phone too (high-priority push on the "calls" channel; the app shows its incoming-call screen).
      */
     public static function sendToUsers(array $userIds, array $payload): void
     {
-        if (!self::enabled() || ($payload['type'] ?? '') === 'call') return;
+        if (!self::enabled()) return;
         $userIds = array_values(array_unique(array_map('intval', $userIds)));
         if (!$userIds) return;
 
@@ -67,6 +67,7 @@ class MobilePush
         $data = ['url' => $url, 'type' => $type];
         if (preg_match('/[?&]conv=(\d+)/', $url, $m)) $data['conversation_id'] = (int) $m[1];
         if (preg_match('/[?&]task=(\d+)/', $url, $m)) $data['task_id'] = (int) $m[1];
+        if (preg_match('/[?&]call=(\d+)/', $url, $m)) $data['call_id'] = (int) $m[1];
 
         return array_filter([
             'to'        => $to,
@@ -75,7 +76,7 @@ class MobilePush
             'data'      => $data,
             'sound'     => 'default',
             'priority'  => 'high',
-            'channelId' => $type === 'task' ? 'tasks' : 'messages',
+            'channelId' => match ($type) { 'task' => 'tasks', 'call' => 'calls', default => 'messages' },
             'ttl'       => (int) ($payload['ttl'] ?? 3600),
             // one notification per conversation / task replaces the previous one instead of piling up
             'collapseId' => $payload['tag'] ?? null,

@@ -445,6 +445,41 @@ class MobileApiTest extends TestCase
         $this->assertSame(1, $row['unread']);
     }
 
+    public function test_a_voice_call_can_be_placed_answered_signalled_and_ended_with_tokens(): void
+    {
+        config(['services.pusher' => ['app_id' => '1', 'key' => 'k', 'secret' => 's', 'cluster' => 'eu', 'channel_prefix' => null]]);
+        \Illuminate\Support\Facades\Http::fake(['*' => \Illuminate\Support\Facades\Http::response('{}', 200)]);
+        $caller = $this->user();
+        $callee = $this->user();
+        $c = $this->phone($caller);
+        $b = $this->phone($callee);
+
+        $this->withToken($c)->getJson('/api/v1/calls/ice')->assertOk()->assertJsonStructure(['iceServers']);
+
+        $id = $this->withToken($c)->postJson('/api/v1/calls', ['callee_id' => $callee->id])
+            ->assertOk()->assertJsonPath('call.status', 'ringing')->json('call.id');
+
+        // the person called is busy-checked and can see and answer it; a stranger cannot
+        $this->withToken($this->phone($this->user()))->getJson("/api/v1/calls/$id")->assertForbidden();
+        $this->withToken($b)->getJson("/api/v1/calls/$id")->assertOk()->assertJsonPath('call.caller.id', $caller->id);
+        $this->withToken($c)->postJson("/api/v1/calls/$id/accept")->assertForbidden();         // only the callee may answer
+        $this->withToken($b)->postJson("/api/v1/calls/$id/accept")->assertOk()->assertJsonPath('call.status', 'active');
+
+        $this->withToken($c)->postJson("/api/v1/calls/$id/signal", ['type' => 'offer', 'data' => ['type' => 'offer', 'sdp' => 'v=0']])->assertOk();
+        $this->withToken($b)->postJson("/api/v1/calls/$id/ping")->assertOk()->assertJsonPath('status', 'active');
+
+        $this->withToken($b)->postJson("/api/v1/calls/$id/end")->assertOk()->assertJsonPath('call.status', 'ended');
+        $this->withToken($c)->postJson("/api/v1/calls/$id/signal", ['type' => 'ice', 'data' => ['list' => []]])->assertStatus(409);
+        $this->assertDatabaseHas('messages', ['conversation_id' => \App\Models\Call::find($id)->conversation_id, 'user_id' => $caller->id]);
+    }
+
+    public function test_calls_are_off_when_realtime_is_not_set_up(): void
+    {
+        config(['services.pusher' => ['app_id' => null, 'key' => null, 'secret' => null, 'cluster' => null]]);
+
+        $this->withToken($this->phone($this->user()))->getJson('/api/v1/calls/ice')->assertNotFound();
+    }
+
     public function test_notifications_can_be_read_and_cleared_with_a_token(): void
     {
         $me = $this->user();

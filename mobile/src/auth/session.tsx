@@ -4,6 +4,8 @@ import { useQueryClient } from '@tanstack/react-query';
 import { fetchMe, login, logout } from '@/api/auth';
 import { ApiError, NetworkError, setApiHooks, setAuthToken } from '@/api/client';
 import type { UpdateInfo, UserPayload } from '@/api/types';
+import { callEngine } from '@/calls';
+import { setSessionUserId } from './sessionRef';
 import * as tokenStore from './tokenStore';
 
 export type SessionStatus = 'loading' | 'signedOut' | 'signedIn';
@@ -36,6 +38,7 @@ export function SessionProvider({ children }: PropsWithChildren) {
 
   /** Forget this phone's sign-in locally (the server may or may not know yet). */
   const clearLocal = useCallback(async () => {
+    callEngine.reset();
     setAuthToken(null);
     await tokenStore.clearSession();
     queryClient.clear();
@@ -104,6 +107,10 @@ export function SessionProvider({ children }: PropsWithChildren) {
     setUser(fresh);
     await tokenStore.saveUser(fresh);
   }, []);
+
+  useEffect(() => {
+    setSessionUserId(user?.id ?? null);
+  }, [user?.id]);
 
   const value = useMemo(
     () => ({ status, user, updateInfo, signIn, signOut, refreshUser }),

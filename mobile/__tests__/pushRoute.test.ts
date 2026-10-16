@@ -43,3 +43,14 @@ describe('activeChat', () => {
     expect(isChatOpen(undefined)).toBe(false);
   });
 });
+
+import { callIdFromNotification } from '@/push/route';
+
+describe('callIdFromNotification()', () => {
+  it('finds the ringing call in a push', () => {
+    expect(callIdFromNotification({ call_id: 88, type: 'call' })).toBe(88);
+    expect(callIdFromNotification({ url: '/?call=12' })).toBe(12);
+    expect(callIdFromNotification({ conversation_id: 3 })).toBeNull();
+    expect(callIdFromNotification(null)).toBeNull();
+  });
+});

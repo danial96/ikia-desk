@@ -12,7 +12,12 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.ikiatech.desk"
+      "bundleIdentifier": "com.ikiatech.desk",
+      "infoPlist": {
+        "UIBackgroundModes": [
+          "audio"
+        ]
+      }
     },
     "android": {
       "package": "com.ikiatech.desk",
@@ -68,6 +73,14 @@
           "icon": "./assets/notification-icon.png",
           "color": "#0b6b73",
           "defaultChannel": "messages"
+        }
+      ],
+      "expo-dev-client",
+      [
+        "@config-plugins/react-native-webrtc",
+        {
+          "cameraPermission": "IKIA Desk does not use the camera in calls.",
+          "microphonePermission": "IKIA Desk uses the microphone for voice calls and voice messages."
         }
       ]
     ],

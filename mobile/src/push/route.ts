@@ -8,6 +8,13 @@ const toId = (v: unknown): string | null => {
   return Number.isInteger(n) && n > 0 ? String(n) : null;
 };
 
+/** A ringing call: the push carries call_id. */
+export function callIdFromNotification(data: Record<string, unknown> | null | undefined): number | null {
+  const d = data ?? {};
+  const id = toId(d.call_id) ?? (typeof d.url === 'string' ? toId(d.url.match(/[?&]call=(\d+)/)?.[1]) : null);
+  return id ? Number(id) : null;
+}
+
 export function routeForNotification(data: Record<string, unknown> | null | undefined): Target {
   const d = data ?? {};
   const conv = toId(d.conversation_id) ?? (typeof d.url === 'string' ? toId(d.url.match(/[?&]conv=(\d+)/)?.[1]) : null);

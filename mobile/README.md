@@ -67,6 +67,19 @@ registers its Expo push token, shows alerts for chat messages and task activity,
 chats + unread alerts. A message for the chat you are reading makes no banner. **One-off setup**: `eas login`, `eas init` (writes
 `extra.eas.projectId` into app.json), then `eas credentials` / the first `eas build` creates the Apple push key and Google FCM key for you.
 
+## What works (Phase 6: voice calls)
+
+One-to-one voice calls from a direct chat (phone icon in the chat header), the same switchboard as the website, so a call can be website to phone or
+phone to phone. Incoming calls ring on a full screen (and as a loud push when the app is closed); mute, speaker, hang up, call time; a missed or finished
+call is written into the chat. The code is `src/calls/` (`engine.ts` is the whole call flow, covered by `__tests__/callEngine.test.ts` with a fake
+WebRTC; `CallOverlay.tsx` is the screen).
+
+**Calls cannot run in Expo Go**: `react-native-webrtc` and `react-native-incall-manager` are native code. Use the installed app: a development build
+(`eas build --profile development --platform android`, then `npx expo start --dev-client`) or the `.apk` from the `preview` profile. In Expo Go the call
+button explains this and everything else still works. They are also marked "untested on the New Architecture" by React Native Directory (doctor check
+excluded in package.json on purpose): **try a real call between two phones first** before telling the team calls work.
+Known limits: no CallKit / full-screen lock-screen ring yet (a loud push + the in-app screen instead), and an Android call may not survive long in the background.
+
 ## Releasing (one-time setup, then per release)
 
 You need an Expo account (free), and for stores: Google Play ($25 once) and/or Apple Developer ($99/year). Employees-only distribution works without stores:

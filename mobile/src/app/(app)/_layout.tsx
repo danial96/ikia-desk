@@ -1,5 +1,6 @@
 import { Stack } from 'expo-router';
 
+import { CallOverlay } from '@/calls/CallOverlay';
 import { PushProvider } from '@/push/PushProvider';
 import { RealtimeProvider } from '@/realtime/RealtimeProvider';
 import { useColors } from '@/theme';
@@ -26,6 +27,7 @@ export default function AppStack() {
       <Stack.Screen name="chat/[id]/search" options={{ title: 'Search' }} />
       <Stack.Screen name="chat/new" options={{ title: 'New chat', presentation: 'modal' }} />
     </Stack>
+    <CallOverlay />
     </PushProvider>
     </RealtimeProvider>
   );

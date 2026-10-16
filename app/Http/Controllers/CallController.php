@@ -8,7 +8,7 @@ use App\Models\Message;
 use App\Models\Notification;
 use App\Models\User;
 use App\Support\Realtime;
-use App\Support\WebPush;
+use App\Support\Push;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -183,7 +183,7 @@ class CallController extends Controller
         $state = $this->broadcast($call, $me->id);
 
         // Ring phones/browsers that have Desk closed. The page-open case is covered by the realtime event above.
-        WebPush::sendToUsers([$callee->id], [
+        Push::sendToUsers([$callee->id], [
             'title' => $me->name, 'body' => 'Incoming voice call', 'url' => '/?call=' . $call->id,
             'tag' => 'call-' . $call->id, 'type' => 'call', 'requireInteraction' => true, 'ttl' => 45, 'urgency' => 'high',
         ]);

@@ -4,6 +4,7 @@ import type Pusher from 'pusher-js';
 
 import { fetchAppConfig } from '@/api/auth';
 import { getAuthToken } from '@/api/client';
+import { callEngine } from '@/calls';
 import { API_URL } from '@/config';
 import { useSession } from '@/auth/session';
 import { handleRealtime } from './events';
@@ -53,11 +54,15 @@ export function RealtimeProvider({ children }: PropsWithChildren) {
 
       const channel = pusher.subscribe(channelName);
       for (const ev of EVENTS) channel.bind(ev, (data: unknown) => handleRealtime(qc, ev, data));
+      // voice calls: who is ringing / answered / hung up, and the connection handshake
+      channel.bind('call.state', (data: any) => callEngine.onState(data));
+      channel.bind('call.signal', (data: any) => void callEngine.onSignal(data));
       // after a reconnect we may have missed events: refetch what is on screen
       channel.bind('pusher:subscription_succeeded', () => {
         qc.invalidateQueries({ queryKey: ['convs'] });
         qc.invalidateQueries({ queryKey: ['chat'] });
         qc.invalidateQueries({ queryKey: ['notifications'] });
+        void callEngine.resync();
       });
     })().catch(() => {
       /* live updates are a bonus: if they cannot start, screens simply keep polling */

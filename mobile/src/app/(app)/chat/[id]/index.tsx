@@ -5,10 +5,11 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ApiError, type LocalFile } from '@/api/client';
-import { attachmentTag, discardLocal, loadOlder, uploadAttachment, useChat, useMessageActions, useSendMessage, useStartChats, type ChatMessage } from '@/api/chat';
+import { attachmentTag, discardLocal, loadOlder, uploadAttachment, useChat, useConversations, useMessageActions, useSendMessage, useStartChats, type ChatMessage } from '@/api/chat';
 import { useUsers } from '@/api/tasks';
 import { useSession } from '@/auth/session';
 import { Avatar } from '@/components/Avatar';
+import { callEngine } from '@/calls';
 import { Bubble } from '@/components/chat/Bubble';
 import { MessageComposer } from '@/components/MessageComposer';
 import { ActionSheet, PickerSheet } from '@/components/Sheet';
@@ -65,6 +66,10 @@ function Chat({ convId, user, data }: ChatProps) {
   const actions = useMessageActions(convId);
   const { leave } = useStartChats();
   const users = useUsers();
+  const convs = useConversations();
+  // a voice call needs a one-to-one chat and the live connection the server only has when realtime is set up
+  const otherId = direct ? (convs.data?.find((c) => c.id === convId)?.other_user_id ?? null) : null;
+  const canCall = !!otherId && !!user.realtime_channel;
 
   const [draft, setDraft] = useState('');
   const [replyTo, setReplyTo] = useState<ChatMessage | null>(null);
@@ -178,6 +183,11 @@ function Chat({ convId, user, data }: ChatProps) {
           ),
           headerRight: () => (
             <View style={{ flexDirection: 'row', gap: spacing.md }}>
+              {canCall ? (
+                <Pressable accessibilityRole="button" accessibilityLabel={`Call ${conv.name}`} onPress={() => void callEngine.start({ id: otherId!, name: conv.name, avatar: conv.avatar ?? '' })} hitSlop={8}>
+                  <Ionicons name="call" size={22} color={c.primary} />
+                </Pressable>
+              ) : null}
               <Pressable accessibilityRole="button" accessibilityLabel="Search in this chat" onPress={() => router.push({ pathname: '/chat/[id]/search', params: { id: String(convId) } })} hitSlop={8}>
                 <Ionicons name="search" size={22} color={c.primary} />
               </Pressable>

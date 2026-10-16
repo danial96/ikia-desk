@@ -90,13 +90,14 @@ While the app is open, call `GET chat/convs` about every 20 s: that heartbeat is
 The app registers its **Expo push token** (`ExponentPushToken[...]`) with `POST devices`. The server (`App\Support\MobilePush`) POSTs to Expo's push
 service, which delivers through Apple/Google, so the server holds no Firebase or Apple secrets. It is triggered from the same places as browser
 push (`App\Support\Push` fans out to both): new chat messages, mentions/replies, task alerts. People's "messages" / "tasks" notification switches
-apply. Voice-call rings are not sent to the app. Each push carries `data`:
+apply. A voice call rings the phone too (type `call`, Android channel `calls`, `data.call_id`). Each push carries `data`:
 
 | key | meaning |
 |---|---|
 | `conversation_id` | open `/chat/{id}` |
 | `task_id` | open `/task/{id}` |
-| `url`, `type` | the website-style address and `message` / `task` |
+| `call_id` | a ringing voice call (open the incoming-call screen if it still rings) |
+| `url`, `type` | the website-style address and `message` / `task` / `call` |
 
 Android channels: `messages` (high) and `tasks`. A push for a chat or task replaces the previous one (`collapseId`). A phone Expo reports as
 `DeviceNotRegistered` is removed (only visible when the server sends synchronously; in production sending is a detached `curl`, so dead phones are
@@ -113,6 +114,13 @@ dropped by the 90-day cleanup and on logout).
 Chat messages carry `createdTs` (unix seconds) — format it on the phone in `user.time_zone`. Task `deadline` is ISO-8601 in the viewer's own zone.
 Board cards carry pre-formatted deadline strings (`deadline`, `dl`) in the viewer's zone as well.
 
-## Not in the app (v1)
+## Voice calls
 
-Calls (`/api/calls/*` stay website-only), employees/permissions/projects management, the payment terminal.
+`GET calls/ice` · `POST calls {callee_id}` · `GET calls/{id}` · `POST calls/{id}/accept|end|ping|diag` · `POST calls/{id}/signal {type: offer|answer|ice, data}`.
+Same switchboard as the website (`CallController`): audio is phone-to-phone WebRTC, the server rings people and relays the handshake over the realtime
+channel (events `call.state` and `call.signal` on the user's private channel). Needs Pusher on the server (404 otherwise). One-to-one only. A call
+shows up in the chat as "Voice call · 2:31" or "Missed voice call".
+
+## Not in the app
+
+Employees/permissions/projects management and the payment terminal (use the website).

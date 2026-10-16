@@ -10,14 +10,16 @@ import { useConversations } from '@/api/chat';
 import { useNotifications } from '@/api/queries';
 import { APP_VERSION } from '@/config';
 import { useSession } from '@/auth/session';
+import { callEngine } from '@/calls';
 import { isChatOpen } from './activeChat';
-import { routeForNotification } from './route';
+import { callIdFromNotification, routeForNotification } from './route';
 
 // While the app is open: show the banner, unless it is about the chat the person is already reading.
 Notifications.setNotificationHandler({
   handleNotification: async (n) => {
     const data = n.request.content.data as Record<string, unknown> | undefined;
-    const reading = isChatOpen(data?.conversation_id);
+    // a call rings on its own full screen while the app is open; reading the chat a message belongs to needs no banner
+    const reading = isChatOpen(data?.conversation_id) || data?.type === 'call';
     return { shouldShowBanner: !reading, shouldShowList: !reading, shouldPlaySound: !reading, shouldSetBadge: false };
   },
 });
@@ -35,6 +37,7 @@ export function PushProvider({ children }: PropsWithChildren) {
       try {
         if (Platform.OS === 'android') {
           await Notifications.setNotificationChannelAsync('messages', { name: 'Messages', importance: Notifications.AndroidImportance.HIGH, vibrationPattern: [0, 250, 250, 250] });
+          await Notifications.setNotificationChannelAsync('calls', { name: 'Calls', importance: Notifications.AndroidImportance.MAX, vibrationPattern: [0, 600, 300, 600], sound: 'default' });
           await Notifications.setNotificationChannelAsync('tasks', { name: 'Tasks', importance: Notifications.AndroidImportance.DEFAULT });
         }
         let perm = await Notifications.getPermissionsAsync();
@@ -64,7 +67,10 @@ export function PushProvider({ children }: PropsWithChildren) {
     const id = last.notification.request.identifier;
     if (handled.current === id || last.actionIdentifier !== Notifications.DEFAULT_ACTION_IDENTIFIER) return;
     handled.current = id;
-    router.push(routeForNotification(last.notification.request.content.data as Record<string, unknown>));
+    const data = last.notification.request.content.data as Record<string, unknown>;
+    const callId = callIdFromNotification(data);
+    if (callId) void callEngine.openFromPush(callId);   // rings only if it is still ringing for me
+    else router.push(routeForNotification(data));
     Notifications.clearLastNotificationResponseAsync().catch(() => {});
   }, [last, user]);
 
