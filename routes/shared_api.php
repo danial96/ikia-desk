@@ -572,7 +572,7 @@ Route::get('/chat/convs', function () {
             'members'       => $c->members->count(),
             'unread'        => $unreadCounts->get($c->id, 0),
             'online'        => $online,
-            'lastMsg'       => $lm ? ['text'=>mb_substr($lm->content, 0, 600),'byMe'=>$lm->user_id===$user->id,'senderName'=>$lm->user?->name,'time'=>\App\Support\Tz::forViewer($lm->created_at, $user)->format('g:i a')] : null,
+            'lastMsg'       => $lm ? ['text'=>mb_substr($lm->content, 0, 600),'byMe'=>$lm->user_id===$user->id,'senderName'=>$lm->user?->name,'ts'=>$lm->created_at->timestamp,'time'=>\App\Support\Tz::forViewer($lm->created_at, $user)->format('g:i a')] : null,
         ];
     }
     return response()->json(['convs'=>$list]);

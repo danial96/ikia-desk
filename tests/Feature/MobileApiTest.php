@@ -419,6 +419,32 @@ class MobileApiTest extends TestCase
         }
     }
 
+    public function test_the_profile_names_the_realtime_channel_only_when_realtime_is_on(): void
+    {
+        $u = $this->user();
+        $t = $this->phone($u);
+
+        $this->withToken($t)->getJson('/api/v1/auth/me')->assertJsonPath('user.realtime_channel', null);
+
+        config(['services.pusher' => ['app_id' => '1', 'key' => 'k', 'secret' => 's', 'cluster' => 'eu', 'channel_prefix' => null]]);
+        $this->withToken($t)->getJson('/api/v1/auth/me')->assertJsonPath('user.realtime_channel', Realtime::userChannel($u->id));
+    }
+
+    public function test_the_conversation_list_carries_a_timestamp_for_the_last_message(): void
+    {
+        $me    = $this->user();
+        $alice = $this->user();
+        $conv  = Conversation::create(['type' => 'group', 'name' => 'Team', 'created_by' => $me->id]);
+        $conv->members()->attach([$me->id, $alice->id]);
+        $conv->messages()->create(['user_id' => $alice->id, 'content' => 'hello']);
+
+        $row = collect($this->withToken($this->phone($me))->getJson('/api/v1/chat/convs')->json('convs'))->firstWhere('id', $conv->id);
+
+        $this->assertSame('hello', $row['lastMsg']['text']);
+        $this->assertEqualsWithDelta(time(), $row['lastMsg']['ts'], 5);
+        $this->assertSame(1, $row['unread']);
+    }
+
     public function test_notifications_can_be_read_and_cleared_with_a_token(): void
     {
         $me = $this->user();

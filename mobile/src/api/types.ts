@@ -11,6 +11,8 @@ export type UserPayload = {
   phone: string | null;
   avatar: string;
   time_zone: string;
+  /** Private Pusher channel for live updates; null when the server has realtime off. */
+  realtime_channel: string | null;
   /** What to offer in the UI. The server still checks every action. */
   can: {
     view_all_tasks: boolean;

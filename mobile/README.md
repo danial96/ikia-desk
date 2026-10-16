@@ -53,6 +53,13 @@ Not yet: attaching files or photos to a task or comment (comes with the chat med
 Quick browser check without a phone: `EXPO_PUBLIC_API_URL=http://127.0.0.1:8000 npx expo start --web` (login works through a localStorage
 stand-in for the secure store; the deadline field is a plain text box there).
 
+## What works (Phase 3: messenger)
+
+Chat list (unread badges, online dot, search), new chat / new group, the chat itself (day headings, replies, reactions, edit, delete for me / for
+everyone, @mentions in groups, read/delivered ticks, failed-send retry, older messages on scroll-up, search inside a chat), photos / camera / files,
+voice messages (record and play), and photos or files attached to a task or a comment. Updates arrive live over Pusher when the server has it on
+(`/auth/me` returns `realtime_channel`); otherwise the screens poll (every 6 s in a chat, 20 s for the list).
+
 ## Notes
 
 - **Do not add packages with `npm install`**, use `npx expo install <pkg>` so versions match the SDK. `.npmrc` sets `legacy-peer-deps`

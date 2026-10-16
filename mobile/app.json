@@ -40,11 +40,23 @@
       ],
       "expo-font",
       "expo-sharing",
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "IKIA Desk needs your photos so you can send them in chats and tasks.",
+          "cameraPermission": "IKIA Desk needs the camera so you can take and send a photo.",
+          "microphonePermission": false
+        }
+      ],
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "IKIA Desk uses the microphone to record voice messages."
+        }
+      ],
+      "expo-asset"
     ],
-    "experiments": {
-      "typedRoutes": true
-    },
     "extra": {
       "apiBaseUrl": "https://desk.ikiatech.com"
     }

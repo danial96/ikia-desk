@@ -20,6 +20,8 @@ class ApiUser
             'phone'      => $u->phone,
             'avatar'     => $u->avatar_url,
             'time_zone'  => $u->viewTz(),
+            // The private Pusher channel this person listens on (null when realtime is not set up on the server).
+            'realtime_channel' => Realtime::enabled() ? Realtime::userChannel($u->id) : null,
             // What the app may offer. The server still checks every action; this only decides which buttons to show.
             'can' => [
                 'view_all_tasks'  => $u->canViewAllTasks(),

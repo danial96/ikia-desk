@@ -1,6 +1,6 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 
-import { api } from './client';
+import { api, uploadFile, type LocalFile } from './client';
 import type { Board, Page, ProjectLite, TaskCard, TaskDetail, TaskInput, TrashedTask, UserLite } from './types';
 
 export type TaskFilters = { status?: string; search?: string; priority?: string; project_id?: number; assignee_id?: number };
@@ -173,4 +173,13 @@ export function useChecklist(taskId: number) {
       onSuccess: done,
     }),
   };
+}
+
+/** Attach a file or photo to the task itself (the "Files" card), as opposed to inside a comment. */
+export function useAttachToTask(taskId: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (file: LocalFile) => uploadFile<{ ok: boolean }>(`local-task/${taskId}/attach`, file),
+    onSuccess: () => refreshTasks(qc, taskId),
+  });
 }

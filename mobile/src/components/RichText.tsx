@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { API_URL } from '@/config';
 import { fileHeaders, toApiFileUrl } from '@/api/client';
 import { openFile } from '@/lib/files';
+import { VoiceNote } from './VoiceNote';
 import { parseRich, type Block, type Span } from '@/lib/richText';
 import { spacing, useColors } from '@/theme';
 
@@ -57,13 +58,15 @@ function BlockView({ block, ink, size, numberOfLines, onImage }: { block: Block;
     );
   }
 
-  const label = block.type === 'file' ? block.name : `Voice message${block.duration ? ` · ${block.duration}` : ''}`;
-  const icon = block.type === 'file' ? '📎' : '🎤';
+  if (block.type === 'voice') return <VoiceNote url={block.url} duration={block.duration} />;
+
+  const label = block.name;
+  const icon = '📎';
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={label}
-      onPress={() => openFile(block.url, block.type === 'file' ? block.name : 'voice-message').catch((e) => Alert.alert('Could not open the file', e instanceof Error ? e.message : 'Try again.'))}
+      onPress={() => openFile(block.url, block.name).catch((e) => Alert.alert('Could not open the file', e instanceof Error ? e.message : 'Try again.'))}
       style={({ pressed }) => ({
         flexDirection: 'row',
         alignItems: 'center',

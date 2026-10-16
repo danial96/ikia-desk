@@ -77,7 +77,7 @@ function firstFieldError(errors: Record<string, string[]> | null): string | null
 }
 
 export async function api<T = unknown>(path: string, opts: RequestOptions = {}): Promise<T> {
-  const { method = 'GET', body, query, auth = true, signal, timeoutMs = 20000 } = opts;
+  const { method = 'GET', body, query, auth = true, signal, timeoutMs = body instanceof FormData ? 120000 : 20000 } = opts;
   const usedToken = auth ? authToken : null;
 
   const headers: Record<string, string> = {
@@ -85,7 +85,9 @@ export async function api<T = unknown>(path: string, opts: RequestOptions = {}):
     'X-App-Version': APP_VERSION,
   };
   if (usedToken) headers.Authorization = `Bearer ${usedToken}`;
-  if (body !== undefined) headers['Content-Type'] = 'application/json';
+  const isForm = typeof FormData !== 'undefined' && body instanceof FormData;
+  // a form sets its own Content-Type (with the multipart boundary), so it must not be set here
+  if (body !== undefined && !isForm) headers['Content-Type'] = 'application/json';
 
   // One controller covers both the timeout and a cancel coming from the caller (React Query passes one).
   const controller = new AbortController();
@@ -98,7 +100,7 @@ export async function api<T = unknown>(path: string, opts: RequestOptions = {}):
     res = await fetch(buildUrl(path, query), {
       method,
       headers,
-      body: body === undefined ? undefined : JSON.stringify(body),
+      body: body === undefined ? undefined : isForm ? (body as FormData) : JSON.stringify(body),
       signal: controller.signal,
     });
   } catch (e) {
@@ -153,4 +155,14 @@ export function toApiFileUrl(url: string): string {
 /** Headers an <Image>/download needs for files from toApiFileUrl(). */
 export function fileHeaders(): Record<string, string> {
   return authToken ? { Authorization: `Bearer ${authToken}` } : {};
+}
+
+export type LocalFile = { uri: string; name: string; mimeType?: string | null };
+
+/** POST a phone file (from the picker, camera or recorder) as multipart form data under the field "file". */
+export function uploadFile<T>(path: string, file: LocalFile, signal?: AbortSignal): Promise<T> {
+  const form = new FormData();
+  // React Native's FormData takes {uri, name, type} for a file on the phone; the DOM typings do not know that shape.
+  form.append('file', { uri: file.uri, name: file.name, type: file.mimeType || 'application/octet-stream' } as unknown as Blob);
+  return api<T>(path, { method: 'POST', body: form, signal });
 }

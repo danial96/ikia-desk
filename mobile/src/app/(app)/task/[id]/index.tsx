@@ -3,11 +3,14 @@ import { Alert, FlatList, KeyboardAvoidingView, Platform, Pressable, RefreshCont
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
-import { ApiError } from '@/api/client';
-import { useChecklist, useDeleteTask, useTask, useTaskComments, useUpdateField, useUsers, type TaskField } from '@/api/tasks';
+import { ApiError, type LocalFile } from '@/api/client';
+import { attachmentTag, uploadAttachment } from '@/api/chat';
+import { useAttachToTask, useChecklist, useDeleteTask, useTask, useTaskComments, useUpdateField, useUsers, type TaskField } from '@/api/tasks';
 import type { CommentItem, FeedItem, TaskDetail, TaskPriority, TaskStatus, UserPayload } from '@/api/types';
 import { useSession } from '@/auth/session';
 import { Avatar } from '@/components/Avatar';
+import { AttachSheet } from '@/components/AttachSheet';
+import { MessageComposer } from '@/components/MessageComposer';
 import { DeadlineField } from '@/components/DeadlineField';
 import { RichText } from '@/components/RichText';
 import { ActionSheet, PickerSheet } from '@/components/Sheet';
@@ -18,6 +21,7 @@ import { STATUS_LABEL } from '@/lib/format';
 import { openFile } from '@/lib/files';
 import { canDeleteComment, canEditComment, taskPerms } from '@/lib/permissions';
 import { hasAttachmentTags, plainText } from '@/lib/richText';
+import { isImage } from '@/lib/media';
 import { goBack } from '@/lib/nav';
 import { formatShort, isoToNaive } from '@/lib/time';
 import { priorityColor, spacing, useColors } from '@/theme';
@@ -68,6 +72,7 @@ function TaskBody({ taskId, detail, user, refreshing, onRefresh }: BodyProps) {
   const [draft, setDraft] = useState('');
   const [mentions, setMentions] = useState<number[]>([]);
   const [mentionSheet, setMentionSheet] = useState(false);
+  const [uploading, setUploading] = useState(0);
 
   const t = detail.task;
   const fail = (e: unknown) => Alert.alert('Could not save', errorMessage(e));
@@ -105,6 +110,29 @@ function TaskBody({ taskId, detail, user, refreshing, onRefresh }: BodyProps) {
         onError: fail,
       },
     );
+  }
+
+  /** Photos and files go into the comment as tags (like the website); whatever is typed goes with them. */
+  async function attachToComment(files: LocalFile[]) {
+    setUploading((n) => n + files.length);
+    try {
+      const tags: string[] = [];
+      for (const f of files) {
+        try {
+          tags.push(attachmentTag(isImage(f) ? 'image' : 'file', await uploadAttachment(f)));
+        } finally {
+          setUploading((n) => n - 1);
+        }
+      }
+      const content = [draft.trim(), ...tags].filter(Boolean).join('\n');
+      comments.add.mutate(
+        { content, parent_id: replyTo?.id ?? null },
+        { onSuccess: () => { setDraft(''); setReplyTo(null); setTimeout(() => list.current?.scrollToEnd({ animated: true }), 400); }, onError: fail },
+      );
+    } catch (e) {
+      setUploading(0);
+      fail(e);
+    }
   }
 
   const commentActions = commentMenu
@@ -186,15 +214,18 @@ function TaskBody({ taskId, detail, user, refreshing, onRefresh }: BodyProps) {
         }
       />
 
-      <Composer
+      {uploading > 0 ? <Text style={{ color: c.subtext, fontSize: 12, paddingHorizontal: spacing.md, paddingVertical: 4, backgroundColor: c.bg }}>Uploading {uploading} {uploading === 1 ? 'file' : 'files'}…</Text> : null}
+      <MessageComposer
         draft={draft}
         onChange={setDraft}
         onSend={send}
         busy={comments.add.isPending || comments.edit.isPending}
-        replyTo={replyTo}
-        editing={editing}
-        onCancel={() => { setReplyTo(null); setEditing(null); if (editing) setDraft(''); }}
+        placeholder="Write a comment"
+        editing={!!editing}
+        banner={editing ? 'Editing your comment' : replyTo ? `Replying to ${replyTo.author.name}` : null}
+        onCancelBanner={() => { setReplyTo(null); setEditing(null); if (editing) setDraft(''); }}
         onMention={() => setMentionSheet(true)}
+        onAttach={attachToComment}
       />
 
       <ActionSheet
@@ -267,6 +298,8 @@ function Header({ detail, user, perms, onStatus, onPriority, onAssignee, onDeadl
   const [more, setMore] = useState(false);
   const long = plainText(t.description).length > 280 || hasAttachmentTags(t.description);
   const check = useChecklist(t.id);
+  const attach = useAttachToTask(t.id);
+  const [attachOpen, setAttachOpen] = useState(false);
   const [item, setItem] = useState('');
 
   const card = { backgroundColor: c.card, borderRadius: 14, borderWidth: 1, borderColor: c.border, padding: spacing.md, gap: spacing.sm, marginHorizontal: spacing.md } as const;
@@ -354,9 +387,16 @@ function Header({ detail, user, perms, onStatus, onPriority, onAssignee, onDeadl
         </View>
       ) : null}
 
-      {detail.localFiles.length > 0 ? (
+      {detail.localFiles.length > 0 || perms.canChecklist ? (
         <View style={card}>
-          <Text style={{ color: c.subtext, fontSize: 13, fontWeight: '700' }}>Files · {detail.localFiles.length}</Text>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Text style={{ color: c.subtext, fontSize: 13, fontWeight: '700' }}>Files{detail.localFiles.length ? ` · ${detail.localFiles.length}` : ''}</Text>
+            {perms.canChecklist ? (
+              <Pressable accessibilityRole="button" accessibilityLabel="Attach a file to this task" onPress={() => setAttachOpen(true)} hitSlop={8} disabled={attach.isPending}>
+                <Text style={{ color: c.primary, fontWeight: '800' }}>{attach.isPending ? 'Uploading…' : '+ Attach'}</Text>
+              </Pressable>
+            ) : null}
+          </View>
           {detail.localFiles.map((f) => (
             <Pressable
               key={f.id}
@@ -375,6 +415,21 @@ function Header({ detail, user, perms, onStatus, onPriority, onAssignee, onDeadl
       ) : null}
 
       <Text style={{ color: c.subtext, fontSize: 13, fontWeight: '700', paddingHorizontal: spacing.md }}>Comments & history</Text>
+
+      <AttachSheet
+        visible={attachOpen}
+        onClose={() => setAttachOpen(false)}
+        onPicked={async (files) => {
+          for (const f of files) {
+            try {
+              await attach.mutateAsync(f);
+            } catch (e) {
+              Alert.alert('Could not attach', errorMessage(e));
+              break;
+            }
+          }
+        }}
+      />
     </View>
   );
 
@@ -449,62 +504,5 @@ function Names({ list }: { list: string[] }) {
     <Text style={{ color: c.text, fontSize: 14, textAlign: 'right', flexShrink: 1 }} numberOfLines={2}>
       {list.join(', ')}
     </Text>
-  );
-}
-
-// ── Composer ──────────────────────────────────────────────────────────────────────────────────────────────────────
-
-type ComposerProps = {
-  draft: string;
-  onChange: (t: string) => void;
-  onSend: () => void;
-  busy: boolean;
-  replyTo: CommentItem | null;
-  editing: CommentItem | null;
-  onCancel: () => void;
-  onMention: () => void;
-};
-
-function Composer({ draft, onChange, onSend, busy, replyTo, editing, onCancel, onMention }: ComposerProps) {
-  const c = useColors();
-  const banner = editing ? 'Editing your comment' : replyTo ? `Replying to ${replyTo.author.name}` : null;
-  return (
-    <View style={{ backgroundColor: c.card, borderTopWidth: 1, borderTopColor: c.border, padding: spacing.sm, gap: 6 }}>
-      {banner ? (
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 4 }}>
-          <Text style={{ color: c.primary, fontSize: 12, fontWeight: '700' }} numberOfLines={1}>
-            {banner}
-          </Text>
-          <Pressable accessibilityRole="button" accessibilityLabel="Cancel" onPress={onCancel} hitSlop={8}>
-            <Text style={{ color: c.subtext, fontSize: 12 }}>✕ Cancel</Text>
-          </Pressable>
-        </View>
-      ) : null}
-      <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: spacing.sm }}>
-        {!editing ? (
-          <Pressable accessibilityRole="button" accessibilityLabel="Mention someone" onPress={onMention} hitSlop={6} style={{ paddingBottom: 10 }}>
-            <Text style={{ color: c.primary, fontSize: 22, fontWeight: '800' }}>@</Text>
-          </Pressable>
-        ) : null}
-        <TextInput
-          value={draft}
-          onChangeText={onChange}
-          placeholder="Write a comment"
-          placeholderTextColor={c.subtext}
-          multiline
-          accessibilityLabel="Write a comment"
-          style={{ flex: 1, minHeight: 42, maxHeight: 120, borderRadius: 20, borderWidth: 1, borderColor: c.border, paddingHorizontal: 14, paddingTop: 10, paddingBottom: 10, color: c.text, backgroundColor: c.inputBg, fontSize: 15 }}
-        />
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={editing ? 'Save comment' : 'Send comment'}
-          accessibilityState={{ disabled: !draft.trim() || busy }}
-          onPress={onSend}
-          disabled={!draft.trim() || busy}
-          style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: draft.trim() && !busy ? c.primary : c.border, alignItems: 'center', justifyContent: 'center' }}>
-          <Ionicons name={editing ? 'checkmark' : 'send'} size={20} color={c.onPrimary} />
-        </Pressable>
-      </View>
-    </View>
   );
 }
