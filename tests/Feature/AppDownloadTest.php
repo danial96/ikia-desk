@@ -68,13 +68,14 @@ class AppDownloadTest extends TestCase
         $this->assertStringContainsString('qrcode', file_get_contents(public_path('vendor/qrcode.js')));
     }
 
-    public function test_the_release_note_for_the_app_is_new_and_last(): void
+    public function test_the_release_note_for_the_app_exists_and_release_ids_are_unique_and_ascending(): void
     {
         $releases = require resource_path('whatsnew.php');
         $ids = array_column($releases, 'id');
 
         $this->assertSame($ids, array_values(array_unique($ids)), 'release ids must be unique');
-        $this->assertSame(max($ids), end($releases)['id']);
-        $this->assertStringContainsString('phone app', implode(' ', end($releases)['items']));
+        $sorted = $ids; sort($sorted);
+        $this->assertSame($sorted, $ids, 'newest release last');
+        $this->assertStringContainsString('phone app', implode(' ', array_merge(...array_column($releases, 'items'))));
     }
 }

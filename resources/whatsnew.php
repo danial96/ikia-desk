@@ -158,4 +158,10 @@ return [
             'New: the IKIA Desk phone app. Tasks and chats stay in sync with this computer. Tap "Download app" in the sidebar.',
         ],
     ],
+    [
+        'id' => 25, 'date' => '2026-10-22',
+        'items' => [
+            'Fixed: dropping several pictures into a new task now keeps all of them.',
+        ],
+    ],
 ];

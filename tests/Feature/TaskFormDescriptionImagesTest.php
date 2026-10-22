@@ -52,4 +52,16 @@ class TaskFormDescriptionImagesTest extends TestCase
         // editing keeps the [img] markers in the text
         $this->assertStringContainsString("m => '\\u0001' + (keep.push(m) - 1) + '\\u0002'", $html);
     }
+
+    public function test_dropping_several_pictures_never_loses_one_between_the_box_and_the_saved_text(): void
+    {
+        $html = $this->page();
+
+        // a caret sitting inside a <br> used to push the next picture INTO it, where it was never read
+        $this->assertStringContainsString("if (r.startContainer.nodeName === 'BR') { r.setStartBefore(r.startContainer); r.collapse(true); }", $html);
+        $this->assertStringContainsString('if (firstBr) nr.setStartBefore(firstBr); else nr.setStart(after, 0);', $html);
+        $this->assertStringContainsString("if (c.firstChild) walk(c); }       // (a picture wrongly nested in a <br> is still read)", $html);
+        // the upload does not depend on the placeholder
+        $this->assertStringContainsString('} catch (e) { ph = null; }', $html);
+    }
 }

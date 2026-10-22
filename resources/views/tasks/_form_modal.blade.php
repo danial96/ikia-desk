@@ -1508,9 +1508,13 @@
             for (var c = node.firstChild; c; c = c.nextSibling) {
                 if (c.nodeType === 3) { out += c.nodeValue.replace(/ /g, ' '); }
                 else if (c.nodeType === 1) {
-                    if (c.classList.contains('nt-ed-img')) { nl(); out += '[img]' + c.getAttribute('data-url') + '[/img]\n'; }
+                    if (c.classList.contains('nt-ed-img')) {
+                        nl(); out += '[img]' + c.getAttribute('data-url') + '[/img]\n';
+                        // a picture that ended up inside another one's wrapper must not be lost
+                        Array.prototype.forEach.call(c.querySelectorAll('.nt-ed-img'), function(n) { out += '[img]' + n.getAttribute('data-url') + '[/img]\n'; });
+                    }
                     else if (c.classList.contains('nt-ed-up')) { /* still uploading */ }
-                    else if (c.tagName === 'BR') { out += '\n'; }
+                    else if (c.tagName === 'BR') { out += '\n'; if (c.firstChild) walk(c); }       // (a picture wrongly nested in a <br> is still read)
                     else if (c.tagName === 'DIV' || c.tagName === 'P') { nl(); walk(c); }
                     else { walk(c); }
                 }
@@ -1595,6 +1599,11 @@
         var ed = ntEd();
         ntEdRestoreCaret();
         var r = window.getSelection().getRangeAt(0);
+        // a caret "inside" a <br> would put the node INSIDE it (it is then lost): move it just before the <br>
+        if (r.startContainer.nodeName === 'BR') { r.setStartBefore(r.startContainer); r.collapse(true); }
+        var host = r.startContainer.nodeType === 1 ? r.startContainer : r.startContainer.parentNode;
+        host = host && host.closest ? host.closest('.nt-ed-img, .nt-ed-up') : null;
+        if (host) { r.setStartAfter(host); r.collapse(true); }       // put it after that picture, never inside it
         r.deleteContents();
         r.insertNode(node);
         var after = node.nextSibling;
@@ -1606,7 +1615,8 @@
             after = d;
         }
         var nr = document.createRange();
-        nr.setStart(after, 0);
+        var firstBr = after.nodeName === 'BR' ? after : (after.nodeType === 1 && after.firstChild && after.firstChild.nodeName === 'BR' ? after.firstChild : null);
+        if (firstBr) nr.setStartBefore(firstBr); else nr.setStart(after, 0);       // never inside a <br>
         nr.collapse(true);
         ntEdPlaceCaret(nr);
         _ntRange = nr.cloneRange();
@@ -1638,11 +1648,13 @@
         ntRenderAttachments();
         var ph = null;
         if (inline && isImage) {
-            ph = document.createElement('span');
-            ph.className = 'nt-ed-up';
-            ph.contentEditable = 'false';
-            ph.textContent = 'Uploading ' + file.name + '…';
-            ntEdInsertNode(ph);
+            try {
+                ph = document.createElement('span');
+                ph.className = 'nt-ed-up';
+                ph.contentEditable = 'false';
+                ph.textContent = 'Uploading ' + file.name + '…';
+                ntEdInsertNode(ph);
+            } catch (e) { ph = null; }           // the upload goes on without a placeholder
         }
         try {
             var fd = new FormData();
@@ -1654,7 +1666,10 @@
             var done = { name: file.name, url: d.url, isImage: isImage, ext: ext, uploading: false };
             var i = _ntAtt.indexOf(rec);
             if (i >= 0) _ntAtt[i] = done;
-            if (ph && ph.parentNode) ph.parentNode.replaceChild(ntMakeImg(d.url), ph);
+            if (inline && isImage) {
+                if (ph && ph.parentNode) ph.parentNode.replaceChild(ntMakeImg(d.url), ph);
+                else { try { ntEdInsertNode(ntMakeImg(d.url)); } catch (e2) { ntEd().appendChild(ntMakeImg(d.url)); } }
+            }
         } catch (e) {
             var j = _ntAtt.indexOf(rec);
             if (j >= 0) _ntAtt.splice(j, 1);
