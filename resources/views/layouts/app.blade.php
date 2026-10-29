@@ -1160,6 +1160,20 @@ document.addEventListener('paste', function (e) {
         t.dispatchEvent(new Event('input', { bubbles: true }));
     }
 }, true);
+/* Keeps a chat list pinned to its newest message while images finish loading, but only until the reader scrolls
+   themselves: after that, nothing may pull them back down. Returns the "go to the bottom" function for one redraw. */
+window.chatPin = function (el) {
+    if (!el._pinWired) {
+        el._pinWired = true;
+        const moved = function () { el._userMoved = true; };
+        el.addEventListener('wheel', moved, { passive: true });
+        el.addEventListener('touchmove', moved, { passive: true });
+        el.addEventListener('keydown', moved);
+        el.addEventListener('mousedown', function (e) { if (e.target === el) el._userMoved = true; });     // the scrollbar itself
+    }
+    el._userMoved = false;
+    return function () { if (!el._userMoved) el.scrollTop = el.scrollHeight + 9999; };
+};
 // Clicking a reply's quoted preview jumps to (and briefly highlights) the original message —
 // shared by chat, the chat popup, and task comments, all of which render a quote preview above
 // a reply. Only works if the original message is already in the DOM (no older-message lazy-load).
@@ -1777,7 +1791,7 @@ function chatRenderMsgs(msgs) {
     });
 
     el.innerHTML = `<div id="chat-msg-inner" style="margin:auto auto 0;width:100%;max-width:900px;display:flex;flex-direction:column;gap:3px;">${html}</div>`;
-    const goBottomChat = () => { el.scrollTop = el.scrollHeight + 9999; };
+    const goBottomChat = window.chatPin(el);          // pins to the newest message while images load; stops once the reader scrolls
     goBottomChat();
     el.querySelectorAll('img').forEach(function(img) {
         if (!img.complete) img.addEventListener('load', goBottomChat, { once: true });
@@ -3614,12 +3628,17 @@ document.addEventListener('load', function (e) {
         return (btns[id] = b);
     }
     function update() {
+        let shown = false;          // only ever one arrow: the list that is really on top
         IDS.forEach(function (id) {
             const el = document.getElementById(id), b = btns[id] || mk(id);
             const r = el && el.getBoundingClientRect();
             const visible = el && r.width > 0 && r.height > 80 && getComputedStyle(el).visibility !== 'hidden';
-            const far = visible && (el.scrollHeight - el.scrollTop - el.clientHeight) > 300;
+            // a list hidden under another panel (the popup chat over the Messenger page, a task over a chat…) gets no arrow
+            let covered = false;
+            if (visible) { const t = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); covered = !!t && !el.contains(t); }
+            const far = visible && !covered && !shown && (el.scrollHeight - el.scrollTop - el.clientHeight) > 300;
             if (!far) { b.style.display = 'none'; return; }
+            shown = true;
             b.style.display = 'flex';
             b.style.left = Math.round(r.right - 12 - 42 - 14) + 'px';
             b.style.top = Math.round(r.bottom - 42 - 16) + 'px';

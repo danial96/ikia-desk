@@ -164,4 +164,10 @@ return [
             'Fixed: dropping several pictures into a new task now keeps all of them.',
         ],
     ],
+    [
+        'id' => 26, 'date' => '2026-10-29',
+        'items' => [
+            'Fixed: chat jumped back to the newest message while you were scrolling up. Also only one "scroll to newest" arrow shows now.',
+        ],
+    ],
 ];

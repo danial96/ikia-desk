@@ -837,7 +837,7 @@ window.cpSelect = async function(id) {
         const _cpChanged = !_cpCached || JSON.stringify(_initMsgs) !== JSON.stringify(_cpCached.messages);
         window._cpMsgCache[id] = { messages: _initMsgs, hasMore: _cpHasMore, convType: _cpConvType };
         LocalCache.set('msgs', id, { messages: _initMsgs.slice(-40), hasMore: _cpHasMore || _initMsgs.length > 40, convType: _cpConvType });
-        if (_cpChanged) cpRenderMsgs(_initMsgs, true);
+        if (_cpChanged) { const _ma = document.getElementById('cp-msg-area'); const _moved = !!(_ma && _ma._userMoved); cpRenderMsgs(_initMsgs, !_moved, _moved); }   // already scrolling? then don't pull them down
         setTimeout(function () { const a = document.getElementById('cp-msg-area'); if (a && a.scrollHeight <= a.clientHeight + 40) cpLoadOlderMsgs(); }, 300);
         if (_initMsgs.length) {
             _cpLastMsgId  = Math.max(..._initMsgs.map(m => m.id));
@@ -905,9 +905,11 @@ function cpDayLabel(dateStr) {
     return new Date(dateStr).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
 }
 
-function cpRenderMsgs(msgs, scrollToBottom) {
+// keepPlace: the reader has already scrolled away, so a redraw must leave them where they are
+function cpRenderMsgs(msgs, scrollToBottom, keepPlace) {
     const el = document.getElementById('cp-msg-area');
     const wasNearBottom = (el.scrollHeight - el.scrollTop) < (el.clientHeight + 140);
+    const prevDist = el.scrollHeight - el.scrollTop;          // distance from the bottom before the redraw
 
     if (!msgs.length) {
         el.innerHTML = '<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:rgba(255,255,255,.7);font-size:13px;font-weight:500;"><i class="fas fa-comment-dots" style="font-size:32px;color:rgba(255,255,255,.4);"></i>No messages yet — say hello!</div>';
@@ -937,10 +939,12 @@ function cpRenderMsgs(msgs, scrollToBottom) {
 
     const newCount = msgs.length;
     const hasNew   = newCount > _cpMsgCount;
-    const doScroll = scrollToBottom || hasNew || wasNearBottom;
+    const doScroll = !keepPlace && (scrollToBottom || hasNew || wasNearBottom);
     if (hasNew) _cpMsgCount = newCount;
 
-    const goBottom = () => { el.scrollTop = el.scrollHeight + 9999; };
+    // pins to the newest message while images load, but lets go as soon as the reader scrolls themselves
+    const goBottom = doScroll ? window.chatPin(el) : null;
+    if (!doScroll) el.scrollTop = el.scrollHeight - prevDist;     // keep the reader exactly where they were
     if (doScroll) {
         requestAnimationFrame(function() {
             goBottom();
